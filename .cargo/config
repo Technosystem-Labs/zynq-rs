@@ -1,0 +1,11 @@
+[target.armv7-unknown-linux-gnueabihf]
+runner = "./runner.sh"
+linker = "arm-none-eabihf-gcc"
+rustflags = [
+  "-C", "link-arg=-Wl,-Tlink.x",
+  "-C", "target-feature=a9,armv7-a,neon",
+  "-C", "target-cpu=cortex-a9",
+]
+
+[build]
+target = "armv7-unknown-linux-gnueabihf"

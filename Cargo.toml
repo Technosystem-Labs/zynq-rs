@@ -1,0 +1,19 @@
+[package]
+name = "zc706"
+version = "0.0.0"
+authors = ["Astro <astro@spaceboyz.net>"]
+edition = "2018"
+
+[profile.dev]
+panic = "abort"
+lto = false
+[profile.release]
+panic = "abort"
+lto = false
+debug = true
+
+[dependencies]
+panic-abort = "0.3"
+r0 = "0.2"
+volatile-register = "0.2"
+bit_field = "0.10"
