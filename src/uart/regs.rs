@@ -11,7 +11,7 @@ pub enum ParityMode {
     ForceTo1   = 0b011,
 }
 
-#[repr(packed)]
+#[repr(C)]
 pub struct RegisterBlock {
     control: Control,
     mode: Mode,

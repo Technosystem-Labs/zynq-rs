@@ -16,7 +16,7 @@ pub trait Register {
 #[macro_export]
 macro_rules! register {
     ($mod_name: ident, $struct_name: ident, $inner: ty) => (
-        #[repr(packed)]
+        #[repr(C)]
         pub struct $struct_name {
             inner: RW<$inner>,
         }
