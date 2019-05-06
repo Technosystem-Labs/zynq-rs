@@ -7,6 +7,7 @@
 use panic_abort as _;
 use r0::zero_bss;
 
+mod regs;
 mod cortex_a9;
 mod slcr;
 mod uart;

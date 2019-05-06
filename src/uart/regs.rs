@@ -1,27 +1,60 @@
 use volatile_register::{RO, WO, RW};
 use bit_field::BitField;
 
+use crate::{register, register_bit, register_bits, regs::Register};
+
+#[repr(u8)]
+pub enum ParityMode {
+    EvenParity = 0b000,
+    OddParity  = 0b001,
+    ForceTo0   = 0b010,
+    ForceTo1   = 0b011,
+}
+
 #[repr(packed)]
 pub struct RegisterBlock {
-    pub control: RW<u32>,
-    pub mode: RW<u32>,
-    pub intrpt_en: RW<u32>,
-    pub intrpt_dis: RW<u32>,
-    pub intrpt_mask: RO<u32>,
-    pub chnl_int_sts: WO<u32>,
-    pub baud_rate_gen: RW<u32>,
-    pub rcvr_timeout: RW<u32>,
-    pub rcvr_fifo_trigger_level: RW<u32>,
-    pub modem_ctrl: RW<u32>,
-    pub modem_sts: RW<u32>,
-    pub channel_sts: RO<u32>,
-    pub tx_rx_fifo: RW<u32>,
-    pub baud_rate_divider: RW<u32>,
-    pub flow_delay: RW<u32>,
-    pub reserved0: RO<u32>,
-    pub reserved1: RO<u32>,
-    pub tx_fifo_trigger_level: RW<u32>,
+    control: Control,
+    mode: Mode,
+    intrpt_en: RW<u32>,
+    intrpt_dis: RW<u32>,
+    intrpt_mask: RO<u32>,
+    chnl_int_sts: WO<u32>,
+    baud_rate_gen: BaudRateGen,
+    rcvr_timeout: RW<u32>,
+    rcvr_fifo_trigger_level: RW<u32>,
+    modem_ctrl: RW<u32>,
+    modem_sts: RW<u32>,
+    channel_sts: ChannelSts,
+    tx_rx_fifo: TxRxFifo,
+    baud_rate_divider: BaudRateDiv,
+    flow_delay: RW<u32>,
+    reserved0: RO<u32>,
+    reserved1: RO<u32>,
+    tx_fifo_trigger_level: RW<u32>,
 }
+
+register!(control, Control, u32);
+register_bit!(control, rxrst, 0);
+register_bit!(control, txrst, 1);
+register_bit!(control, rxen, 2);
+register_bit!(control, rxdis, 3);
+register_bit!(control, txen, 4);
+register_bit!(control, txdis, 5);
+
+register!(mode, Mode, u32);
+register_bits!(mode, par, u8, 3, 5);
+
+register!(baud_rate_gen, BaudRateGen, u32);
+register_bits!(baud_rate_gen, cd, u16, 0, 15);
+
+register!(channel_sts, ChannelSts, u32);
+register_bit!(channel_sts, txfull, 4);
+
+register!(tx_rx_fifo, TxRxFifo, u32);
+register_bits!(tx_rx_fifo, data, u32, 0, 31);
+
+register!(baud_rate_div, BaudRateDiv, u32);
+register_bits!(baud_rate_div, bdiv, u8, 0, 7);
 
 impl RegisterBlock {
     const UART0: *mut Self = 0xE0000000 as *mut _;
@@ -36,90 +69,74 @@ impl RegisterBlock {
     }
 
     pub fn configure(&self) {
-        unsafe {
-            // Confiugre UART character frame
-            // * Disable clock-divider
-            // * 8-bit
-            // * no parity
-            // * 1 stop bit
-            // * Normal channel mode
-            self.mode.write(0x20);
+        // Confiugre UART character frame
+        // * Disable clock-divider
+        // * 8-bit
+        // * 1 stop bit
+        // * Normal channel mode
+        // * no parity
+        let parity_mode = ParityMode::ForceTo0;
+        self.mode.write(Mode::zeroed().par(parity_mode as u8));
 
-            // Configure the Buad Rate
-            self.disable_rx();
-            self.disable_tx();
+        // Configure the Baud Rate
+        self.disable_rx();
+        self.disable_tx();
 
-            // 9,600 baud
-            self.baud_rate_gen.write(651);
-            self.baud_rate_divider.write(7);
+        // 9,600 baud
+        self.baud_rate_gen.write(BaudRateGen::zeroed().cd(651));
+        self.baud_rate_divider.write(BaudRateDiv::zeroed().bdiv(7));
 
-            self.reset_rx();
-            self.reset_tx();
-            self.enable_rx();
-            self.enable_tx();
-        }
+        self.reset_rx();
+        self.reset_tx();
+        self.enable_rx();
+        self.enable_tx();
     }
 
-    pub unsafe fn write_byte(&self, value: u8) {
-        self.tx_rx_fifo.write(value.into());
+    pub fn write_byte(&self, value: u8) {
+        self.tx_rx_fifo.write(TxRxFifo::zeroed().data(value.into()));
     }
 
-    const CONTROL_RXEN: usize = 2;
-    const CONTROL_RXDIS: usize = 3;
-    const CONTROL_TXEN: usize = 4;
-    const CONTROL_TXDIS: usize = 5;
-    const CONTROL_TXRST: usize = 1;
-    const CONTROL_RXRST: usize = 0;
-
-    unsafe fn disable_rx(&self) {
-        self.control.modify(|mut x| {
-            x.set_bit(Self::CONTROL_RXEN, false);
-            x.set_bit(Self::CONTROL_RXDIS, true);
-            x
+    fn disable_rx(&self) {
+        self.control.modify(|_, w| {
+            w.rxen(false)
+             .rxdis(true)
         })
     }
     
-    unsafe fn disable_tx(&self) {
-        self.control.modify(|mut x| {
-            x.set_bit(Self::CONTROL_TXEN, false);
-            x.set_bit(Self::CONTROL_TXDIS, true);
-            x
+    fn disable_tx(&self) {
+        self.control.modify(|_, w| {
+            w.txen(false)
+             .txdis(true)
         })
     }
     
-    unsafe fn enable_rx(&self) {
-        self.control.modify(|mut x| {
-            x.set_bit(Self::CONTROL_RXEN, true);
-            x.set_bit(Self::CONTROL_RXDIS, false);
-            x
+    fn enable_rx(&self) {
+        self.control.modify(|_, w| {
+            w.rxen(true)
+             .rxdis(false)
         })
     }
     
-    unsafe fn enable_tx(&self) {
-        self.control.modify(|mut x| {
-            x.set_bit(Self::CONTROL_TXEN, true);
-            x.set_bit(Self::CONTROL_TXDIS, false);
-            x
+    fn enable_tx(&self) {
+        self.control.modify(|_, w| {
+            w.txen(true)
+             .txdis(false)
         })
     }
     
-    unsafe fn reset_rx(&self) {
-        self.control.modify(|mut x| {
-            x.set_bit(Self::CONTROL_RXRST, true);
-            x
+    fn reset_rx(&self) {
+        self.control.modify(|_, w| {
+            w.rxrst(true)
         })
     }
     
-    unsafe fn reset_tx(&self) {
-        self.control.modify(|mut x| {
-            x.set_bit(Self::CONTROL_TXRST, true);
-            x
+    fn reset_tx(&self) {
+        self.control.modify(|_, w| {
+            w.txrst(true)
         })
     }
-
-    const CHANNEL_STS_TXFULL: usize = 4;
     
     pub fn tx_fifo_full(&self) -> bool {
-        self.channel_sts.read().get_bit(Self::CHANNEL_STS_TXFULL)
+        self.channel_sts.read().txfull()
     }
 }
