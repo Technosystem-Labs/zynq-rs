@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 mod regs;
 pub use regs::RegisterBlock;
 
@@ -25,10 +27,8 @@ impl Uart {
     }
 
     pub fn write_byte(&self, v: u8) {
-        unsafe {
-            while self.regs.tx_fifo_full() {}
+        while self.regs.tx_fifo_full() {}
 
-            self.regs.write_byte(v);
-        }
+        self.regs.write_byte(v);
     }
 }

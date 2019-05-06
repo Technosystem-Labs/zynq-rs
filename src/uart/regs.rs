@@ -1,7 +1,6 @@
 use volatile_register::{RO, WO, RW};
-use bit_field::BitField;
 
-use crate::{register, register_bit, register_bits, regs::Register};
+use crate::{register, register_bit, register_bits, regs::*};
 
 #[repr(u8)]
 pub enum ParityMode {
@@ -33,7 +32,7 @@ pub struct RegisterBlock {
     tx_fifo_trigger_level: RW<u32>,
 }
 
-register!(control, Control, u32);
+register!(control, Control, RW, u32);
 register_bit!(control, rxrst, 0);
 register_bit!(control, txrst, 1);
 register_bit!(control, rxen, 2);
@@ -41,19 +40,19 @@ register_bit!(control, rxdis, 3);
 register_bit!(control, txen, 4);
 register_bit!(control, txdis, 5);
 
-register!(mode, Mode, u32);
+register!(mode, Mode, RW, u32);
 register_bits!(mode, par, u8, 3, 5);
 
-register!(baud_rate_gen, BaudRateGen, u32);
+register!(baud_rate_gen, BaudRateGen, RW, u32);
 register_bits!(baud_rate_gen, cd, u16, 0, 15);
 
-register!(channel_sts, ChannelSts, u32);
+register!(channel_sts, ChannelSts, RO, u32);
 register_bit!(channel_sts, txfull, 4);
 
-register!(tx_rx_fifo, TxRxFifo, u32);
+register!(tx_rx_fifo, TxRxFifo, RW, u32);
 register_bits!(tx_rx_fifo, data, u32, 0, 31);
 
-register!(baud_rate_div, BaudRateDiv, u32);
+register!(baud_rate_div, BaudRateDiv, RW, u32);
 register_bits!(baud_rate_div, bdiv, u8, 0, 7);
 
 impl RegisterBlock {

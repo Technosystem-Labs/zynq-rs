@@ -1,6 +1,6 @@
-use volatile_register::{RO, WO, RW};
+#[allow(unused)]
 
-use crate::{register, register_bit, register_bits, regs::Register};
+use crate::{register, register_bit, register_bits, regs::RegisterRW};
 
 pub enum PllSource {
     IoPll  = 0b00,
@@ -8,7 +8,7 @@ pub enum PllSource {
     DdrPll = 0b11,
 }
 
-register!(uart_clk_ctrl, UartClkCtrl, u32);
+register!(uart_clk_ctrl, UartClkCtrl, RW, u32);
 register_bit!(uart_clk_ctrl, clkact0, 0);
 register_bit!(uart_clk_ctrl, clkact1, 1);
 register_bits!(uart_clk_ctrl, divisor, u8, 8, 13);
@@ -32,7 +32,7 @@ impl UartClkCtrl {
     }
 }
 
-register!(uart_rst_ctrl, UartRstCtrl, u32);
+register!(uart_rst_ctrl, UartRstCtrl, RW, u32);
 register_bit!(uart_rst_ctrl, uart0_ref_rst, 3);
 register_bit!(uart_rst_ctrl, uart1_ref_rst, 2);
 register_bit!(uart_rst_ctrl, uart0_cpu1x_rst, 1);

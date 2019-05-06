@@ -1,24 +1,37 @@
 //! Interface to peripheral registers akin to the code that svd2rust
 //! generates.
+#![allow(unused)]
 
 use volatile_register::{RO, WO, RW};
 use bit_field::BitField;
 
-pub trait Register {
+/// A readable register
+pub trait RegisterR {
+    /// Type-safe reader for the register value
     type R;
-    type W;
 
     fn read(&self) -> Self::R;
+}
+/// A writable register
+pub trait RegisterW {
+    /// Type-safe writer to the register value
+    type W;
+
+    fn zeroed() -> Self::W;
     fn write(&self, w: Self::W);
-    fn modify<F: FnOnce(Self::R, Self::W) -> Self::W>(&self, f: F);
+}
+/// A modifiable register
+pub trait RegisterRW: RegisterR + RegisterW {
+    fn modify<F: FnOnce(<Self as RegisterR>::R, <Self as RegisterW>::W) -> <Self as RegisterW>::W>(&self, f: F);
 }
 
+#[doc(hidden)]
 #[macro_export]
-macro_rules! register {
-    ($mod_name: ident, $struct_name: ident, $inner: ty) => (
+macro_rules! register_common {
+    ($mod_name: ident, $struct_name: ident, $access: ty, $inner: ty) => (
         #[repr(C)]
         pub struct $struct_name {
-            inner: RW<$inner>,
+            inner: $access,
         }
 
         pub mod $mod_name {
@@ -29,20 +42,31 @@ macro_rules! register {
                 pub inner: $inner,
             }
         }
-
-        impl $struct_name {
-            pub fn zeroed() -> $mod_name::Write {
-                $mod_name::Write { inner: 0 }
-            }
-        }
-
-        impl crate::regs::Register for $struct_name {
+    );
+}
+#[doc(hidden)]
+#[macro_export]
+macro_rules! register_r {
+    ($mod_name: ident, $struct_name: ident) => (
+        impl crate::regs::RegisterR for $struct_name {
             type R = $mod_name::Read;
-            type W = $mod_name::Write;
 
             fn read(&self) -> Self::R {
                 let inner = self.inner.read();
                 $mod_name::Read { inner }
+            }
+        }
+    );
+}
+#[doc(hidden)]
+#[macro_export]
+macro_rules! register_w {
+    ($mod_name: ident, $struct_name: ident) => (
+         impl crate::regs::RegisterW for $struct_name {
+            type W = $mod_name::Write;
+
+            fn zeroed() -> $mod_name::Write {
+                $mod_name::Write { inner: 0 }
             }
 
             fn write(&self, w: Self::W) {
@@ -50,7 +74,14 @@ macro_rules! register {
                     self.inner.write(w.inner);
                 }
             }
-
+        }
+     );
+}
+#[doc(hidden)]
+#[macro_export]
+macro_rules! register_rw {
+    ($mod_name: ident, $struct_name: ident) => (
+        impl crate::regs::RegisterRW for $struct_name {
             fn modify<F: FnOnce(Self::R, Self::W) -> Self::W>(&self, f: F) {
                 unsafe {
                     self.inner.modify(|inner| {
@@ -63,6 +94,31 @@ macro_rules! register {
     );
 }
 
+/// Main macro for register definition
+#[macro_export]
+macro_rules! register {
+    // Define read-only register
+    ($mod_name: ident, $struct_name: ident, RO, $inner: ty) => (
+        crate::register_common!($mod_name, $struct_name, volatile_register::RO<$inner>, $inner);
+        crate::register_r!($mod_name, $struct_name);
+    );
+
+    // Define write-only register
+    ($mod_name: ident, $struct_name: ident, WO, $inner: ty) => (
+        crate::register_common!($mod_name, $struct_name, volatile_register::WO<$inner>, $inner);
+        crate::register_w!($mod_name, $struct_name);
+    );
+
+    // Define read-write register
+    ($mod_name: ident, $struct_name: ident, RW, $inner: ty) => (
+        crate::register_common!($mod_name, $struct_name, volatile_register::RW<$inner>, $inner);
+        crate::register_r!($mod_name, $struct_name);
+        crate::register_w!($mod_name, $struct_name);
+        crate::register_rw!($mod_name, $struct_name);
+    );
+}
+
+/// Define a 1-bit field of a register
 #[macro_export]
 macro_rules! register_bit {
     ($mod_name: ident, $name: ident, $bit: expr) => (
@@ -85,6 +141,7 @@ macro_rules! register_bit {
     );
 }
 
+/// Define a multi-bit field of a register
 #[macro_export]
 macro_rules! register_bits {
     ($mod_name: ident, $name: ident, $type: ty, $bit_begin: expr, $bit_end: expr) => (
