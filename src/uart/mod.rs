@@ -1,5 +1,7 @@
 #![allow(unused)]
 
+use core::fmt;
+
 mod regs;
 pub use regs::RegisterBlock;
 
@@ -30,5 +32,14 @@ impl Uart {
         while self.regs.tx_fifo_full() {}
 
         self.regs.write_byte(v);
+    }
+}
+
+impl fmt::Write for Uart {
+    fn write_str(&mut self, s: &str) -> Result<(), fmt::Error> {
+        for b in s.bytes() {
+            self.write_byte(b);
+        }
+        Ok(())
     }
 }

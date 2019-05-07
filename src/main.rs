@@ -4,6 +4,8 @@
 //[feature(global_asm)]
 #![feature(naked_functions)]
 
+use core::fmt::Write;
+
 use panic_abort as _;
 use r0::zero_bss;
 
@@ -44,8 +46,6 @@ pub unsafe extern "C" fn _boot_cores() -> ! {
 }
 
 fn main() {
-    let uart = Uart::uart0();
-    for b in "Hello World\r\n".bytes() {
-        uart.write_byte(b);
-    }
+    let mut uart = Uart::uart0();
+    writeln!(uart, "Hello World\r").unwrap();
 }
