@@ -123,7 +123,7 @@ macro_rules! register {
 macro_rules! register_bit {
     ($mod_name: ident, $name: ident, $bit: expr) => (
         impl $mod_name::Read {
-            fn $name(&self) -> bool {
+            pub fn $name(&self) -> bool {
                 use bit_field::BitField;
 
                 self.inner.get_bit($bit)
@@ -131,7 +131,7 @@ macro_rules! register_bit {
         }
 
         impl $mod_name::Write {
-            fn $name(mut self, value: bool) -> Self {
+            pub fn $name(mut self, value: bool) -> Self {
                 use bit_field::BitField;
 
                 self.inner.set_bit($bit, value);
@@ -146,7 +146,7 @@ macro_rules! register_bit {
 macro_rules! register_bits {
     ($mod_name: ident, $name: ident, $type: ty, $bit_begin: expr, $bit_end: expr) => (
         impl $mod_name::Read {
-            fn $name(&self) -> $type {
+            pub fn $name(&self) -> $type {
                 use bit_field::BitField;
 
                 self.inner.get_bits($bit_begin..=$bit_end) as $type
@@ -154,7 +154,7 @@ macro_rules! register_bits {
         }
 
         impl $mod_name::Write {
-            fn $name(mut self, value: $type) -> Self {
+            pub fn $name(mut self, value: $type) -> Self {
                 use bit_field::BitField;
 
                 self.inner.set_bits($bit_begin..=$bit_end, value.into());
