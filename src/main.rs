@@ -14,6 +14,7 @@ mod cortex_a9;
 mod slcr;
 mod uart;
 use uart::Uart;
+mod eth;
 
 extern "C" {
     static mut __bss_start: u32;
@@ -48,4 +49,8 @@ pub unsafe extern "C" fn _boot_cores() -> ! {
 fn main() {
     let mut uart = Uart::uart0();
     writeln!(uart, "Hello World\r").unwrap();
+
+    let eth = eth::Eth::gem0();
+    loop {
+    }
 }
