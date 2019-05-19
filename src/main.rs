@@ -29,21 +29,24 @@ pub unsafe extern "C" fn _boot_cores() -> ! {
     use cortex_a9::{asm, regs::*};
 
     const CORE_MASK: u32 = 0x3;
-    // End of OCM RAM
-    const STACK_START: u32 = 256 << 10;
+    let stack_start = __end + 4096;
 
     match MPIDR.get() & CORE_MASK {
         0 => {
-            SP.set(STACK_START);
-            zero_bss(&mut __bss_start, &mut __bss_end);
-            main();
-            panic!("return from main");
+            SP.set(stack_start);
+            boot_core0();
         }
         _ => loop {
             // if not core0, infinitely wait for events
             asm::wfe();
         },
     }
+}
+
+unsafe fn boot_core0() -> ! {
+    zero_bss(&mut __bss_start, &mut __bss_end);
+    main();
+    panic!("return from main");
 }
 
 fn main() {
