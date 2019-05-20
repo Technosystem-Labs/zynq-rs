@@ -75,6 +75,17 @@ impl UartClkCtrl {
              .clkact0(true)
         })
     }
+
+    pub fn enable_uart1(&self) {
+        self.modify(|_, w| {
+            // a. Clock divisor, slcr.UART_CLK_CTRL[DIVISOR] = 0x14.
+            // b. Select the IO PLL, slcr.UART_CLK_CTRL[SRCSEL] = 0.
+            // c. Enable the UART 1 Reference clock, slcr.UART_CLK_CTRL [CLKACT1] = 1.
+            w.divisor(0x14)
+             .srcsel(PllSource::IoPll as u8)
+             .clkact1(true)
+        })
+    }
 }
 
 register!(uart_rst_ctrl, UartRstCtrl, RW, u32);

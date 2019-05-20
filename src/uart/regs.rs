@@ -2,6 +2,13 @@ use volatile_register::{RO, WO, RW};
 
 use crate::{register, register_bit, register_bits, register_at, regs::*};
 
+pub enum ChannelMode {
+    Normal = 0b00,
+    AutomaticEcho = 0b01,
+    LocalLoopback = 0b10,
+    RemoteLoopback = 0b11,
+}
+
 #[repr(C)]
 pub struct RegisterBlock {
     pub control: Control,
@@ -33,8 +40,13 @@ register_bit!(control, rxen, 2);
 register_bit!(control, rxdis, 3);
 register_bit!(control, txen, 4);
 register_bit!(control, txdis, 5);
+register_bit!(control, rstto, 6);
+register_bit!(control, sttbrk, 7);
+register_bit!(control, stpbrk, 8);
 
 register!(mode, Mode, RW, u32);
+/// Channel mode: Defines the mode of operation of the UART.
+register_bits!(mode, chmode, u8, 8, 9);
 register_bits!(mode, par, u8, 3, 5);
 
 register!(baud_rate_gen, BaudRateGen, RW, u32);

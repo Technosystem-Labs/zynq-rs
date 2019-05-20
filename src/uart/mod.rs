@@ -1,6 +1,7 @@
 #![allow(unused)]
 
 use core::fmt;
+use volatile_register::RW;
 
 use crate::regs::*;
 
@@ -19,16 +20,28 @@ pub struct Uart {
 }
 
 impl Uart {
-    pub fn uart0() -> Self {
-        let uart_rst_ctrl = super::slcr::UartRstCtrl::new();
-        uart_rst_ctrl.reset_uart0();
-        // TODO: Route UART 0 RxD/TxD Signals to MIO Pins
+    pub fn uart1() -> Self {
+        super::slcr::with_slcr(|| {
+            let uart_rst_ctrl = super::slcr::UartRstCtrl::new();
+            uart_rst_ctrl.reset_uart1();
 
-        let uart_clk_ctrl = super::slcr::UartClkCtrl::new();
-        uart_clk_ctrl.enable_uart0();
+            // Route UART 1 RxD/TxD Signals to MIO Pins
+            unsafe {
+                // TX pin
+                let mio_pin_48 = &*(0xF80007C0 as *const RW<u32>);
+                mio_pin_48.write(0x0000_12E0);
+                // RX pin
+                let mio_pin_49 = &*(0xF80007C4 as *const RW<u32>);
+                mio_pin_49.write(0x0000_12E1);
+            }
 
+            let aper_clk_ctrl = super::slcr::AperClkCtrl::new();
+            aper_clk_ctrl.enable_uart1();
+            let uart_clk_ctrl = super::slcr::UartClkCtrl::new();
+            uart_clk_ctrl.enable_uart1();
+        });
         let self_ = Uart {
-            regs: regs::RegisterBlock::uart0(),
+            regs: regs::RegisterBlock::uart1(),
         };
         self_.configure();
         self_
@@ -54,20 +67,25 @@ impl Uart {
         self.regs.mode.write(
             regs::Mode::zeroed()
                 .par(parity_mode as u8)
+                .chmode(regs::ChannelMode::AutomaticEcho as u8)
         );
 
         // Configure the Baud Rate
         self.disable_rx();
         self.disable_tx();
 
-        // 9,600 baud
-        self.regs.baud_rate_gen.write(regs::BaudRateGen::zeroed().cd(651));
-        self.regs.baud_rate_divider.write(regs::BaudRateDiv::zeroed().bdiv(7));
+        // 115,200 baud
+        self.regs.baud_rate_gen.write(regs::BaudRateGen::zeroed().cd(0x28B));
+        self.regs.baud_rate_divider.write(regs::BaudRateDiv::zeroed().bdiv(0xF));
 
+        // Enable controller
         self.reset_rx();
         self.reset_tx();
         self.enable_rx();
         self.enable_tx();
+
+        self.set_rx_timeout(false);
+        self.set_break(false, true);
     }
 
     fn disable_rx(&self) {
@@ -107,6 +125,20 @@ impl Uart {
     fn reset_tx(&self) {
         self.regs.control.modify(|_, w| {
             w.txrst(true)
+        })
+    }
+
+    fn set_break(&self, startbrk: bool, stopbrk: bool) {
+        self.regs.control.modify(|_, w| {
+            w.sttbrk(startbrk)
+             .stpbrk(stopbrk)
+        })
+    }
+
+    // 0 disables
+    fn set_rx_timeout(&self, enable: bool) {
+        self.regs.control.modify(|_, w| {
+            w.rstto(enable)
         })
     }
 
