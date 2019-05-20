@@ -1,6 +1,6 @@
 #[allow(unused)]
 
-use crate::{register, register_bit, register_bits, regs::RegisterRW};
+use crate::{register, register_bit, register_bits, register_at, regs::RegisterW, regs::RegisterRW};
 
 pub enum PllSource {
     IoPll  = 0b00,
@@ -13,13 +13,8 @@ register_bit!(uart_clk_ctrl, clkact0, 0);
 register_bit!(uart_clk_ctrl, clkact1, 1);
 register_bits!(uart_clk_ctrl, divisor, u8, 8, 13);
 register_bits!(uart_clk_ctrl, srcsel, u8, 4, 5);
+register_at!(UartClkCtrl, 0xF8000154, new);
 impl UartClkCtrl {
-    const ADDR: *mut Self = 0xF8000154 as *mut _;
-
-    pub fn new() -> &'static mut Self {
-        unsafe { &mut *Self::ADDR }
-    }
-    
     pub fn enable_uart0(&self) {
         self.modify(|_, w| {
             // a. Clock divisor, slcr.UART_CLK_CTRL[DIVISOR] = 0x14.
@@ -37,13 +32,8 @@ register_bit!(uart_rst_ctrl, uart0_ref_rst, 3);
 register_bit!(uart_rst_ctrl, uart1_ref_rst, 2);
 register_bit!(uart_rst_ctrl, uart0_cpu1x_rst, 1);
 register_bit!(uart_rst_ctrl, uart1_cpu1x_rst, 0);
+register_at!(UartRstCtrl, 0xF8000228, new);
 impl UartRstCtrl {
-    const ADDR: *mut Self = 0xF8000228 as *mut _;
-
-    pub fn new() -> &'static mut Self {
-        unsafe { &mut *Self::ADDR }
-    }
-
     pub fn reset_uart0(&self) {
         self.modify(|_, w| w.uart0_ref_rst(true));
         self.modify(|_, w| w.uart0_ref_rst(false));

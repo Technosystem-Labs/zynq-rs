@@ -1,6 +1,6 @@
 use volatile_register::{RO, WO, RW};
 
-use crate::{register, register_bit, register_bits, regs::*};
+use crate::{register, register_bit, register_bits, register_at, regs::*};
 
 #[repr(C)]
 pub struct RegisterBlock {
@@ -23,6 +23,8 @@ pub struct RegisterBlock {
     pub unused1: RO<u32>,
     pub tx_fifo_trigger_level: RW<u32>,
 }
+register_at!(RegisterBlock, 0xE0000000, uart0);
+register_at!(RegisterBlock, 0xE0001000, uart1);
 
 register!(control, Control, RW, u32);
 register_bit!(control, rxrst, 0);
@@ -46,16 +48,3 @@ register_bits!(tx_rx_fifo, data, u32, 0, 31);
 
 register!(baud_rate_div, BaudRateDiv, RW, u32);
 register_bits!(baud_rate_div, bdiv, u8, 0, 7);
-
-impl RegisterBlock {
-    const UART0: *mut Self = 0xE0000000 as *mut _;
-    const UART1: *mut Self = 0xE0001000 as *mut _;
-
-    pub fn uart0() -> &'static mut Self {
-        unsafe { &mut *Self::UART0 }
-    }
-
-    pub fn uart1() -> &'static mut Self {
-        unsafe { &mut *Self::UART1 }
-    }
-}

@@ -163,3 +163,15 @@ macro_rules! register_bits {
         }
     );
 }
+
+#[macro_export]
+macro_rules! register_at {
+    ($name: ident, $addr: expr, $ctor: ident) => (
+        impl $name {
+            pub fn $ctor() -> &'static mut Self {
+                let addr = $addr as *mut Self;
+                unsafe { &mut *addr }
+            }
+        }
+    )
+}
