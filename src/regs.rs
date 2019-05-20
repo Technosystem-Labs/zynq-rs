@@ -1,5 +1,5 @@
-//! Interface to peripheral registers akin to the code that svd2rust
-//! generates.
+//! Type-safe interface to peripheral registers akin to the code that
+//! svd2rust generates.
 #![allow(unused)]
 
 use volatile_register::{RO, WO, RW};

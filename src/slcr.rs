@@ -8,6 +8,56 @@ pub enum PllSource {
     DdrPll = 0b11,
 }
 
+pub fn with_slcr<F: FnMut() -> R, R>(mut f: F) -> R {
+    unsafe { SlcrUnlock::new() }.unlock();
+    let r = f();
+    unsafe { SlcrLock::new() }.lock();
+    r
+}
+
+register!(slcr_lock, SlcrLock, WO, u32);
+register_bits!(slcr_lock, lock_key, u16, 0, 15);
+register_at!(SlcrLock, 0xF8000004, new);
+impl SlcrLock {
+    pub fn lock(&self) {
+        unsafe {
+            self.write(
+                Self::zeroed()
+                    .lock_key(0x767B)
+            );
+        }
+    }
+}
+
+register!(slcr_unlock, SlcrUnlock, WO, u32);
+register_bits!(slcr_unlock, unlock_key, u16, 0, 15);
+register_at!(SlcrUnlock, 0xF8000008, new);
+impl SlcrUnlock {
+    pub fn unlock(&self) {
+        unsafe {
+            self.write(
+                Self::zeroed()
+                    .unlock_key(0xDF0D)
+            );
+        }
+    }
+}
+
+register!(aper_clk_ctrl, AperClkCtrl, RW, u32);
+register_bit!(aper_clk_ctrl, uart1_cpu_1xclkact, 21);
+register_bit!(aper_clk_ctrl, uart0_cpu_1xclkact, 20);
+register_at!(AperClkCtrl, 0xF800012C, new);
+impl AperClkCtrl {
+    pub fn enable_uart0(&self) {
+        self.modify(|_, w| w.uart0_cpu_1xclkact(true));
+    }
+
+    pub fn enable_uart1(&self) {
+        self.modify(|_, w| w.uart1_cpu_1xclkact(true));
+    }
+}
+
+
 register!(uart_clk_ctrl, UartClkCtrl, RW, u32);
 register_bit!(uart_clk_ctrl, clkact0, 0);
 register_bit!(uart_clk_ctrl, clkact1, 1);
