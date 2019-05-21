@@ -3,9 +3,9 @@ use volatile_register::{RO, WO, RW};
 use crate::{register, register_bit, register_bits, register_at, regs::*};
 
 pub enum ChannelMode {
-    Normal = 0b00,
-    AutomaticEcho = 0b01,
-    LocalLoopback = 0b10,
+    Normal         = 0b00,
+    AutomaticEcho  = 0b01,
+    LocalLoopback  = 0b10,
     RemoteLoopback = 0b11,
 }
 
@@ -14,9 +14,14 @@ pub enum ParityMode {
     OddParity  = 0b001,
     ForceTo0   = 0b010,
     ForceTo1   = 0b011,
-    None       = 0b111,
+    None       = 0b100,
 }
 
+pub enum StopBits {
+    One        = 0b00,
+    OneAndHalf = 0b01,
+    Two        = 0b10,
+}
 
 #[repr(C)]
 pub struct RegisterBlock {
@@ -56,7 +61,14 @@ register_bit!(control, stpbrk, 8);
 register!(mode, Mode, RW, u32);
 /// Channel mode: Defines the mode of operation of the UART.
 register_bits!(mode, chmode, u8, 8, 9);
+/// Number of stop bits
+register_bits!(mode, nbstop, u8, 6, 7);
+/// Parity type select
 register_bits!(mode, par, u8, 3, 5);
+/// Character length select
+register_bits!(mode, chrl, u8, 1, 2);
+/// Clock source select
+register_bit!(mode, clks, 0);
 
 register!(baud_rate_gen, BaudRateGen, RW, u32);
 register_bits!(baud_rate_gen, cd, u16, 0, 15);
