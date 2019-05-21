@@ -7,14 +7,6 @@ use crate::regs::*;
 
 mod regs;
 
-#[repr(u8)]
-pub enum ParityMode {
-    EvenParity = 0b000,
-    OddParity  = 0b001,
-    ForceTo0   = 0b010,
-    ForceTo1   = 0b011,
-}
-
 pub struct Uart {
     regs: &'static mut regs::RegisterBlock,
 }
@@ -63,24 +55,28 @@ impl Uart {
         // * 1 stop bit
         // * Normal channel mode
         // * no parity
-        let parity_mode = ParityMode::ForceTo0;
+        let parity_mode = regs::ParityMode::None;
         self.regs.mode.write(
             regs::Mode::zeroed()
                 .par(parity_mode as u8)
-                .chmode(regs::ChannelMode::AutomaticEcho as u8)
+                .chmode(regs::ChannelMode::Normal as u8)
         );
 
         // Configure the Baud Rate
         self.disable_rx();
         self.disable_tx();
 
-        // 115,200 baud
-        self.regs.baud_rate_gen.write(regs::BaudRateGen::zeroed().cd(0x28B));
-        self.regs.baud_rate_divider.write(regs::BaudRateDiv::zeroed().bdiv(0xF));
+        // 9,600 baud
+        self.regs.baud_rate_gen.write(regs::BaudRateGen::zeroed().cd(651));
+        self.regs.baud_rate_divider.write(regs::BaudRateDiv::zeroed().bdiv(7));
+        // // 115,200 baud
+        // self.regs.baud_rate_gen.write(regs::BaudRateGen::zeroed().cd(62));
+        // self.regs.baud_rate_divider.write(regs::BaudRateDiv::zeroed().bdiv(6));
 
         // Enable controller
         self.reset_rx();
         self.reset_tx();
+        self.wait_reset();
         self.enable_rx();
         self.enable_tx();
 
@@ -126,6 +122,15 @@ impl Uart {
         self.regs.control.modify(|_, w| {
             w.txrst(true)
         })
+    }
+
+    /// Wait for `reset_rx()` or `reset_tx()` to complete
+    fn wait_reset(&self) {
+        let mut pending = true;
+        while pending {
+            let control = self.regs.control.read();
+            pending = control.rxrst() || control.txrst();
+        }
     }
 
     fn set_break(&self, startbrk: bool, stopbrk: bool) {

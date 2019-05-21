@@ -9,6 +9,15 @@ pub enum ChannelMode {
     RemoteLoopback = 0b11,
 }
 
+pub enum ParityMode {
+    EvenParity = 0b000,
+    OddParity  = 0b001,
+    ForceTo0   = 0b010,
+    ForceTo1   = 0b011,
+    None       = 0b111,
+}
+
+
 #[repr(C)]
 pub struct RegisterBlock {
     pub control: Control,

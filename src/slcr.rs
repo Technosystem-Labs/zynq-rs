@@ -96,12 +96,24 @@ register_bit!(uart_rst_ctrl, uart1_cpu1x_rst, 0);
 register_at!(UartRstCtrl, 0xF8000228, new);
 impl UartRstCtrl {
     pub fn reset_uart0(&self) {
-        self.modify(|_, w| w.uart0_ref_rst(true));
-        self.modify(|_, w| w.uart0_ref_rst(false));
+        self.modify(|_, w|
+            w.uart0_ref_rst(true)
+             .uart0_cpu1x_rst(true)
+        );
+        self.modify(|_, w|
+            w.uart0_ref_rst(false)
+             .uart0_cpu1x_rst(false)
+        );
     }
 
     pub fn reset_uart1(&self) {
-        self.modify(|_, w| w.uart1_ref_rst(true));
-        self.modify(|_, w| w.uart1_ref_rst(false));
+        self.modify(|_, w|
+            w.uart1_ref_rst(true)
+             .uart1_cpu1x_rst(true)
+        );
+        self.modify(|_, w|
+            w.uart1_ref_rst(false)
+             .uart1_cpu1x_rst(false)
+        );
     }
 }
