@@ -6,6 +6,7 @@ use volatile_register::RW;
 use crate::regs::*;
 
 mod regs;
+mod baud_rate_gen;
 
 pub struct Uart {
     regs: &'static mut regs::RegisterBlock,
@@ -49,12 +50,12 @@ impl Uart {
     }
 
     pub fn configure(&self) {
-        // Confiugre UART character frame
+        // Configure UART character frame
         // * Disable clock-divider
         // * 8-bit
         // * 1 stop bit
         // * Normal channel mode
-        // * no parity
+        // * No parity
         let parity_mode = regs::ParityMode::None;
         self.regs.mode.write(
             regs::Mode::zeroed()
@@ -66,12 +67,7 @@ impl Uart {
         self.disable_rx();
         self.disable_tx();
 
-        // 9,600 baud
-        self.regs.baud_rate_gen.write(regs::BaudRateGen::zeroed().cd(651));
-        self.regs.baud_rate_divider.write(regs::BaudRateDiv::zeroed().bdiv(7));
-        // // 115,200 baud
-        // self.regs.baud_rate_gen.write(regs::BaudRateGen::zeroed().cd(62));
-        // self.regs.baud_rate_divider.write(regs::BaudRateDiv::zeroed().bdiv(6));
+        baud_rate_gen::configure(&self.regs, 50_000_000, 9_600);
 
         // Enable controller
         self.reset_rx();
