@@ -7,9 +7,9 @@ edition = "2018"
 [profile.dev]
 panic = "abort"
 lto = false
+
 [profile.release]
 panic = "abort"
-lto = false
 debug = true
 
 [dependencies]
