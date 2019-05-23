@@ -144,8 +144,10 @@ register_bit!(rx_status, rx_overrun, 2);
 register_bit!(rx_status, hresp_not_ok, 3);
 
 register!(rx_qbar, RxQbar, RW, u32);
+register_bits!(rx_qbar, rx_q_baseaddr, u32, 2, 31);
 
 register!(tx_qbar, TxQbar, RW, u32);
+register_bits!(tx_qbar, tx_q_baseaddr, u32, 2, 31);
 
 register!(intr_dis, IntrDis, WO, u32);
 register_bit!(intr_dis, mgmt_done, 0);

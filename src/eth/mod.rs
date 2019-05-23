@@ -8,15 +8,15 @@ pub struct Eth {
 
 impl Eth {
     pub fn gem0() -> Self {
-        let regs = unsafe { regs::RegisterBlock::gem0() };
+        let regs = regs::RegisterBlock::gem0();
         Eth { regs }.init()
     }
-    
+
     pub fn gem1() -> Self {
-        let regs = unsafe { regs::RegisterBlock::gem1() };
+        let regs = regs::RegisterBlock::gem1();
         Eth { regs }.init()
     }
-    
+
     fn init(self) -> Self {
         // Clear the Network Control register.
         self.regs.net_ctrl.write(regs::NetCtrl::zeroed());
@@ -39,6 +39,7 @@ impl Eth {
                 .tx_complete(true)
                 .tx_under_run(true)
                 .late_collision(true)
+                // not in the manual:
                 .hresp_not_ok(true)
         );
         // Disable all interrupts.
