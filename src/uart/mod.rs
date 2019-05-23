@@ -8,12 +8,16 @@ use crate::regs::*;
 mod regs;
 mod baud_rate_gen;
 
+/// Determined through experimentation. Actually supposed to be
+/// 1 GHz (IO PLL) / 0x14 (slcr.UART_CLK_CTRL[DIVISOR]) = 50 MHz.
+const UART_REF_CLK: u32 = 45_000_000;
+
 pub struct Uart {
     regs: &'static mut regs::RegisterBlock,
 }
 
 impl Uart {
-    pub fn uart1() -> Self {
+    pub fn uart1(baudrate: u32) -> Self {
         super::slcr::with_slcr(|| {
             let uart_rst_ctrl = super::slcr::UartRstCtrl::new();
             uart_rst_ctrl.reset_uart1();
@@ -36,7 +40,7 @@ impl Uart {
         let self_ = Uart {
             regs: regs::RegisterBlock::uart1(),
         };
-        self_.configure();
+        self_.configure(baudrate);
         self_
     }
 
@@ -49,7 +53,7 @@ impl Uart {
         );
     }
 
-    pub fn configure(&self) {
+    pub fn configure(&self, baudrate: u32) {
         // Configure UART character frame
         // * Disable clock-divider
         // * 8-bit
@@ -67,7 +71,7 @@ impl Uart {
         self.disable_rx();
         self.disable_tx();
 
-        baud_rate_gen::configure(&self.regs, 50_000_000, 9_600);
+        baud_rate_gen::configure(&self.regs, UART_REF_CLK, baudrate);
 
         // Enable controller
         self.reset_rx();

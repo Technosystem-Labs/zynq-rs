@@ -50,10 +50,11 @@ unsafe fn boot_core0() -> ! {
 }
 
 fn main() {
-    let mut uart = Uart::uart1();
-    writeln!(uart, "Hello World\r").unwrap();
-    for i in 0.. {
-      writeln!(uart, "i={}\r", i).unwrap();
+    let mut uart = Uart::uart1(115_200);
+    loop {
+        for i in 0.. {
+            writeln!(uart, "i={}\r", i);
+        }
     }
 
     let eth = eth::Eth::gem0();
