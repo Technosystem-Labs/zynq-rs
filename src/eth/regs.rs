@@ -5,7 +5,7 @@ use crate::{register, register_bit, register_bits, regs::*};
 #[repr(C)]
 pub struct RegisterBlock {
     pub net_ctrl: NetCtrl,
-    pub net_cfg: RW<u32>,
+    pub net_cfg: NetCfg,
     pub net_status: RO<u32>,
     pub unused0: RO<u32>,
     pub dma_cfg: RW<u32>,
@@ -125,6 +125,63 @@ impl RegisterBlock {
 
 register!(net_ctrl, NetCtrl, RW, u32);
 register_bit!(net_ctrl, clear_stat_regs, 5);
+
+register!(net_cfg, NetCfg, RW, u32);
+/// false for 10Mbps, true for 100Mbps
+register_bit!(net_cfg, speed, 0);
+register_bit!(net_cfg, full_duplex, 1);
+/// Discard non-VLAN frames
+register_bit!(net_cfg, disc_non_vlan, 2);
+/// Accept all valid frames?
+register_bit!(net_cfg, copy_all, 4);
+/// Don't accept broadcast destination address
+register_bit!(net_cfg, no_broadcast, 5);
+/// Multicast hash enable
+register_bit!(net_cfg, multi_hash_en, 6);
+/// Unicast hash enable
+register_bit!(net_cfg, uni_hash_en, 7);
+/// Accept frames up to 1536 bytes (instead of up to 1518 bytes)
+register_bit!(net_cfg, rx_1536_byte_frames, 8);
+/// External address match enable - when set the external address
+/// match interface can be used to copy frames to memory.
+register_bit!(net_cfg, ext_addr_match_en, 9);
+/// Gigabit mode enable
+register_bit!(net_cfg, gige_en, 10);
+/// Enable TBI instead of GMII/MII interface?
+register_bit!(net_cfg, pcs_sel, 11);
+/// Retry test (reduces backoff between collisions to one slot)
+register_bit!(net_cfg, retry_test, 12);
+/// Pause frame enable
+register_bit!(net_cfg, pause_en, 13);
+/// Receive buffer offset
+register_bits!(net_cfg, rx_buf_offset, u8, 14, 15);
+/// Length field error frame discard
+register_bit!(net_cfg, len_err_frame_disc, 16);
+/// Write received frames to memory with Frame Check Sequence removed
+register_bit!(net_cfg, fcs_remove, 17);
+/// MDC clock divison
+register_bits!(net_cfg, mdc_clk_div, u8, 18, 20);
+/// Data bus width
+register_bits!(net_cfg, dbus_width, u8, 21, 22);
+/// Disable copy of pause frames
+register_bit!(net_cfg, dis_cp_pause_frame, 23);
+/// Receive checksum offload enable
+register_bit!(net_cfg, rx_chksum_offld_en, 24);
+/// Enable frames to be received in half-duplex mode while
+/// transmitting
+register_bit!(net_cfg, rx_hd_while_tx, 25);
+/// Ignore Rx Framce Check Sequence (errors will not be rejected)
+register_bit!(net_cfg, ignore_rx_fcs, 26);
+/// SGMII mode enable
+register_bit!(net_cfg, sgmii_en, 27);
+/// IPG stretch enable
+register_bit!(net_cfg, ipg_stretch_en, 28);
+/// Receive bad preamble
+register_bit!(net_cfg, rx_bad_preamble, 29);
+/// Ignore IPG rx_er
+register_bit!(net_cfg, ignore_ipg_rx_er, 30);
+/// NA
+register_bit!(net_cfg, unidir_en, 31);
 
 register!(tx_status, TxStatus, RW, u32);
 register_bit!(tx_status, used_bit_read, 0);
