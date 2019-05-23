@@ -146,10 +146,16 @@ impl Uart {
     pub fn tx_fifo_full(&self) -> bool {
         self.regs.channel_sts.read().txfull()
     }
+
+    pub fn tx_fifo_empty(&self) -> bool {
+        self.regs.channel_sts.read().txempty()
+    }
 }
 
 impl fmt::Write for Uart {
     fn write_str(&mut self, s: &str) -> Result<(), fmt::Error> {
+        while !self.tx_fifo_empty() {}
+
         for b in s.bytes() {
             self.write_byte(b);
         }

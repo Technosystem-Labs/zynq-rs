@@ -74,7 +74,26 @@ register!(baud_rate_gen, BaudRateGen, RW, u32);
 register_bits!(baud_rate_gen, cd, u16, 0, 15);
 
 register!(channel_sts, ChannelSts, RO, u32);
+/// Transmitter FIFO Nearly Full
+register_bit!(channel_sts, tnful, 14);
+/// Tx FIFO fill level is greater than or equal to TTRIG?
+register_bit!(channel_sts, ttrig, 13);
+/// Rx FIFO fill level is greater than or equal to FDEL?
+register_bit!(channel_sts, flowdel, 12);
+/// Transmitter state machine active?
+register_bit!(channel_sts, tactive, 11);
+/// Receiver state machine active?
+register_bit!(channel_sts, ractive, 10);
+/// Tx FIFO is full?
 register_bit!(channel_sts, txfull, 4);
+/// Tx FIFO is empty?
+register_bit!(channel_sts, txempty, 3);
+/// Rx FIFO is full?
+register_bit!(channel_sts, rxfull, 2);
+/// Rx FIFO is empty?
+register_bit!(channel_sts, rxempty, 1);
+/// Rx FIFO fill level is greater than or equal to RTRIG?
+register_bit!(channel_sts, rxovr, 0);
 
 register!(tx_rx_fifo, TxRxFifo, RW, u32);
 register_bits!(tx_rx_fifo, data, u32, 0, 31);
