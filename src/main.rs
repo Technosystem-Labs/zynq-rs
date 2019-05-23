@@ -15,6 +15,8 @@ mod uart;
 use uart::Uart;
 mod eth;
 
+use crate::cortex_a9::{asm, regs::*};
+
 extern "C" {
     static mut __bss_start: u32;
     static mut __bss_end: u32;
@@ -25,8 +27,6 @@ extern "C" {
 #[no_mangle]
 #[naked]
 pub unsafe extern "C" fn _boot_cores() -> ! {
-    use cortex_a9::{asm, regs::*};
-
     const CORE_MASK: u32 = 0x3;
     let stack_start = __end + 4096;
 
@@ -43,9 +43,32 @@ pub unsafe extern "C" fn _boot_cores() -> ! {
 }
 
 unsafe fn boot_core0() -> ! {
+    l1_cache_init();
     zero_bss(&mut __bss_start, &mut __bss_end);
     main();
     panic!("return from main");
+}
+
+fn l1_cache_init() {
+    // Invalidate TLBs
+    tlbiall();
+    // Invalidate I-Cache
+    iciallu();
+    // Invalidate Branch Predictor Array
+    bpiall();
+    // Invalidate D-Cache
+    dccisw();
+
+    // (Initialize MMU)
+
+    // Enable I-Cache and D-Cache
+    sctlr();
+
+    // Synchronization barriers
+    // Allows MMU to start
+    asm::dsb();
+    // Flushes pre-fetch buffer
+    asm::isb();
 }
 
 fn main() {

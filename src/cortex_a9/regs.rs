@@ -36,3 +36,39 @@ def_reg_set!(SP, u32, "mov sp, $0");
 
 pub struct MPIDR;
 def_reg_get!(MPIDR, u32, "mrc p15, 0, $0, c0, c0, 5");
+
+/// Invalidate TLBs
+pub fn tlbiall() {
+    unsafe {
+        asm!("mcr p15, 0, $0, c8, c7, 0" :: "r" (0) :: "volatile");
+    }
+}
+
+/// Invalidate I-Cache
+pub fn iciallu() {
+    unsafe {
+        asm!("mcr p15, 0, $0, c7, c5, 0" :: "r" (0) :: "volatile");
+    }
+}
+
+/// Invalidate Branch Predictor Array
+pub fn bpiall() {
+    unsafe {
+        asm!("mcr p15, 0, $0, c7, c5, 6" :: "r" (0) :: "volatile");
+    }
+}
+
+/// Invalidate D-Cache
+pub fn dccisw() {
+    // TODO: $0 is r11 at what value?
+    unsafe {
+        asm!("mcr p15, 0, $0, c7, c5, 6" :: "r" (0) :: "volatile");
+    }
+}
+
+/// Enable I-Cache and D-Cache
+pub fn sctlr() {
+    unsafe {
+        asm!("mcr p15, 0, $0, c1, c0, 0" :: "r" (0x1004) :: "volatile");
+    }
+}
