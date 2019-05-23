@@ -65,11 +65,10 @@ impl Uart {
         // * 1 stop bit
         // * Normal channel mode
         // * No parity
-        let parity_mode = regs::ParityMode::None;
         self.regs.mode.write(
             regs::Mode::zeroed()
-                .par(parity_mode as u8)
-                .chmode(regs::ChannelMode::Normal as u8)
+                .par(regs::ParityMode::None)
+                .chmode(regs::ChannelMode::Normal)
         );
 
         // Configure the Baud Rate

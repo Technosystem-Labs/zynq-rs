@@ -1,7 +1,8 @@
 use volatile_register::{RO, WO, RW};
 
-use crate::{register, register_bit, register_bits, register_at, regs::*};
+use crate::{register, register_bit, register_bits, register_bits_typed, register_at, regs::*};
 
+#[repr(u8)]
 pub enum ChannelMode {
     Normal         = 0b00,
     AutomaticEcho  = 0b01,
@@ -9,6 +10,7 @@ pub enum ChannelMode {
     RemoteLoopback = 0b11,
 }
 
+#[repr(u8)]
 pub enum ParityMode {
     EvenParity = 0b000,
     OddParity  = 0b001,
@@ -17,6 +19,7 @@ pub enum ParityMode {
     None       = 0b100,
 }
 
+#[repr(u8)]
 pub enum StopBits {
     One        = 0b00,
     OneAndHalf = 0b01,
@@ -60,11 +63,11 @@ register_bit!(control, stpbrk, 8);
 
 register!(mode, Mode, RW, u32);
 /// Channel mode: Defines the mode of operation of the UART.
-register_bits!(mode, chmode, u8, 8, 9);
+register_bits_typed!(mode, chmode, u8, ChannelMode, 8, 9);
 /// Number of stop bits
-register_bits!(mode, nbstop, u8, 6, 7);
+register_bits_typed!(mode, nbstop, u8, StopBits, 6, 7);
 /// Parity type select
-register_bits!(mode, par, u8, 3, 5);
+register_bits_typed!(mode, par, u8, ParityMode, 3, 5);
 /// Character length select
 register_bits!(mode, chrl, u8, 1, 2);
 /// Clock source select

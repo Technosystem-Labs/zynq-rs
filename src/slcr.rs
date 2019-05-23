@@ -1,8 +1,11 @@
 ///! Register definitions for System Level Control
 
 use volatile_register::{RO, WO, RW};
-use crate::{register, register_bit, register_bits, register_at, regs::RegisterW, regs::RegisterRW};
+use crate::{register, register_at,
+            register_bit, register_bits, register_bits_typed,
+            regs::RegisterW, regs::RegisterRW};
 
+#[repr(u8)]
 pub enum PllSource {
     IoPll  = 0b00,
     ArmPll = 0b10,
@@ -246,7 +249,7 @@ register!(uart_clk_ctrl, UartClkCtrl, RW, u32);
 register_bit!(uart_clk_ctrl, clkact0, 0);
 register_bit!(uart_clk_ctrl, clkact1, 1);
 register_bits!(uart_clk_ctrl, divisor, u8, 8, 13);
-register_bits!(uart_clk_ctrl, srcsel, u8, 4, 5);
+register_bits_typed!(uart_clk_ctrl, srcsel, u8, PllSource, 4, 5);
 register_at!(UartClkCtrl, 0xF8000154, new);
 impl UartClkCtrl {
     pub fn enable_uart0(&mut self) {
@@ -255,7 +258,7 @@ impl UartClkCtrl {
             // b. Select the IO PLL, slcr.UART_CLK_CTRL[SRCSEL] = 0.
             // c. Enable the UART 0 Reference clock, slcr.UART_CLK_CTRL [CLKACT0] = 1.
             w.divisor(0x14)
-             .srcsel(PllSource::IoPll as u8)
+             .srcsel(PllSource::IoPll)
              .clkact0(true)
         })
     }
@@ -266,7 +269,7 @@ impl UartClkCtrl {
             // b. Select the IO PLL, slcr.UART_CLK_CTRL[SRCSEL] = 0.
             // c. Enable the UART 1 Reference clock, slcr.UART_CLK_CTRL [CLKACT1] = 1.
             w.divisor(0x14)
-             .srcsel(PllSource::IoPll as u8)
+             .srcsel(PllSource::IoPll)
              .clkact1(true)
         })
     }

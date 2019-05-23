@@ -164,6 +164,34 @@ macro_rules! register_bits {
     );
 }
 
+/// Define a multi-bit field of a register, coerced to a certain type
+///
+/// Because read bits are just transmuted to the `$type`, its
+/// definition must be annotated with `#[repr($bit_type)]`!
+#[macro_export]
+macro_rules! register_bits_typed {
+    ($mod_name: ident, $name: ident, $bit_type: ty, $type: ty, $bit_begin: expr, $bit_end: expr) => (
+        impl $mod_name::Read {
+            pub fn $name(&self) -> $type {
+                use bit_field::BitField;
+
+                let bits = self.inner.get_bits($bit_begin..=$bit_end) as $bit_type;
+                unsafe { core::mem::transmute(bits) }
+            }
+        }
+
+        impl $mod_name::Write {
+            pub fn $name(mut self, value: $type) -> Self {
+                use bit_field::BitField;
+
+                let bits = (value as $bit_type).into();
+                self.inner.set_bits($bit_begin..=$bit_end, bits);
+                self
+            }
+        }
+    );
+}
+
 #[macro_export]
 macro_rules! register_at {
     ($name: ident, $addr: expr, $ctor: ident) => (
