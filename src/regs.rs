@@ -18,11 +18,11 @@ pub trait RegisterW {
     type W;
 
     fn zeroed() -> Self::W;
-    fn write(&self, w: Self::W);
+    fn write(&mut self, w: Self::W);
 }
 /// A modifiable register
 pub trait RegisterRW: RegisterR + RegisterW {
-    fn modify<F: FnOnce(<Self as RegisterR>::R, <Self as RegisterW>::W) -> <Self as RegisterW>::W>(&self, f: F);
+    fn modify<F: FnOnce(<Self as RegisterR>::R, <Self as RegisterW>::W) -> <Self as RegisterW>::W>(&mut self, f: F);
 }
 
 #[doc(hidden)]
@@ -69,7 +69,7 @@ macro_rules! register_w {
                 $mod_name::Write { inner: 0 }
             }
 
-            fn write(&self, w: Self::W) {
+            fn write(&mut self, w: Self::W) {
                 unsafe {
                     self.inner.write(w.inner);
                 }
@@ -82,7 +82,7 @@ macro_rules! register_w {
 macro_rules! register_rw {
     ($mod_name: ident, $struct_name: ident) => (
         impl crate::regs::RegisterRW for $struct_name {
-            fn modify<F: FnOnce(Self::R, Self::W) -> Self::W>(&self, f: F) {
+            fn modify<F: FnOnce(Self::R, Self::W) -> Self::W>(&mut self, f: F) {
                 unsafe {
                     self.inner.modify(|inner| {
                         f($mod_name::Read { inner }, $mod_name::Write { inner })

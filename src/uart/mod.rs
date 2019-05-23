@@ -42,14 +42,14 @@ impl Uart {
             slcr.aper_clk_ctrl.enable_uart1();
             slcr.uart_clk_ctrl.enable_uart1();
         });
-        let self_ = Uart {
+        let mut self_ = Uart {
             regs: regs::RegisterBlock::uart1(),
         };
         self_.configure(baudrate);
         self_
     }
 
-    pub fn write_byte(&self, value: u8) {
+    pub fn write_byte(&mut self, value: u8) {
         while self.tx_fifo_full() {}
 
         self.regs.tx_rx_fifo.write(
@@ -58,7 +58,7 @@ impl Uart {
         );
     }
 
-    pub fn configure(&self, baudrate: u32) {
+    pub fn configure(&mut self, baudrate: u32) {
         // Configure UART character frame
         // * Disable clock-divider
         // * 8-bit
@@ -76,7 +76,7 @@ impl Uart {
         self.disable_rx();
         self.disable_tx();
 
-        baud_rate_gen::configure(&self.regs, UART_REF_CLK, baudrate);
+        baud_rate_gen::configure(self.regs, UART_REF_CLK, baudrate);
 
         // Enable controller
         self.reset_rx();
@@ -89,41 +89,41 @@ impl Uart {
         self.set_break(false, true);
     }
 
-    fn disable_rx(&self) {
+    fn disable_rx(&mut self) {
         self.regs.control.modify(|_, w| {
             w.rxen(false)
              .rxdis(true)
         })
     }
 
-    fn disable_tx(&self) {
+    fn disable_tx(&mut self) {
         self.regs.control.modify(|_, w| {
             w.txen(false)
              .txdis(true)
         })
     }
 
-    fn enable_rx(&self) {
+    fn enable_rx(&mut self) {
         self.regs.control.modify(|_, w| {
             w.rxen(true)
              .rxdis(false)
         })
     }
 
-    fn enable_tx(&self) {
+    fn enable_tx(&mut self) {
         self.regs.control.modify(|_, w| {
             w.txen(true)
              .txdis(false)
         })
     }
 
-    fn reset_rx(&self) {
+    fn reset_rx(&mut self) {
         self.regs.control.modify(|_, w| {
             w.rxrst(true)
         })
     }
 
-    fn reset_tx(&self) {
+    fn reset_tx(&mut self) {
         self.regs.control.modify(|_, w| {
             w.txrst(true)
         })
@@ -138,7 +138,7 @@ impl Uart {
         }
     }
 
-    fn set_break(&self, startbrk: bool, stopbrk: bool) {
+    fn set_break(&mut self, startbrk: bool, stopbrk: bool) {
         self.regs.control.modify(|_, w| {
             w.sttbrk(startbrk)
              .stpbrk(stopbrk)
@@ -146,7 +146,7 @@ impl Uart {
     }
 
     // 0 disables
-    fn set_rx_timeout(&self, enable: bool) {
+    fn set_rx_timeout(&mut self, enable: bool) {
         self.regs.control.modify(|_, w| {
             w.rstto(enable)
         })

@@ -197,10 +197,10 @@ pub struct RegisterBlock {
 register_at!(RegisterBlock, 0xF8000000, new);
 
 impl RegisterBlock {
-    pub fn unlocked<F: FnMut(&Self) -> R, R>(mut f: F) -> R {
-        let self_ = Self::new();
+    pub fn unlocked<F: FnMut(&mut Self) -> R, R>(mut f: F) -> R {
+        let mut self_ = Self::new();
         self_.slcr_unlock.unlock();
-        let r = f(&self_);
+        let r = f(&mut self_);
         self_.slcr_lock.lock();
         r
     }
@@ -209,7 +209,7 @@ impl RegisterBlock {
 register!(slcr_lock, SlcrLock, WO, u32);
 register_bits!(slcr_lock, lock_key, u16, 0, 15);
 impl SlcrLock {
-    pub fn lock(&self) {
+    pub fn lock(&mut self) {
         self.write(
             Self::zeroed()
                 .lock_key(0x767B)
@@ -220,7 +220,7 @@ impl SlcrLock {
 register!(slcr_unlock, SlcrUnlock, WO, u32);
 register_bits!(slcr_unlock, unlock_key, u16, 0, 15);
 impl SlcrUnlock {
-    pub fn unlock(&self) {
+    pub fn unlock(&mut self) {
         self.write(
             Self::zeroed()
                 .unlock_key(0xDF0D)
@@ -232,11 +232,11 @@ register!(aper_clk_ctrl, AperClkCtrl, RW, u32);
 register_bit!(aper_clk_ctrl, uart1_cpu_1xclkact, 21);
 register_bit!(aper_clk_ctrl, uart0_cpu_1xclkact, 20);
 impl AperClkCtrl {
-    pub fn enable_uart0(&self) {
+    pub fn enable_uart0(&mut self) {
         self.modify(|_, w| w.uart0_cpu_1xclkact(true));
     }
 
-    pub fn enable_uart1(&self) {
+    pub fn enable_uart1(&mut self) {
         self.modify(|_, w| w.uart1_cpu_1xclkact(true));
     }
 }
@@ -249,7 +249,7 @@ register_bits!(uart_clk_ctrl, divisor, u8, 8, 13);
 register_bits!(uart_clk_ctrl, srcsel, u8, 4, 5);
 register_at!(UartClkCtrl, 0xF8000154, new);
 impl UartClkCtrl {
-    pub fn enable_uart0(&self) {
+    pub fn enable_uart0(&mut self) {
         self.modify(|_, w| {
             // a. Clock divisor, slcr.UART_CLK_CTRL[DIVISOR] = 0x14.
             // b. Select the IO PLL, slcr.UART_CLK_CTRL[SRCSEL] = 0.
@@ -260,7 +260,7 @@ impl UartClkCtrl {
         })
     }
 
-    pub fn enable_uart1(&self) {
+    pub fn enable_uart1(&mut self) {
         self.modify(|_, w| {
             // a. Clock divisor, slcr.UART_CLK_CTRL[DIVISOR] = 0x14.
             // b. Select the IO PLL, slcr.UART_CLK_CTRL[SRCSEL] = 0.
@@ -279,7 +279,7 @@ register_bit!(uart_rst_ctrl, uart0_cpu1x_rst, 1);
 register_bit!(uart_rst_ctrl, uart1_cpu1x_rst, 0);
 register_at!(UartRstCtrl, 0xF8000228, new);
 impl UartRstCtrl {
-    pub fn reset_uart0(&self) {
+    pub fn reset_uart0(&mut self) {
         self.modify(|_, w|
             w.uart0_ref_rst(true)
              .uart0_cpu1x_rst(true)
@@ -290,7 +290,7 @@ impl UartRstCtrl {
         );
     }
 
-    pub fn reset_uart1(&self) {
+    pub fn reset_uart1(&mut self) {
         self.modify(|_, w|
             w.uart1_ref_rst(true)
              .uart1_cpu1x_rst(true)

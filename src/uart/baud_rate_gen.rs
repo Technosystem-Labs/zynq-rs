@@ -10,7 +10,7 @@ fn div_round_closest(q: u32, d: u32) -> u32 {
 }
 
 /// Algorithm as in the Linux 5.1 driver
-pub fn configure(regs: &RegisterBlock, mut clk: u32, baud: u32) {
+pub fn configure(regs: &mut RegisterBlock, mut clk: u32, baud: u32) {
     if regs.mode.read().clks() {
         clk /= 8;
     }

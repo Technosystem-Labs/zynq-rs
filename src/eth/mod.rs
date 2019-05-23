@@ -3,7 +3,7 @@ use crate::regs::*;
 mod regs;
 
 pub struct Eth {
-    regs: &'static regs::RegisterBlock,
+    regs: &'static mut regs::RegisterBlock,
 }
 
 impl Eth {
