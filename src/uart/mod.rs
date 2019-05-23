@@ -4,6 +4,7 @@ use core::fmt;
 use volatile_register::RW;
 
 use crate::regs::*;
+use crate::slcr;
 
 mod regs;
 mod baud_rate_gen;
@@ -18,24 +19,28 @@ pub struct Uart {
 
 impl Uart {
     pub fn uart1(baudrate: u32) -> Self {
-        super::slcr::with_slcr(|| {
-            let uart_rst_ctrl = super::slcr::UartRstCtrl::new();
-            uart_rst_ctrl.reset_uart1();
+        slcr::RegisterBlock::unlocked(|slcr| {
+            slcr.uart_rst_ctrl.reset_uart1();
 
             // Route UART 1 RxD/TxD Signals to MIO Pins
-            unsafe {
-                // TX pin
-                let mio_pin_48 = &*(0xF80007C0 as *const RW<u32>);
-                mio_pin_48.write(0x0000_12E0);
-                // RX pin
-                let mio_pin_49 = &*(0xF80007C4 as *const RW<u32>);
-                mio_pin_49.write(0x0000_12E1);
-            }
+            // TX pin
+            slcr.mio_pin_48.write(
+                slcr::MioPin48::zeroed()
+                    .l3_sel(0b111)
+                    .io_type(0b001)
+                    .pullup(true)
+            );
+            // RX pin
+            slcr.mio_pin_49.write(
+                slcr::MioPin49::zeroed()
+                    .tri_enable(true)
+                    .l3_sel(0b111)
+                    .io_type(0b001)
+                    .pullup(true)
+            );
 
-            let aper_clk_ctrl = super::slcr::AperClkCtrl::new();
-            aper_clk_ctrl.enable_uart1();
-            let uart_clk_ctrl = super::slcr::UartClkCtrl::new();
-            uart_clk_ctrl.enable_uart1();
+            slcr.aper_clk_ctrl.enable_uart1();
+            slcr.uart_clk_ctrl.enable_uart1();
         });
         let self_ = Uart {
             regs: regs::RegisterBlock::uart1(),
