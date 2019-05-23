@@ -1,12 +1,12 @@
 use volatile_register::{RO, WO, RW};
 
-use crate::{register, register_bit, register_bits, regs::*};
+use crate::{register, register_bit, register_bits, register_bits_typed, regs::*};
 
 #[repr(C)]
 pub struct RegisterBlock {
     pub net_ctrl: NetCtrl,
     pub net_cfg: NetCfg,
-    pub net_status: RO<u32>,
+    pub net_status: NetStatus,
     pub unused0: RO<u32>,
     pub dma_cfg: RW<u32>,
     pub tx_status: TxStatus,
@@ -17,7 +17,7 @@ pub struct RegisterBlock {
     pub intr_en: WO<u32>,
     pub intr_dis: IntrDis,
     pub intr_mask: RW<u32>,
-    pub phy_maint: RW<u32>,
+    pub phy_maint: PhyMaint,
     pub rx_pauseq: RO<u32>,
     pub tx_pauseq: RW<u32>,
     pub unused1: [RO<u32>; 16],
@@ -183,6 +183,15 @@ register_bit!(net_cfg, ignore_ipg_rx_er, 30);
 /// NA
 register_bit!(net_cfg, unidir_en, 31);
 
+register!(net_status, NetStatus, RW, u32);
+register_bit!(net_status, pcs_link_state, 0);
+register_bit!(net_status, mdio_in_pin_status, 1);
+register_bit!(net_status, phy_mgmt_idle, 2);
+register_bit!(net_status, pcs_autoneg_dup_res, 3);
+register_bit!(net_status, pcs_autoneg_pause_rx_res, 4);
+register_bit!(net_status, pcs_autoneg_pause_tx_res, 5);
+register_bit!(net_status, pfc_pri_pause_neg, 6);
+
 register!(tx_status, TxStatus, RW, u32);
 register_bit!(tx_status, used_bit_read, 0);
 register_bit!(tx_status, collision, 1);
@@ -233,3 +242,22 @@ register_bit!(intr_dis, pdelay_resp_rx, 23);
 register_bit!(intr_dis, pdelay_req_tx, 24);
 register_bit!(intr_dis, pdelay_resp_tx, 25);
 register_bit!(intr_dis, tsu_sec_incr, 26);
+
+#[repr(u8)]
+pub enum PhyOperation {
+    Write = 0b01,
+    Read  = 0b10,
+}
+
+register!(phy_maint, PhyMaint, RW, u32);
+/// Read from/write to the PHY
+register_bits!(phy_maint, data, u16, 0, 15);
+// Write `0b10`
+register_bits!(phy_maint, must_10, u8, 16, 17);
+/// Register address
+register_bits!(phy_maint, reg_addr, u8, 18, 22);
+/// PHY address
+register_bits!(phy_maint, phy_addr, u8, 23, 27);
+register_bits_typed!(phy_maint, operation, u8, PhyOperation, 28, 29);
+// PHY clause 22 compliant (not clause 45)?
+register_bit!(phy_maint, clause_22, 30);
