@@ -62,41 +62,56 @@ register_bit!(control, sttbrk, 7);
 register_bit!(control, stpbrk, 8);
 
 register!(mode, Mode, RW, u32);
-/// Channel mode: Defines the mode of operation of the UART.
-register_bits_typed!(mode, chmode, u8, ChannelMode, 8, 9);
-/// Number of stop bits
-register_bits_typed!(mode, nbstop, u8, StopBits, 6, 7);
-/// Parity type select
-register_bits_typed!(mode, par, u8, ParityMode, 3, 5);
-/// Character length select
-register_bits!(mode, chrl, u8, 1, 2);
-/// Clock source select
-register_bit!(mode, clks, 0);
+register_bits_typed!(mode,
+                     /// Channel mode: Defines the mode of operation of the UART.
+                     chmode, u8, ChannelMode, 8, 9);
+register_bits_typed!(mode,
+                     /// Number of stop bits
+                     nbstop, u8, StopBits, 6, 7);
+register_bits_typed!(mode,
+                     /// Parity type select
+                     par, u8, ParityMode, 3, 5);
+register_bits!(mode,
+               /// Character length select
+               chrl, u8, 1, 2);
+register_bit!(mode,
+              /// Clock source select
+              clks, 0);
 
 register!(baud_rate_gen, BaudRateGen, RW, u32);
 register_bits!(baud_rate_gen, cd, u16, 0, 15);
 
 register!(channel_sts, ChannelSts, RO, u32);
-/// Transmitter FIFO Nearly Full
-register_bit!(channel_sts, tnful, 14);
-/// Tx FIFO fill level is greater than or equal to TTRIG?
-register_bit!(channel_sts, ttrig, 13);
-/// Rx FIFO fill level is greater than or equal to FDEL?
-register_bit!(channel_sts, flowdel, 12);
-/// Transmitter state machine active?
-register_bit!(channel_sts, tactive, 11);
-/// Receiver state machine active?
-register_bit!(channel_sts, ractive, 10);
-/// Tx FIFO is full?
-register_bit!(channel_sts, txfull, 4);
-/// Tx FIFO is empty?
-register_bit!(channel_sts, txempty, 3);
-/// Rx FIFO is full?
-register_bit!(channel_sts, rxfull, 2);
-/// Rx FIFO is empty?
-register_bit!(channel_sts, rxempty, 1);
-/// Rx FIFO fill level is greater than or equal to RTRIG?
-register_bit!(channel_sts, rxovr, 0);
+register_bit!(channel_sts,
+              /// Transmitter FIFO Nearly Full
+              tnful, 14);
+register_bit!(channel_sts,
+              /// Tx FIFO fill level is greater than or equal to TTRIG?
+              ttrig, 13);
+register_bit!(channel_sts,
+              /// Rx FIFO fill level is greater than or equal to FDEL?
+              flowdel, 12);
+register_bit!(channel_sts,
+              /// Transmitter state machine active?
+              tactive, 11);
+register_bit!(channel_sts,
+              /// Receiver state machine active?
+              ractive, 10);
+register_bit!(channel_sts,
+              /// Tx FIFO is full?
+              txfull, 4);
+register_bit!(channel_sts,
+              /// Tx FIFO is empty?
+              txempty, 3);
+register_bit!(channel_sts,
+              /// Rx FIFO is full?
+              rxfull, 2);
+register_bit!(channel_sts,
+              /// Rx FIFO is empty?
+              rxempty, 1);
+register_bit!(channel_sts,
+              /// Rx FIFO fill level is greater than or equal to RTRIG?
+              rxovr, 0);
 
 register!(tx_rx_fifo, TxRxFifo, RW, u32);
 register_bits!(tx_rx_fifo, data, u32, 0, 31);

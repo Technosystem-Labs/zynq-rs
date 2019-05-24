@@ -127,61 +127,87 @@ register!(net_ctrl, NetCtrl, RW, u32);
 register_bit!(net_ctrl, clear_stat_regs, 5);
 
 register!(net_cfg, NetCfg, RW, u32);
-/// false for 10Mbps, true for 100Mbps
-register_bit!(net_cfg, speed, 0);
+register_bit!(net_cfg,
+              /// false for 10Mbps, true for 100Mbps
+              speed, 0);
 register_bit!(net_cfg, full_duplex, 1);
-/// Discard non-VLAN frames
-register_bit!(net_cfg, disc_non_vlan, 2);
-/// Accept all valid frames?
-register_bit!(net_cfg, copy_all, 4);
-/// Don't accept broadcast destination address
-register_bit!(net_cfg, no_broadcast, 5);
-/// Multicast hash enable
-register_bit!(net_cfg, multi_hash_en, 6);
-/// Unicast hash enable
-register_bit!(net_cfg, uni_hash_en, 7);
-/// Accept frames up to 1536 bytes (instead of up to 1518 bytes)
-register_bit!(net_cfg, rx_1536_byte_frames, 8);
-/// External address match enable - when set the external address
-/// match interface can be used to copy frames to memory.
-register_bit!(net_cfg, ext_addr_match_en, 9);
-/// Gigabit mode enable
-register_bit!(net_cfg, gige_en, 10);
-/// Enable TBI instead of GMII/MII interface?
-register_bit!(net_cfg, pcs_sel, 11);
-/// Retry test (reduces backoff between collisions to one slot)
-register_bit!(net_cfg, retry_test, 12);
-/// Pause frame enable
-register_bit!(net_cfg, pause_en, 13);
-/// Receive buffer offset
-register_bits!(net_cfg, rx_buf_offset, u8, 14, 15);
-/// Length field error frame discard
-register_bit!(net_cfg, len_err_frame_disc, 16);
-/// Write received frames to memory with Frame Check Sequence removed
-register_bit!(net_cfg, fcs_remove, 17);
-/// MDC clock divison
-register_bits!(net_cfg, mdc_clk_div, u8, 18, 20);
-/// Data bus width
-register_bits!(net_cfg, dbus_width, u8, 21, 22);
-/// Disable copy of pause frames
-register_bit!(net_cfg, dis_cp_pause_frame, 23);
-/// Receive checksum offload enable
-register_bit!(net_cfg, rx_chksum_offld_en, 24);
-/// Enable frames to be received in half-duplex mode while
-/// transmitting
-register_bit!(net_cfg, rx_hd_while_tx, 25);
-/// Ignore Rx Framce Check Sequence (errors will not be rejected)
-register_bit!(net_cfg, ignore_rx_fcs, 26);
-/// SGMII mode enable
-register_bit!(net_cfg, sgmii_en, 27);
-/// IPG stretch enable
-register_bit!(net_cfg, ipg_stretch_en, 28);
-/// Receive bad preamble
-register_bit!(net_cfg, rx_bad_preamble, 29);
-/// Ignore IPG rx_er
-register_bit!(net_cfg, ignore_ipg_rx_er, 30);
-/// NA
-register_bit!(net_cfg, unidir_en, 31);
+register_bit!(net_cfg,
+              /// Discard non-VLAN frames
+              disc_non_vlan, 2);
+register_bit!(net_cfg,
+              /// Accept all valid frames?
+              copy_all, 4);
+register_bit!(net_cfg,
+              /// Don't accept broadcast destination address
+              no_broadcast, 5);
+register_bit!(net_cfg,
+              /// Multicast hash enable
+              multi_hash_en, 6);
+register_bit!(net_cfg,
+              /// Unicast hash enable
+              uni_hash_en, 7);
+register_bit!(net_cfg,
+              /// Accept frames up to 1536 bytes (instead of up to 1518 bytes)
+              rx_1536_byte_frames, 8);
+register_bit!(net_cfg,
+              /// match interface can be used to copy frames to memory.
+              /// External address match enable - when set the external address
+              ext_addr_match_en, 9);
+register_bit!(net_cfg,
+              /// Gigabit mode enable
+              gige_en, 10);
+register_bit!(net_cfg,
+              /// Enable TBI instead of GMII/MII interface?
+              pcs_sel, 11);
+register_bit!(net_cfg,
+              /// Retry test (reduces backoff between collisions to one slot)
+              retry_test, 12);
+register_bit!(net_cfg,
+              /// Pause frame enable
+              pause_en, 13);
+register_bits!(net_cfg,
+               /// Receive buffer offset
+               rx_buf_offset, u8, 14, 15);
+register_bit!(net_cfg,
+              /// Length field error frame discard
+              len_err_frame_disc, 16);
+register_bit!(net_cfg,
+              /// Write received frames to memory with Frame Check Sequence removed
+              fcs_remove, 17);
+register_bits!(net_cfg,
+               /// MDC clock divison
+               mdc_clk_div, u8, 18, 20);
+register_bits!(net_cfg,
+               /// Data bus width
+               dbus_width, u8, 21, 22);
+register_bit!(net_cfg,
+              /// Disable copy of pause frames
+              dis_cp_pause_frame, 23);
+register_bit!(net_cfg,
+              /// Receive checksum offload enable
+              rx_chksum_offld_en, 24);
+register_bit!(net_cfg,
+              /// Enable frames to be received in half-duplex mode while
+              /// transmitting
+              rx_hd_while_tx, 25);
+register_bit!(net_cfg,
+              /// Ignore Rx Framce Check Sequence (errors will not be rejected)
+              ignore_rx_fcs, 26);
+register_bit!(net_cfg,
+              /// SGMII mode enable
+              sgmii_en, 27);
+register_bit!(net_cfg,
+              /// IPG stretch enable
+              ipg_stretch_en, 28);
+register_bit!(net_cfg,
+              /// Receive bad preamble
+              rx_bad_preamble, 29);
+register_bit!(net_cfg,
+              /// Ignore IPG rx_er
+              ignore_ipg_rx_er, 30);
+register_bit!(net_cfg,
+              /// NA
+              unidir_en, 31);
 
 register!(net_status, NetStatus, RW, u32);
 register_bit!(net_status, pcs_link_state, 0);
@@ -250,14 +276,17 @@ pub enum PhyOperation {
 }
 
 register!(phy_maint, PhyMaint, RW, u32);
-/// Read from/write to the PHY
-register_bits!(phy_maint, data, u16, 0, 15);
+register_bits!(phy_maint,
+               /// Read from/write to the PHY
+               data, u16, 0, 15);
 // Write `0b10`
 register_bits!(phy_maint, must_10, u8, 16, 17);
-/// Register address
-register_bits!(phy_maint, reg_addr, u8, 18, 22);
-/// PHY address
-register_bits!(phy_maint, phy_addr, u8, 23, 27);
+register_bits!(phy_maint,
+               /// Register address
+               reg_addr, u8, 18, 22);
+register_bits!(phy_maint,
+               /// PHY address
+               phy_addr, u8, 23, 27);
 register_bits_typed!(phy_maint, operation, u8, PhyOperation, 28, 29);
 // PHY clause 22 compliant (not clause 45)?
 register_bit!(phy_maint, clause_22, 30);

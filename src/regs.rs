@@ -121,8 +121,10 @@ macro_rules! register {
 /// Define a 1-bit field of a register
 #[macro_export]
 macro_rules! register_bit {
-    ($mod_name: ident, $name: ident, $bit: expr) => (
+    ($mod_name: ident, $(#[$outer:meta])* $name: ident, $bit: expr) => (
+        $(#[$outer])*
         impl $mod_name::Read {
+            #[allow(unused)]
             pub fn $name(&self) -> bool {
                 use bit_field::BitField;
 
@@ -130,7 +132,9 @@ macro_rules! register_bit {
             }
         }
 
+        $(#[$outer])*
         impl $mod_name::Write {
+            #[allow(unused)]
             pub fn $name(mut self, value: bool) -> Self {
                 use bit_field::BitField;
 
@@ -144,8 +148,10 @@ macro_rules! register_bit {
 /// Define a multi-bit field of a register
 #[macro_export]
 macro_rules! register_bits {
-    ($mod_name: ident, $name: ident, $type: ty, $bit_begin: expr, $bit_end: expr) => (
+    ($mod_name: ident, $(#[$outer:meta])* $name: ident, $type: ty, $bit_begin: expr, $bit_end: expr) => (
         impl $mod_name::Read {
+            #[allow(unused)]
+            $(#[$outer])*
             pub fn $name(&self) -> $type {
                 use bit_field::BitField;
 
@@ -153,7 +159,10 @@ macro_rules! register_bits {
             }
         }
 
+        #[allow(unused)]
+        $(#[$outer])*
         impl $mod_name::Write {
+            #[allow(unused)]
             pub fn $name(mut self, value: $type) -> Self {
                 use bit_field::BitField;
 
@@ -170,8 +179,10 @@ macro_rules! register_bits {
 /// definition must be annotated with `#[repr($bit_type)]`!
 #[macro_export]
 macro_rules! register_bits_typed {
-    ($mod_name: ident, $name: ident, $bit_type: ty, $type: ty, $bit_begin: expr, $bit_end: expr) => (
+    ($mod_name: ident, $(#[$outer:meta])* $name: ident, $bit_type: ty, $type: ty, $bit_begin: expr, $bit_end: expr) => (
         impl $mod_name::Read {
+            #[allow(unused)]
+            $(#[$outer])*
             pub fn $name(&self) -> $type {
                 use bit_field::BitField;
 
@@ -181,6 +192,8 @@ macro_rules! register_bits_typed {
         }
 
         impl $mod_name::Write {
+            #[allow(unused)]
+            $(#[$outer])*
             pub fn $name(mut self, value: $type) -> Self {
                 use bit_field::BitField;
 
@@ -196,6 +209,7 @@ macro_rules! register_bits_typed {
 macro_rules! register_at {
     ($name: ident, $addr: expr, $ctor: ident) => (
         impl $name {
+            #[allow(unused)]
             pub fn $ctor() -> &'static mut Self {
                 let addr = $addr as *mut Self;
                 unsafe { &mut *addr }

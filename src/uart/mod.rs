@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 use core::fmt;
 use volatile_register::RW;
 
