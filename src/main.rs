@@ -79,7 +79,7 @@ fn main() {
         }
     }
 
-    let eth = eth::Eth::gem0();
+    let eth = eth::Eth::default();
     loop {
     }
 }

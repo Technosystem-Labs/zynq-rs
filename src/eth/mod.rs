@@ -1,4 +1,5 @@
 use crate::regs::*;
+use crate::slcr;
 
 mod regs;
 
@@ -7,6 +8,116 @@ pub struct Eth {
 }
 
 impl Eth {
+    pub fn default() -> Self {
+        slcr::RegisterBlock::unlocked(|slcr| {
+            // MDIO
+            slcr.mio_pin_53.write(
+                slcr::MioPin53::zeroed()
+                    .l3_sel(0b100)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
+            );
+            // MDC
+            slcr.mio_pin_52.write(
+                slcr::MioPin52::zeroed()
+                    .tri_enable(true)
+                    .l3_sel(0b100)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
+            );
+            // TX_CLK
+            slcr.mio_pin_16.write(
+                slcr::MioPin16::zeroed()
+                    .l0_sel(true)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
+            );
+            // TX_CTRL
+            slcr.mio_pin_21.write(
+                slcr::MioPin21::zeroed()
+                    .l0_sel(true)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
+            );
+            // TXD3
+            slcr.mio_pin_20.write(
+                slcr::MioPin20::zeroed()
+                    .l0_sel(true)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
+            );
+            // TXD2
+            slcr.mio_pin_19.write(
+                slcr::MioPin19::zeroed()
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
+            );
+            // TXD1
+            slcr.mio_pin_18.write(
+                slcr::MioPin18::zeroed()
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
+            );
+            // TXD0
+            slcr.mio_pin_17.write(
+                slcr::MioPin17::zeroed()
+                    .l0_sel(true)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
+            );
+            // RX_CLK
+            slcr.mio_pin_22.write(
+                slcr::MioPin22::zeroed()
+                    .tri_enable(true)
+                    .l0_sel(true)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
+            );
+            // RX_CTRL
+            slcr.mio_pin_27.write(
+                slcr::MioPin27::zeroed()
+                    .tri_enable(true)
+                    .l0_sel(true)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
+            );
+            // RXD3
+            slcr.mio_pin_26.write(
+                slcr::MioPin26::zeroed()
+                    .tri_enable(true)
+                    .l0_sel(true)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
+            );
+            // RXD2
+            slcr.mio_pin_25.write(
+                slcr::MioPin25::zeroed()
+                    .tri_enable(true)
+                    .l0_sel(true)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
+            );
+            // RXD1
+            slcr.mio_pin_24.write(
+                slcr::MioPin24::zeroed()
+                    .tri_enable(true)
+                    .l0_sel(true)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
+            );
+            // RXD0
+            slcr.mio_pin_23.write(
+                slcr::MioPin23::zeroed()
+                    .tri_enable(true)
+                    .l0_sel(true)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
+            );
+        });
+
+        Self::gem0()
+    }
+
     pub fn gem0() -> Self {
         let regs = regs::RegisterBlock::gem0();
         Eth { regs }.init()
@@ -81,5 +192,19 @@ impl Eth {
         );
 
         self
+    }
+
+    fn configure(&mut self) {
+        self.regs.net_cfg.write(
+            regs::NetCfg::zeroed()
+                .full_duplex(true)
+                .gige_en(true)
+                .speed(true)
+                .no_broadcast(false)
+                .multi_hash_en(true)
+                // Promiscuous mode
+                .copy_all(true)
+                .mdc_clk_div(0b111)
+        );
     }
 }
