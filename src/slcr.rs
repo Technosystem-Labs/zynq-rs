@@ -108,60 +108,60 @@ pub struct RegisterBlock {
     pub ddr_urgent_sel: RW<u32>,
     pub ddr_dfi_status: RW<u32>,
     reserved13: [u32; 55],
-    pub mio_pin_00: RW<u32>,
-    pub mio_pin_01: RW<u32>,
-    pub mio_pin_02: RW<u32>,
-    pub mio_pin_03: RW<u32>,
-    pub mio_pin_04: RW<u32>,
-    pub mio_pin_05: RW<u32>,
-    pub mio_pin_06: RW<u32>,
-    pub mio_pin_07: RW<u32>,
-    pub mio_pin_08: RW<u32>,
-    pub mio_pin_09: RW<u32>,
-    pub mio_pin_10: RW<u32>,
-    pub mio_pin_11: RW<u32>,
-    pub mio_pin_12: RW<u32>,
-    pub mio_pin_13: RW<u32>,
-    pub mio_pin_14: RW<u32>,
-    pub mio_pin_15: RW<u32>,
-    pub mio_pin_16: RW<u32>,
-    pub mio_pin_17: RW<u32>,
-    pub mio_pin_18: RW<u32>,
-    pub mio_pin_19: RW<u32>,
-    pub mio_pin_20: RW<u32>,
-    pub mio_pin_21: RW<u32>,
-    pub mio_pin_22: RW<u32>,
-    pub mio_pin_23: RW<u32>,
-    pub mio_pin_24: RW<u32>,
-    pub mio_pin_25: RW<u32>,
-    pub mio_pin_26: RW<u32>,
-    pub mio_pin_27: RW<u32>,
-    pub mio_pin_28: RW<u32>,
-    pub mio_pin_29: RW<u32>,
-    pub mio_pin_30: RW<u32>,
-    pub mio_pin_31: RW<u32>,
-    pub mio_pin_32: RW<u32>,
-    pub mio_pin_33: RW<u32>,
-    pub mio_pin_34: RW<u32>,
-    pub mio_pin_35: RW<u32>,
-    pub mio_pin_36: RW<u32>,
-    pub mio_pin_37: RW<u32>,
-    pub mio_pin_38: RW<u32>,
-    pub mio_pin_39: RW<u32>,
-    pub mio_pin_40: RW<u32>,
-    pub mio_pin_41: RW<u32>,
-    pub mio_pin_42: RW<u32>,
-    pub mio_pin_43: RW<u32>,
-    pub mio_pin_44: RW<u32>,
-    pub mio_pin_45: RW<u32>,
-    pub mio_pin_46: RW<u32>,
-    pub mio_pin_47: RW<u32>,
+    pub mio_pin_00: MioPin00,
+    pub mio_pin_01: MioPin01,
+    pub mio_pin_02: MioPin02,
+    pub mio_pin_03: MioPin03,
+    pub mio_pin_04: MioPin04,
+    pub mio_pin_05: MioPin05,
+    pub mio_pin_06: MioPin06,
+    pub mio_pin_07: MioPin07,
+    pub mio_pin_08: MioPin08,
+    pub mio_pin_09: MioPin09,
+    pub mio_pin_10: MioPin10,
+    pub mio_pin_11: MioPin11,
+    pub mio_pin_12: MioPin12,
+    pub mio_pin_13: MioPin13,
+    pub mio_pin_14: MioPin14,
+    pub mio_pin_15: MioPin15,
+    pub mio_pin_16: MioPin16,
+    pub mio_pin_17: MioPin17,
+    pub mio_pin_18: MioPin18,
+    pub mio_pin_19: MioPin19,
+    pub mio_pin_20: MioPin20,
+    pub mio_pin_21: MioPin21,
+    pub mio_pin_22: MioPin22,
+    pub mio_pin_23: MioPin23,
+    pub mio_pin_24: MioPin24,
+    pub mio_pin_25: MioPin25,
+    pub mio_pin_26: MioPin26,
+    pub mio_pin_27: MioPin27,
+    pub mio_pin_28: MioPin28,
+    pub mio_pin_29: MioPin29,
+    pub mio_pin_30: MioPin30,
+    pub mio_pin_31: MioPin31,
+    pub mio_pin_32: MioPin32,
+    pub mio_pin_33: MioPin33,
+    pub mio_pin_34: MioPin34,
+    pub mio_pin_35: MioPin35,
+    pub mio_pin_36: MioPin36,
+    pub mio_pin_37: MioPin37,
+    pub mio_pin_38: MioPin38,
+    pub mio_pin_39: MioPin39,
+    pub mio_pin_40: MioPin40,
+    pub mio_pin_41: MioPin41,
+    pub mio_pin_42: MioPin42,
+    pub mio_pin_43: MioPin43,
+    pub mio_pin_44: MioPin44,
+    pub mio_pin_45: MioPin45,
+    pub mio_pin_46: MioPin46,
+    pub mio_pin_47: MioPin47,
     pub mio_pin_48: MioPin48,
     pub mio_pin_49: MioPin49,
-    pub mio_pin_50: RW<u32>,
-    pub mio_pin_51: RW<u32>,
-    pub mio_pin_52: RW<u32>,
-    pub mio_pin_53: RW<u32>,
+    pub mio_pin_50: MioPin50,
+    pub mio_pin_51: MioPin51,
+    pub mio_pin_52: MioPin52,
+    pub mio_pin_53: MioPin53,
     reserved14: [u32; 11],
     pub mio_loopback: RW<u32>,
     reserved15: [u32; 1],
@@ -306,6 +306,7 @@ impl UartRstCtrl {
 }
 
 /// Used for MioPin*.io_type
+#[repr(u8)]
 pub enum IoBufferType {
     Lvcmos18 = 0b001,
     Lvcmos25 = 0b010,
@@ -318,7 +319,7 @@ macro_rules! mio_pin_register {
         register!($mod_name, $struct_name, RW, u32);
         register_bit!($mod_name, disable_rcvr, 13);
         register_bit!($mod_name, pullup, 12);
-        register_bits!($mod_name, io_type, u8, 9, 11);
+        register_bits_typed!($mod_name, io_type, u8, IoBufferType, 9, 11);
         register_bit!($mod_name, speed, 8);
         register_bits!($mod_name, l3_sel, u8, 5, 7);
         register_bits!($mod_name, l2_sel, u8, 3, 4);
@@ -328,5 +329,57 @@ macro_rules! mio_pin_register {
     );
 }
 
+mio_pin_register!(mio_pin_00, MioPin00);
+mio_pin_register!(mio_pin_01, MioPin01);
+mio_pin_register!(mio_pin_02, MioPin02);
+mio_pin_register!(mio_pin_03, MioPin03);
+mio_pin_register!(mio_pin_04, MioPin04);
+mio_pin_register!(mio_pin_05, MioPin05);
+mio_pin_register!(mio_pin_06, MioPin06);
+mio_pin_register!(mio_pin_07, MioPin07);
+mio_pin_register!(mio_pin_08, MioPin08);
+mio_pin_register!(mio_pin_09, MioPin09);
+mio_pin_register!(mio_pin_10, MioPin10);
+mio_pin_register!(mio_pin_11, MioPin11);
+mio_pin_register!(mio_pin_12, MioPin12);
+mio_pin_register!(mio_pin_13, MioPin13);
+mio_pin_register!(mio_pin_14, MioPin14);
+mio_pin_register!(mio_pin_15, MioPin15);
+mio_pin_register!(mio_pin_16, MioPin16);
+mio_pin_register!(mio_pin_17, MioPin17);
+mio_pin_register!(mio_pin_18, MioPin18);
+mio_pin_register!(mio_pin_19, MioPin19);
+mio_pin_register!(mio_pin_20, MioPin20);
+mio_pin_register!(mio_pin_21, MioPin21);
+mio_pin_register!(mio_pin_22, MioPin22);
+mio_pin_register!(mio_pin_23, MioPin23);
+mio_pin_register!(mio_pin_24, MioPin24);
+mio_pin_register!(mio_pin_25, MioPin25);
+mio_pin_register!(mio_pin_26, MioPin26);
+mio_pin_register!(mio_pin_27, MioPin27);
+mio_pin_register!(mio_pin_28, MioPin28);
+mio_pin_register!(mio_pin_29, MioPin29);
+mio_pin_register!(mio_pin_30, MioPin30);
+mio_pin_register!(mio_pin_31, MioPin31);
+mio_pin_register!(mio_pin_32, MioPin32);
+mio_pin_register!(mio_pin_33, MioPin33);
+mio_pin_register!(mio_pin_34, MioPin34);
+mio_pin_register!(mio_pin_35, MioPin35);
+mio_pin_register!(mio_pin_36, MioPin36);
+mio_pin_register!(mio_pin_37, MioPin37);
+mio_pin_register!(mio_pin_38, MioPin38);
+mio_pin_register!(mio_pin_39, MioPin39);
+mio_pin_register!(mio_pin_40, MioPin40);
+mio_pin_register!(mio_pin_41, MioPin41);
+mio_pin_register!(mio_pin_42, MioPin42);
+mio_pin_register!(mio_pin_43, MioPin43);
+mio_pin_register!(mio_pin_44, MioPin44);
+mio_pin_register!(mio_pin_45, MioPin45);
+mio_pin_register!(mio_pin_46, MioPin46);
+mio_pin_register!(mio_pin_47, MioPin47);
 mio_pin_register!(mio_pin_48, MioPin48);
 mio_pin_register!(mio_pin_49, MioPin49);
+mio_pin_register!(mio_pin_50, MioPin50);
+mio_pin_register!(mio_pin_51, MioPin51);
+mio_pin_register!(mio_pin_52, MioPin52);
+mio_pin_register!(mio_pin_53, MioPin53);
