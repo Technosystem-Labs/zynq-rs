@@ -12,6 +12,11 @@ lto = false
 panic = "abort"
 debug = true
 
+[features]
+target_zc706 = []
+target_cora_z7_10 = []
+default = ["target_zc706"]
+
 [dependencies]
 panic-abort = "0.3"
 r0 = "0.2"

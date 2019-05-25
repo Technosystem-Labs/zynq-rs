@@ -72,7 +72,7 @@ fn l1_cache_init() {
 }
 
 fn main() {
-    let mut uart = Uart::uart1(115_200);
+    let mut uart = Uart::serial(115_200);
     loop {
         for i in 0.. {
             writeln!(uart, "i={}\r", i);

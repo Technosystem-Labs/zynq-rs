@@ -9,23 +9,25 @@ mod baud_rate_gen;
 
 /// Determined through experimentation. Actually supposed to be
 /// 1 GHz (IO PLL) / 0x14 (slcr.UART_CLK_CTRL[DIVISOR]) = 50 MHz.
+#[cfg(feature = "target_zc706")]
 const UART_REF_CLK: u32 = 45_000_000;
+#[cfg(feature = "target_cora_z7_10")]
+const UART_REF_CLK: u32 = 66_000_000;
 
 pub struct Uart {
     regs: &'static mut regs::RegisterBlock,
 }
 
 impl Uart {
-    pub fn uart1(baudrate: u32) -> Self {
+    #[cfg(feature = "target_zc706")]
+    pub fn serial(baudrate: u32) -> Self {
         slcr::RegisterBlock::unlocked(|slcr| {
-            slcr.uart_rst_ctrl.reset_uart1();
-
             // Route UART 1 RxD/TxD Signals to MIO Pins
             // TX pin
             slcr.mio_pin_48.write(
                 slcr::MioPin48::zeroed()
                     .l3_sel(0b111)
-                    .io_type(0b001)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
                     .pullup(true)
             );
             // RX pin
@@ -33,10 +35,52 @@ impl Uart {
                 slcr::MioPin49::zeroed()
                     .tri_enable(true)
                     .l3_sel(0b111)
-                    .io_type(0b001)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
                     .pullup(true)
             );
+        });
+        Self::uart1(baudrate)
+    }
 
+    #[cfg(feature = "target_cora_z7_10")]
+    pub fn serial(baudrate: u32) -> Self {
+        slcr::RegisterBlock::unlocked(|slcr| {
+            // Route UART 0 RxD/TxD Signals to MIO Pins
+            // TX pin
+            slcr.mio_pin_15.write(
+                slcr::MioPin15::zeroed()
+                    .l3_sel(0b111)
+                    .io_type(slcr::IoBufferType::Lvcmos33)
+                    .pullup(true)
+            );
+            // RX pin
+            slcr.mio_pin_14.write(
+                slcr::MioPin14::zeroed()
+                    .tri_enable(true)
+                    .l3_sel(0b111)
+                    .io_type(slcr::IoBufferType::Lvcmos33)
+                    .pullup(true)
+            );
+        });
+        Self::uart0(baudrate)
+    }
+
+    pub fn uart0(baudrate: u32) -> Self {
+        slcr::RegisterBlock::unlocked(|slcr| {
+            slcr.uart_rst_ctrl.reset_uart0();
+            slcr.aper_clk_ctrl.enable_uart0();
+            slcr.uart_clk_ctrl.enable_uart0();
+        });
+        let mut self_ = Uart {
+            regs: regs::RegisterBlock::uart0(),
+        };
+        self_.configure(baudrate);
+        self_
+    }
+
+    pub fn uart1(baudrate: u32) -> Self {
+        slcr::RegisterBlock::unlocked(|slcr| {
+            slcr.uart_rst_ctrl.reset_uart1();
             slcr.aper_clk_ctrl.enable_uart1();
             slcr.uart_clk_ctrl.enable_uart1();
         });
