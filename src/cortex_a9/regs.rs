@@ -30,9 +30,15 @@ macro_rules! def_reg_set {
     }
 }
 
+/// Stack Pointer
 pub struct SP;
 def_reg_get!(SP, u32, "mov $0, sp");
 def_reg_set!(SP, u32, "mov sp, $0");
+
+/// Link register (function call return address)
+pub struct LR;
+def_reg_get!(LR, u32, "mov $0, lr");
+def_reg_set!(LR, u32, "mov lr, $0");
 
 pub struct MPIDR;
 def_reg_get!(MPIDR, u32, "mrc p15, 0, $0, c0, c0, 5");

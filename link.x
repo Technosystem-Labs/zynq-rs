@@ -1,57 +1,49 @@
 ENTRY(_boot_cores);
 
-/* SECTIONS */
-/* { */
-/*     . = 0x8000; */
+STACK_SIZE = 0x2000 - 0x10;
 
-/*     .text : */
-/*     { */
-/*         KEEP(*(.text.boot)) *(.text .text.*) */
-/*     } */
-
-/*     /DISCARD/ : { *(.comment) *(.gnu*) *(.note*) *(.eh_frame*) } */
-/* } */
-
+MEMORY
+{
+  /* 256 kB On-Chip Memory */
+  OCM : ORIGIN = 0, LENGTH = 0x40000
+}
 
 SECTIONS
 {
-    /* Starts at LOADER_ADDR. */
-    . = 0x8000;
-    __start = .;
-    __text_start = .;
     .text :
     {
+        /* Starts at LOADER_ADDR. */
+        . = 0x8000;
         KEEP(*(.text.boot))
-        *(.text)
-    }
-    . = ALIGN(4096); /* align to page size */
-    __text_end = .;
+        *(.text .text.*)
+        . = ALIGN(4096); /* align to page size */
+    } > OCM
  
-    __rodata_start = .;
     .rodata :
     {
         *(.rodata)
-    }
-    . = ALIGN(4096); /* align to page size */
-    __rodata_end = .;
+        . = ALIGN(4096); /* align to page size */
+    } > OCM
  
-    __data_start = .;
     .data :
     {
         *(.data)
-    }
-    . = ALIGN(4096); /* align to page size */
-    __data_end = .;
+        . = ALIGN(4096); /* align to page size */
+    } > OCM
  
-    __bss_start = .;
-    .bss :
+    .bss (NOLOAD) :
     {
-        bss = .;
         *(.bss)
-    }
-    . = ALIGN(4096); /* align to page size */
-    __bss_end = .;
-    __end = .;
+        . = ALIGN(4096); /* align to page size */
+    } > OCM
+    __bss_start = ADDR(.bss);
+    __bss_end = ADDR(.bss) + SIZEOF(.bss);
+
+    .stack (NOLOAD) : {
+      . += STACK_SIZE;
+    } > OCM
+    __stack_end = ADDR(.stack);
+    __stack_start = ADDR(.stack) + SIZEOF(.stack);
 
   /DISCARD/ :
   {

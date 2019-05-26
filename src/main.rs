@@ -20,7 +20,7 @@ use crate::cortex_a9::{asm, regs::*};
 extern "C" {
     static mut __bss_start: u32;
     static mut __bss_end: u32;
-    static mut __end: u32;
+    static mut __stack_start: u32;
 }
 
 #[link_section = ".text.boot"]
@@ -28,11 +28,10 @@ extern "C" {
 #[naked]
 pub unsafe extern "C" fn _boot_cores() -> ! {
     const CORE_MASK: u32 = 0x3;
-    let stack_start = __end + 4096;
 
     match MPIDR.get() & CORE_MASK {
         0 => {
-            SP.set(stack_start);
+            SP.set(&mut __stack_start as *mut _ as u32);
             boot_core0();
         }
         _ => loop {

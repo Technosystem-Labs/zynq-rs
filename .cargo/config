@@ -2,7 +2,7 @@
 runner = "./runner.sh"
 linker = "arm-none-eabihf-gcc"
 rustflags = [
-  "-C", "link-arg=-Wl,-Tlink.x",
+  "-C", "link-arg=-Wl,-Tlink.x,-N",
   "-C", "target-feature=a9,armv7-a,neon",
   "-C", "target-cpu=cortex-a9",
 ]
