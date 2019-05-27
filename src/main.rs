@@ -5,7 +5,6 @@
 
 use core::fmt::Write;
 
-use panic_abort as _;
 use r0::zero_bss;
 
 mod regs;
@@ -81,4 +80,14 @@ fn main() {
     let eth = eth::Eth::default();
     loop {
     }
+}
+
+#[panic_handler]
+fn panic(info: &core::panic::PanicInfo) -> ! {
+    let mut uart = Uart::serial(UART_RATE);
+    writeln!(uart, "\r\nPanic: {}\r", info);
+    while !uart.tx_fifo_empty() {}
+
+    slcr::RegisterBlock::unlocked(|slcr| slcr.soft_reset());
+    unreachable!()
 }
