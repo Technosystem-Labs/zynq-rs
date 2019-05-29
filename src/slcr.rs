@@ -66,7 +66,7 @@ pub struct RegisterBlock {
     reserved2: [u32; 5],
     pub clk_621_true: RW<u32>,
     reserved3: [u32; 14],
-    pub pss_rst_ctrl: RW<u32>,
+    pub pss_rst_ctrl: PssRstCtrl,
     pub ddr_rst_ctrl: RW<u32>,
     pub topsw_rst_ctrl: RW<u32>,
     pub dmac_rst_ctrl: RW<u32>,
@@ -207,6 +207,16 @@ impl RegisterBlock {
         self_.slcr_lock.lock();
         r
     }
+
+    /// Perform a soft reset
+    pub fn soft_reset(&mut self) -> ! {
+        self.pss_rst_ctrl.write(
+            PssRstCtrl::zeroed()
+                .soft_rst(true)
+        );
+
+        unreachable!()
+    }
 }
 
 register!(slcr_lock, SlcrLock, WO, u32);
@@ -304,6 +314,9 @@ impl UartRstCtrl {
         );
     }
 }
+
+register!(pss_rst_ctrl, PssRstCtrl, RW, u32);
+register_bit!(pss_rst_ctrl, soft_rst, 1);
 
 /// Used for MioPin*.io_type
 #[repr(u8)]
