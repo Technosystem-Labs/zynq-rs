@@ -1,8 +1,8 @@
 use crate::regs::*;
 use super::regs::{RegisterBlock, BaudRateGen, BaudRateDiv};
 
-const BDIV_MIN: u8 = 4;
-const BDIV_MAX: u8 = 255;
+const BDIV_MIN: u32 = 4;
+const BDIV_MAX: u32 = 255;
 const CD_MAX: u16 = 65535;
 
 fn div_round_closest(q: u32, d: u32) -> u32 {
@@ -17,7 +17,6 @@ pub fn configure(regs: &mut RegisterBlock, mut clk: u32, baud: u32) {
 
     let mut best = None;
     for bdiv in BDIV_MIN..=BDIV_MAX {
-        let bdiv: u32 = bdiv.into();
         let cd = div_round_closest(clk, baud * (bdiv + 1));
         if cd < 1 || cd > CD_MAX.into() {
             continue;
