@@ -73,8 +73,10 @@ fn l1_cache_init() {
     asm::isb();
 }
 
+const UART_RATE: u32 = 115_200;
+
 fn main() {
-    let mut uart = Uart::serial(115_200);
+    let mut uart = Uart::serial(UART_RATE);
     loop {
         for i in 0.. {
             writeln!(uart, "i={}\r", i);
