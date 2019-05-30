@@ -119,6 +119,20 @@ impl Eth {
     }
 
     pub fn gem0() -> Self {
+        slcr::RegisterBlock::unlocked(|slcr| {
+            // Enable gem0 ref clock
+            slcr.gem0_rclk_ctrl.write(
+                slcr::RclkCtrl::zeroed()
+                    .clkact(true)
+            );
+            slcr.gem0_clk_ctrl.write(
+                slcr::ClkCtrl::zeroed()
+                    .clkact(true)
+                    .srcsel(slcr::PllSource::IoPll)
+                    .divisor(10)
+            );
+        });
+
         let regs = regs::RegisterBlock::gem0();
         Eth { regs }.init()
     }

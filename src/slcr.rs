@@ -33,10 +33,10 @@ pub struct RegisterBlock {
     pub aper_clk_ctrl: AperClkCtrl,
     pub usb0_clk_ctrl: RW<u32>,
     pub usb1_clk_ctrl: RW<u32>,
-    pub gem0_rclk_ctrl: RW<u32>,
-    pub gem1_rclk_ctrl: RW<u32>,
-    pub gem0_clk_ctrl: RW<u32>,
-    pub gem1_clk_ctrl: RW<u32>,
+    pub gem0_rclk_ctrl: RclkCtrl,
+    pub gem1_rclk_ctrl: RclkCtrl,
+    pub gem0_clk_ctrl: ClkCtrl,
+    pub gem1_clk_ctrl: ClkCtrl,
     pub smc_clk_ctrl: RW<u32>,
     pub lqspi_clk_ctrl: RW<u32>,
     pub sdio_clk_ctrl: RW<u32>,
@@ -254,6 +254,24 @@ impl AperClkCtrl {
     }
 }
 
+register!(rclk_ctrl, RclkCtrl, RW, u32);
+register_bit!(rclk_ctrl,
+              /// Ethernet controller Rx clock control
+              clkact, 0);
+register_bit!(rclk_ctrl,
+              /// false: MIO, true: EMIO
+              srcsel, 4);
+
+register!(clk_ctrl, ClkCtrl, RW, u32);
+register_bits!(clk_ctrl,
+               /// Divisor for source clock
+               divisor, u8, 8, 13);
+register_bits_typed!(clk_ctrl,
+                     /// Source to generate the ref clock
+                     srcsel, u8, PllSource, 4, 5);
+register_bit!(clk_ctrl,
+              /// SMC reference clock control
+              clkact, 0);
 
 register!(uart_clk_ctrl, UartClkCtrl, RW, u32);
 register_bit!(uart_clk_ctrl, clkact0, 0);
