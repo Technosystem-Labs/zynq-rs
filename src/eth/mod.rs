@@ -1,6 +1,7 @@
 use crate::regs::*;
 use crate::slcr;
 
+pub mod phy;
 mod regs;
 
 pub struct Eth {
@@ -13,6 +14,7 @@ impl Eth {
             // MDIO
             slcr.mio_pin_53.write(
                 slcr::MioPin53::zeroed()
+                    .tri_enable(true)
                     .l3_sel(0b100)
                     .io_type(slcr::IoBufferType::Lvcmos18)
                     .pullup(true)
@@ -20,7 +22,6 @@ impl Eth {
             // MDC
             slcr.mio_pin_52.write(
                 slcr::MioPin52::zeroed()
-                    .tri_enable(true)
                     .l3_sel(0b100)
                     .io_type(slcr::IoBufferType::Lvcmos18)
                     .pullup(true)
@@ -220,5 +221,54 @@ impl Eth {
                 .copy_all(true)
                 .mdc_clk_div(0b111)
         );
+        // TODO: mac addr
+        // TODO: Program the DMA Configuration register (gem.dma_cfg).
+
+        self.regs.net_ctrl.write(
+            regs::NetCtrl::zeroed()
+                .mgmt_port_en(true)
+                .tx_en(true)
+                .rx_en(true)
+        );
+    }
+
+    fn wait_phy_idle(&self) {
+        let mut timeout = 5_000_000;
+        while !self.regs.net_status.read().phy_mgmt_idle() {
+            timeout -= 1;
+            if timeout == 0 {
+                break
+            }
+        }
+    }
+}
+
+impl phy::PhyAccess for Eth {
+    fn read_phy(&mut self, addr: u8, reg: u8) -> u16 {
+        self.wait_phy_idle();
+        self.regs.phy_maint.write(
+            regs::PhyMaint::zeroed()
+                .clause_22(true)
+                .operation(regs::PhyOperation::Read)
+                .phy_addr(addr)
+                .reg_addr(reg)
+                .must_10(0b10)
+        );
+        self.wait_phy_idle();
+        self.regs.phy_maint.read().data()
+    }
+
+    fn write_phy(&mut self, addr: u8, reg: u8, data: u16) {
+        self.wait_phy_idle();
+        self.regs.phy_maint.write(
+            regs::PhyMaint::zeroed()
+                .clause_22(true)
+                .operation(regs::PhyOperation::Write)
+                .phy_addr(addr)
+                .reg_addr(reg)
+                .must_10(0b10)
+                .data(data)
+        );
+        self.wait_phy_idle();
     }
 }

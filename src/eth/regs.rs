@@ -124,7 +124,22 @@ impl RegisterBlock {
 }
 
 register!(net_ctrl, NetCtrl, RW, u32);
+register_bit!(net_ctrl, loopback_local, 1);
+register_bit!(net_ctrl, rx_en, 2);
+register_bit!(net_ctrl, tx_en, 3);
+register_bit!(net_ctrl, mgmt_port_en, 4);
 register_bit!(net_ctrl, clear_stat_regs, 5);
+register_bit!(net_ctrl, incr_stat_regs, 6);
+register_bit!(net_ctrl, wren_stat_regs, 7);
+register_bit!(net_ctrl, back_pressure, 8);
+register_bit!(net_ctrl, start_tx, 9);
+register_bit!(net_ctrl, tx_halt, 10);
+register_bit!(net_ctrl, tx_pause_frame, 11);
+register_bit!(net_ctrl, tx_zeroq_pause_frame, 12);
+register_bit!(net_ctrl, str_rx_timestamp, 15);
+register_bit!(net_ctrl, en_pfc_pri_pause_rx, 16);
+register_bit!(net_ctrl, tx_pfc_pri_pri_pause_frame, 17);
+register_bit!(net_ctrl, flush_next_rx_dpram_pkt, 18);
 
 register!(net_cfg, NetCfg, RW, u32);
 register_bit!(net_cfg,
