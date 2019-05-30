@@ -209,13 +209,11 @@ impl RegisterBlock {
     }
 
     /// Perform a soft reset
-    pub fn soft_reset(&mut self) -> ! {
+    pub fn soft_reset(&mut self) {
         self.pss_rst_ctrl.write(
             PssRstCtrl::zeroed()
                 .soft_rst(true)
         );
-
-        unreachable!()
     }
 }
 

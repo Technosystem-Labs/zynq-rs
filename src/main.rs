@@ -95,7 +95,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     while !uart.tx_fifo_empty() {}
 
     slcr::RegisterBlock::unlocked(|slcr| slcr.soft_reset());
-    unreachable!()
+    loop {}
 }
 
 #[no_mangle]
