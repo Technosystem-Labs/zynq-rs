@@ -40,9 +40,12 @@ pub unsafe extern "C" fn _boot_cores() -> ! {
     }
 }
 
+#[naked]
+#[inline(never)]
 unsafe fn boot_core0() -> ! {
     l1_cache_init();
     zero_bss(&mut __bss_start, &mut __bss_end);
+
     main();
     panic!("return from main");
 }
