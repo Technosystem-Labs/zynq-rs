@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 #![feature(asm)]
+#![feature(global_asm)]
 #![feature(naked_functions)]
 
 use core::fmt::Write;
@@ -93,4 +94,14 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 
     slcr::RegisterBlock::unlocked(|slcr| slcr.soft_reset());
     unreachable!()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn PrefetchAbort() {
+    panic!("PrefetchAbort");
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn DataAbort() {
+    panic!("DataAbort");
 }

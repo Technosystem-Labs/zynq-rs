@@ -1,6 +1,14 @@
 ENTRY(_boot_cores);
 
 STACK_SIZE = 0x2000 - 0x10;
+PROVIDE(Reset = _boot_cores);
+PROVIDE(UndefinedInstruction = Reset);
+PROVIDE(SoftwareInterrupt = Reset);
+PROVIDE(PrefetchAbort = Reset);
+PROVIDE(DataAbort = Reset);
+PROVIDE(ReservedException = Reset);
+PROVIDE(IRQ = Reset);
+PROVIDE(FIQ = Reset);
 
 MEMORY
 {
@@ -10,9 +18,13 @@ MEMORY
 
 SECTIONS
 {
+    .exceptions :
+    {
+        . = 0x0;
+        KEEP(*(.text.exceptions));
+    } > OCM
     .text :
     {
-        /* Starts at LOADER_ADDR. */
         . = 0x8000;
         KEEP(*(.text.boot))
         *(.text .text.*)
