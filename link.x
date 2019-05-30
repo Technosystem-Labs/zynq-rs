@@ -1,6 +1,8 @@
 ENTRY(_boot_cores);
 
-STACK_SIZE = 0x2000 - 0x10;
+STACK_SIZE = 0x2000 - 8;
+
+/* Provide some defaults */
 PROVIDE(Reset = _boot_cores);
 PROVIDE(UndefinedInstruction = Reset);
 PROVIDE(SoftwareInterrupt = Reset);
@@ -18,40 +20,34 @@ MEMORY
 
 SECTIONS
 {
-    .exceptions :
+    .exceptions (0x0) :
     {
-        . = 0x0;
         KEEP(*(.text.exceptions));
     } > OCM
-    .text :
+    .text (0x8000) :
     {
-        . = 0x8000;
         KEEP(*(.text.boot))
         *(.text .text.*)
-        . = ALIGN(4096); /* align to page size */
     } > OCM
  
-    .rodata :
+    .rodata ALIGN(0x1000) :
     {
         *(.rodata)
-        . = ALIGN(4096); /* align to page size */
     } > OCM
  
-    .data :
+    .data ALIGN(0x1000) :
     {
         *(.data)
-        . = ALIGN(4096); /* align to page size */
     } > OCM
  
-    .bss (NOLOAD) :
+    .bss ALIGN(0x1000) (NOLOAD) :
     {
         *(.bss)
-        . = ALIGN(4096); /* align to page size */
     } > OCM
     __bss_start = ADDR(.bss);
     __bss_end = ADDR(.bss) + SIZEOF(.bss);
 
-    .stack (NOLOAD) : {
+    .stack ALIGN(0x1000) (NOLOAD) : {
       . += STACK_SIZE;
     } > OCM
     __stack_end = ADDR(.stack);
