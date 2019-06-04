@@ -75,6 +75,6 @@ pub fn dccisw() {
 /// Enable I-Cache and D-Cache
 pub fn sctlr() {
     unsafe {
-        asm!("mcr p15, 0, $0, c1, c0, 0" :: "r" (0x1004) :: "volatile");
+        asm!("mcr p15, 0, $0, c1, c0, 0" :: "r" (0x00401004) :: "volatile");
     }
 }
