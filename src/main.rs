@@ -77,15 +77,21 @@ const UART_RATE: u32 = 115_200;
 
 fn main() {
     let mut uart = Uart::serial(UART_RATE);
-    loop {
-        for i in 0.. {
-            writeln!(uart, "i={}\r", i);
-        }
-    }
+    writeln!(uart, "\r\nHello World!\r");
 
-    let eth = eth::Eth::default();
-    loop {
+    let mut eth = eth::Eth::default();
+    writeln!(uart, "Eth on\r");
+    use eth::phy::PhyAccess;
+    for addr in 1..=31 {
+        let detect = eth.read_phy(addr, 1);
+        let id1 = eth.read_phy(addr, 2);
+        let id2 = eth.read_phy(addr, 3);
+        writeln!(uart, "phy {}: {:04X} {:04X} {:04X}\r", addr, detect, id1, id2);
     }
+    while !uart.tx_fifo_empty() {}
+
+    loop {}
+    panic!("End");
 }
 
 #[panic_handler]
