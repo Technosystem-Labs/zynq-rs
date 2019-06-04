@@ -262,7 +262,10 @@ register_bit!(rclk_ctrl,
 
 register!(clk_ctrl, ClkCtrl, RW, u32);
 register_bits!(clk_ctrl,
-               /// Divisor for source clock
+               /// 2nd divisor for source clock
+               divisor1, u8, 20, 25);
+register_bits!(clk_ctrl,
+               /// 1st divisor for source clock
                divisor, u8, 8, 13);
 register_bits_typed!(clk_ctrl,
                      /// Source to generate the ref clock

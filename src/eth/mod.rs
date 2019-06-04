@@ -126,11 +126,13 @@ impl Eth {
                 slcr::RclkCtrl::zeroed()
                     .clkact(true)
             );
+            // 0x0050_0801: 8, 5: 100 Mb/s
             slcr.gem0_clk_ctrl.write(
                 slcr::ClkCtrl::zeroed()
                     .clkact(true)
                     .srcsel(slcr::PllSource::IoPll)
-                    .divisor(10)
+                    .divisor(8)
+                    .divisor1(5)
             );
         });
 
@@ -143,7 +145,7 @@ impl Eth {
         Eth { regs }.init()
     }
 
-    fn init(self) -> Self {
+    fn init(mut self) -> Self {
         // Clear the Network Control register.
         self.regs.net_ctrl.write(regs::NetCtrl::zeroed());
         self.regs.net_ctrl.write(regs::NetCtrl::zeroed().clear_stat_regs(true));
@@ -206,6 +208,7 @@ impl Eth {
             regs::TxQbar::zeroed()
         );
 
+        self.configure();
         self
     }
 
@@ -233,13 +236,7 @@ impl Eth {
     }
 
     fn wait_phy_idle(&self) {
-        let mut timeout = 5_000_000;
-        while !self.regs.net_status.read().phy_mgmt_idle() {
-            timeout -= 1;
-            if timeout == 0 {
-                break
-            }
-        }
+        while !self.regs.net_status.read().phy_mgmt_idle() {}
     }
 }
 
