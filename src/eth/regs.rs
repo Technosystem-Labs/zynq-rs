@@ -8,7 +8,7 @@ pub struct RegisterBlock {
     pub net_cfg: NetCfg,
     pub net_status: NetStatus,
     pub unused0: RO<u32>,
-    pub dma_cfg: RW<u32>,
+    pub dma_cfg: DmaCfg,
     pub tx_status: TxStatus,
     pub rx_qbar: RxQbar,
     pub tx_qbar: TxQbar,
@@ -23,14 +23,14 @@ pub struct RegisterBlock {
     pub unused1: [RO<u32>; 16],
     pub hash_bot: RW<u32>,
     pub hash_top: RW<u32>,
-    pub spec_addr1_bot: RW<u32>,
-    pub spec_addr1_top: RW<u32>,
-    pub spec_addr2_bot: RW<u32>,
-    pub spec_addr2_top: RW<u32>,
-    pub spec_addr3_bot: RW<u32>,
-    pub spec_addr3_top: RW<u32>,
-    pub spec_addr4_bot: RW<u32>,
-    pub spec_addr4_top: RW<u32>,
+    pub spec_addr1_bot: SpecAddrBot,
+    pub spec_addr1_top: SpecAddrTop,
+    pub spec_addr2_bot: SpecAddrBot,
+    pub spec_addr2_top: SpecAddrTop,
+    pub spec_addr3_bot: SpecAddrBot,
+    pub spec_addr3_top: SpecAddrTop,
+    pub spec_addr4_bot: SpecAddrBot,
+    pub spec_addr4_top: SpecAddrTop,
     pub type_id_match1: RW<u32>,
     pub type_id_match2: RW<u32>,
     pub type_id_match3: RW<u32>,
@@ -233,6 +233,16 @@ register_bit!(net_status, pcs_autoneg_pause_rx_res, 4);
 register_bit!(net_status, pcs_autoneg_pause_tx_res, 5);
 register_bit!(net_status, pfc_pri_pause_neg, 6);
 
+register!(dma_cfg, DmaCfg, RW, u32);
+register_bits!(dma_cfg, ahb_fixed_burst_len, u8, 0, 4);
+register_bit!(dma_cfg, ahb_endian_swp_mgmt_en, 6);
+register_bit!(dma_cfg, ahb_endian_swp_pkt_en, 7);
+register_bits!(dma_cfg, rx_pktbuf_memsz_sel, u8, 8, 9);
+register_bit!(dma_cfg, tx_pktbuf_memsz_sel, 10);
+register_bit!(dma_cfg, csum_gen_offload_en, 11);
+register_bits!(dma_cfg, ahb_mem_rx_buf_size, u8, 16, 23);
+register_bit!(dma_cfg, disc_when_no_ahb, 24);
+
 register!(tx_status, TxStatus, RW, u32);
 register_bit!(tx_status, used_bit_read, 0);
 register_bit!(tx_status, collision, 1);
@@ -305,3 +315,11 @@ register_bits!(phy_maint,
 register_bits_typed!(phy_maint, operation, u8, PhyOperation, 28, 29);
 // PHY clause 22 compliant (not clause 45)?
 register_bit!(phy_maint, clause_22, 30);
+
+register!(spec_addr_top, SpecAddrTop, RW, u32);
+register_bits!(spec_addr_top,
+               addr_msbs, u16, 0, 15);
+
+register!(spec_addr_bot, SpecAddrBot, RW, u32);
+register_bits!(spec_addr_bot,
+               addr_lsbs, u32, 0, 31);

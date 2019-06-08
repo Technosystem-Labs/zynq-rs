@@ -81,7 +81,7 @@ fn main() {
     let mut uart = Uart::serial(UART_RATE);
     writeln!(uart, "\r\nHello World!\r");
 
-    let mut eth = eth::Eth::default();
+    let mut eth = eth::Eth::default([0x0, 0x17, 0xde, 0xea, 0xbe, 0xef]);
     writeln!(uart, "Eth on\r");
     use eth::phy::PhyAccess;
     for addr in 1..=31 {

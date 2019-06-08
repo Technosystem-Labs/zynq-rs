@@ -3,13 +3,16 @@ use crate::slcr;
 
 pub mod phy;
 mod regs;
+mod rx;
+mod tx;
 
-pub struct Eth {
+pub struct Eth<'rx> {
     regs: &'static mut regs::RegisterBlock,
+    rx: Option<rx::DescList<'rx>>,
 }
 
-impl Eth {
-    pub fn default() -> Self {
+impl<'rx> Eth<'rx> {
+    pub fn default(macaddr: [u8; 6]) -> Self {
         slcr::RegisterBlock::unlocked(|slcr| {
             // MDIO
             slcr.mio_pin_53.write(
@@ -116,10 +119,10 @@ impl Eth {
             );
         });
 
-        Self::gem0()
+        Self::gem0(macaddr)
     }
 
-    pub fn gem0() -> Self {
+    pub fn gem0(macaddr: [u8; 6]) -> Self {
         slcr::RegisterBlock::unlocked(|slcr| {
             // Enable gem0 ref clock
             slcr.gem0_rclk_ctrl.write(
@@ -137,12 +140,18 @@ impl Eth {
         });
 
         let regs = regs::RegisterBlock::gem0();
-        Eth { regs }.init()
+        let rx = None;
+        let mut eth = Eth { regs, rx }.init();
+        eth.configure(macaddr);
+        eth
     }
 
-    pub fn gem1() -> Self {
+    pub fn gem1(macaddr: [u8; 6]) -> Self {
         let regs = regs::RegisterBlock::gem1();
-        Eth { regs }.init()
+        let rx = None;
+        let mut eth = Eth { regs, rx }.init();
+        eth.configure(macaddr);
+        eth
     }
 
     fn init(mut self) -> Self {
@@ -208,11 +217,10 @@ impl Eth {
             regs::TxQbar::zeroed()
         );
 
-        self.configure();
         self
     }
 
-    fn configure(&mut self) {
+    fn configure(&mut self, macaddr: [u8; 6]) {
         self.regs.net_cfg.write(
             regs::NetCfg::zeroed()
                 .full_duplex(true)
@@ -224,8 +232,39 @@ impl Eth {
                 .copy_all(true)
                 .mdc_clk_div(0b111)
         );
-        // TODO: mac addr
-        // TODO: Program the DMA Configuration register (gem.dma_cfg).
+
+        let macaddr_msbs =
+            (u16::from(macaddr[0]) << 8) |
+            u16::from(macaddr[1]);
+        let macaddr_lsbs =
+            (u32::from(macaddr[2]) << 24) |
+            (u32::from(macaddr[3]) << 16) |
+            (u32::from(macaddr[4]) << 8) |
+            u32::from(macaddr[5]);
+        self.regs.spec_addr1_top.write(
+            regs::SpecAddrTop::zeroed()
+                .addr_msbs(macaddr_msbs)
+        );
+        self.regs.spec_addr1_bot.write(
+            regs::SpecAddrBot::zeroed()
+                .addr_lsbs(macaddr_lsbs)
+        );
+
+
+        self.regs.dma_cfg.write(
+            regs::DmaCfg::zeroed()
+                // 1600 bytes
+                .ahb_mem_rx_buf_size(0x19)
+                // 8 KB
+                .rx_pktbuf_memsz_sel(0x3)
+                // 4 KB
+                .tx_pktbuf_memsz_sel(true)
+                // .csum_gen_offload_en(true)
+                // Little-endian
+                .ahb_endian_swp_mgmt_en(false)
+                // INCR16 AHB burst
+                .ahb_fixed_burst_len(0x10)
+        );
 
         self.regs.net_ctrl.write(
             regs::NetCtrl::zeroed()
@@ -235,12 +274,21 @@ impl Eth {
         );
     }
 
+    pub fn start_rx(&mut self, rx_buffers: [&'rx mut [u8]; rx::DESCS]) {
+        self.rx = Some(rx::DescList::new(rx_buffers));
+        let list_addr = self.rx.as_ref().unwrap() as *const _ as u32;
+        self.regs.rx_qbar.write(
+            regs::RxQbar::zeroed()
+                .rx_q_baseaddr(list_addr >> 2)
+        );
+    }
+
     fn wait_phy_idle(&self) {
         while !self.regs.net_status.read().phy_mgmt_idle() {}
     }
 }
 
-impl phy::PhyAccess for Eth {
+impl<'rx> phy::PhyAccess for Eth<'rx> {
     fn read_phy(&mut self, addr: u8, reg: u8) -> u16 {
         self.wait_phy_idle();
         self.regs.phy_maint.write(
