@@ -3,10 +3,12 @@
 #![feature(asm)]
 #![feature(global_asm)]
 #![feature(naked_functions)]
+#![feature(compiler_builtins_lib)]
 
 use core::fmt::Write;
 
 use r0::zero_bss;
+use compiler_builtins as _;
 
 mod regs;
 mod cortex_a9;
