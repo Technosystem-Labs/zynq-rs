@@ -1,3 +1,4 @@
+use core::mem::uninitialized;
 use crate::{register, register_bit, register_bits, register_bits_typed, regs::*};
 
 /// Descriptor entry
@@ -21,3 +22,32 @@ register_bit!(desc_word1, retry_limit_exceeded, 29);
 register_bit!(desc_word1, wrap, 30);
 /// true if owned by software, false if owned by hardware
 register_bit!(desc_word1, used, 31);
+
+/// Number of descriptors
+pub const DESCS: usize = 8;
+
+#[repr(C)]
+pub struct DescList<'a> {
+    list: [DescEntry; DESCS],
+    buffers: [&'a [u8]; DESCS],
+}
+
+impl<'a> DescList<'a> {
+    pub fn new(buffers: [&'a [u8]; DESCS]) -> Self {
+        let mut list: [DescEntry; DESCS] = unsafe { uninitialized() };
+        for i in 0..DESCS {
+            let buffer_addr = &buffers[i][0] as *const _ as u32;
+            list[i].word0.write(
+                DescWord0::zeroed()
+                    .address(buffer_addr)
+            );
+            list[i].word1.write(
+                DescWord1::zeroed()
+                    .used(true)
+                    .wrap(i == DESCS - 1)
+            );
+        }
+
+        DescList { list, buffers }
+    }
+}

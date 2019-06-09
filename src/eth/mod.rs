@@ -312,6 +312,21 @@ impl<RX, TX> Eth<RX, TX> {
         new_self
     }
 
+    pub fn start_tx<'tx>(self, tx_buffers: [&'tx [u8]; tx::DESCS]) -> Eth<RX, tx::DescList<'tx>> {
+        let new_self = Eth {
+            regs: self.regs,
+            rx: self.rx,
+            tx: tx::DescList::new(tx_buffers),
+        };
+        let list_addr = &new_self.tx as *const _ as u32;
+        assert!(list_addr & 0b11 == 0);
+        new_self.regs.tx_qbar.write(
+            regs::TxQbar::zeroed()
+                .tx_q_baseaddr(list_addr >> 2)
+        );
+        new_self
+    }
+
     fn wait_phy_idle(&self) {
         while !self.regs.net_status.read().phy_mgmt_idle() {}
     }
