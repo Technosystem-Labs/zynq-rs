@@ -3,15 +3,16 @@ use crate::slcr;
 
 pub mod phy;
 mod regs;
-mod rx;
-mod tx;
+pub mod rx;
+pub mod tx;
 
-pub struct Eth<'rx> {
+pub struct Eth<RX, TX> {
     regs: &'static mut regs::RegisterBlock,
-    rx: Option<rx::DescList<'rx>>,
+    rx: RX,
+    tx: TX,
 }
 
-impl<'rx> Eth<'rx> {
+impl Eth<(), ()> {
     pub fn default(macaddr: [u8; 6]) -> Self {
         slcr::RegisterBlock::unlocked(|slcr| {
             // MDIO
@@ -140,20 +141,42 @@ impl<'rx> Eth<'rx> {
         });
 
         let regs = regs::RegisterBlock::gem0();
-        let rx = None;
-        let mut eth = Eth { regs, rx }.init();
-        eth.configure(macaddr);
-        eth
+        Self::from_regs(regs, macaddr)
     }
 
     pub fn gem1(macaddr: [u8; 6]) -> Self {
+        slcr::RegisterBlock::unlocked(|slcr| {
+            // Enable gem1 ref clock
+            slcr.gem1_rclk_ctrl.write(
+                slcr::RclkCtrl::zeroed()
+                    .clkact(true)
+            );
+            // 0x0050_0801: 8, 5: 100 Mb/s
+            slcr.gem1_clk_ctrl.write(
+                slcr::ClkCtrl::zeroed()
+                    .clkact(true)
+                    .srcsel(slcr::PllSource::IoPll)
+                    .divisor(8)
+                    .divisor1(5)
+            );
+        });
+
         let regs = regs::RegisterBlock::gem1();
-        let rx = None;
-        let mut eth = Eth { regs, rx }.init();
+        Self::from_regs(regs, macaddr)
+    }
+
+    fn from_regs(regs: &'static mut regs::RegisterBlock, macaddr: [u8; 6]) -> Self {
+        let mut eth = Eth {
+            regs,
+            rx: (),
+            tx: (),
+        }.init();
         eth.configure(macaddr);
         eth
     }
+}
 
+impl<RX, TX> Eth<RX, TX> {
     fn init(mut self) -> Self {
         // Clear the Network Control register.
         self.regs.net_ctrl.write(regs::NetCtrl::zeroed());
@@ -274,14 +297,19 @@ impl<'rx> Eth<'rx> {
         );
     }
 
-    pub fn start_rx(&mut self, rx_buffers: [&'rx mut [u8]; rx::DESCS]) {
-        self.rx = Some(rx::DescList::new(rx_buffers));
-        let list_addr = self.rx.as_ref().unwrap() as *const _ as u32;
+    pub fn start_rx<'rx>(self, rx_buffers: [&'rx mut [u8]; rx::DESCS]) -> Eth<rx::DescList<'rx>, TX> {
+        let new_self = Eth {
+            regs: self.regs,
+            rx: rx::DescList::new(rx_buffers),
+            tx: self.tx,
+        };
+        let list_addr = &new_self.rx as *const _ as u32;
         assert!(list_addr & 0b11 == 0);
-        self.regs.rx_qbar.write(
+        new_self.regs.rx_qbar.write(
             regs::RxQbar::zeroed()
                 .rx_q_baseaddr(list_addr >> 2)
         );
+        new_self
     }
 
     fn wait_phy_idle(&self) {
@@ -289,7 +317,7 @@ impl<'rx> Eth<'rx> {
     }
 }
 
-impl<'rx> phy::PhyAccess for Eth<'rx> {
+impl<RX, TX> phy::PhyAccess for Eth<RX, TX> {
     fn read_phy(&mut self, addr: u8, reg: u8) -> u16 {
         self.wait_phy_idle();
         self.regs.phy_maint.write(

@@ -6,6 +6,7 @@
 #![feature(compiler_builtins_lib)]
 
 use core::fmt::Write;
+use core::mem::uninitialized;
 
 use r0::zero_bss;
 use compiler_builtins as _;
@@ -91,6 +92,15 @@ fn main() {
         writeln!(uart, "phy {}: {:04X} {:04X} {:04X}\r", addr, detect, id1, id2);
     }
     while !uart.tx_fifo_empty() {}
+
+    let mut rx_buffers = [[0u8; 1536]; eth::rx::DESCS];
+    let mut rx_buffer_ptrs: [&mut [u8]; eth::rx::DESCS] = unsafe {
+        uninitialized()
+    };
+    for (i, (ptr, buf)) in rx_buffer_ptrs.iter_mut().zip(rx_buffers.iter_mut()).enumerate() {
+        *ptr = buf;
+    }
+    let mut eth = eth.start_rx(rx_buffer_ptrs);
 
     loop {}
     panic!("End");
