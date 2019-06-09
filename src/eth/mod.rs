@@ -277,6 +277,7 @@ impl<'rx> Eth<'rx> {
     pub fn start_rx(&mut self, rx_buffers: [&'rx mut [u8]; rx::DESCS]) {
         self.rx = Some(rx::DescList::new(rx_buffers));
         let list_addr = self.rx.as_ref().unwrap() as *const _ as u32;
+        assert!(list_addr & 0b11 == 0);
         self.regs.rx_qbar.write(
             regs::RxQbar::zeroed()
                 .rx_q_baseaddr(list_addr >> 2)

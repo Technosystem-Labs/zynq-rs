@@ -45,7 +45,9 @@ impl<'a> DescList<'a> {
     pub fn new(buffers: [&'a mut [u8]; DESCS]) -> Self {
         let mut list: [DescEntry; DESCS] = unsafe { uninitialized() };
         for i in 0..DESCS {
+            assert!(buffers[i].len() >= 1536);
             let buffer_addr = &mut buffers[i][0] as *mut _ as u32;
+            assert!(buffer_addr & 0b11 == 0);
             list[i].word0.write(
                 DescWord0::zeroed()
                     .used(false)
