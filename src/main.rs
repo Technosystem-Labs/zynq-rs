@@ -102,7 +102,14 @@ fn main() {
     }
     let mut eth = eth.start_rx(rx_buffer_ptrs);
 
-    loop {}
+    loop {
+        match eth.recv_next() {
+            None => {}
+            Some(pkt) => {
+                writeln!(uart, "eth: received {} bytes", pkt.len());
+            }
+        }
+    }
     panic!("End");
 }
 

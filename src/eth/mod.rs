@@ -332,6 +332,12 @@ impl<RX, TX> Eth<RX, TX> {
     }
 }
 
+impl<'rx, TX> Eth<rx::DescList<'rx>, TX> {
+    pub fn recv_next(&mut self) -> Option<&[u8]> {
+        self.rx.recv_next()
+    }
+}
+
 impl<RX, TX> phy::PhyAccess for Eth<RX, TX> {
     fn read_phy(&mut self, addr: u8, reg: u8) -> u16 {
         self.wait_phy_idle();

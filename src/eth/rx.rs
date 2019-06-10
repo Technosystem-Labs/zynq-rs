@@ -39,6 +39,7 @@ pub const DESCS: usize = 8;
 pub struct DescList<'a> {
     list: [DescEntry; DESCS],
     buffers: [&'a mut [u8]; DESCS],
+    next: usize,
 }
 
 impl<'a> DescList<'a> {
@@ -59,6 +60,25 @@ impl<'a> DescList<'a> {
             );
         }
 
-        DescList { list, buffers }
+        DescList {
+            list, buffers,
+            next: 0,
+        }
+    }
+
+    pub fn recv_next(&mut self) -> Option<&[u8]> {
+        if self.list[self.next].word0.read().used() {
+            let len = self.list[self.next].word1
+                .read().frame_length_lsbs()
+                .into();
+            let pkt = &self.buffers[self.next][0..len];
+            self.next += 1;
+            if self.next >= self.list.len() {
+                self.next = 0;
+            }
+            Some(pkt)
+        } else {
+            None
+        }
     }
 }
