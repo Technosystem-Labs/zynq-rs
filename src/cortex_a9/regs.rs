@@ -1,12 +1,12 @@
-pub trait ReadableRegister<T> {
-    fn get(&self) -> T;
-}
+use crate::regs::{RegisterR, RegisterW};
 
 macro_rules! def_reg_get {
-    ($name:ty, $type:ty, $asm_instr:tt) => {
-        impl ReadableRegister<$type> for $name {
+    ($name:tt, $type: ty, $asm_instr:tt) => {
+        impl RegisterR for $name {
+            type R = $type;
+
             #[inline(always)]
-            fn get(&self) -> $type {
+            fn read(&self) -> Self::R {
                 let mut value;
                 unsafe { asm!($asm_instr : "=r" (value) ::: "volatile") }
                 value
@@ -15,16 +15,18 @@ macro_rules! def_reg_get {
     }
 }
 
-pub trait WritableRegister<T> {
-    fn set(&self, value: T);
-}
-
 macro_rules! def_reg_set {
     ($name:ty, $type:ty, $asm_instr:tt) => {
-        impl WritableRegister<$type> for $name {
+        impl RegisterW for $name {
+            type W = $type;
+
             #[inline(always)]
-            fn set(&self, value: $type) {
+            fn write(&mut self, value: Self::W) {
                 unsafe { asm!($asm_instr :: "r" (value) :: "volatile") }
+            }
+
+            fn zeroed() -> Self::W {
+                0
             }
         }
     }
@@ -43,7 +45,18 @@ def_reg_set!(LR, u32, "mov lr, $0");
 pub struct MPIDR;
 def_reg_get!(MPIDR, u32, "mrc p15, 0, $0, c0, c0, 5");
 
+pub struct DFAR;
+def_reg_get!(DFAR, u32, "mrc p15, 0, $0, c6, c0, 0");
+
+pub struct DFSR;
+def_reg_get!(DFSR, u32, "mrc p15, 0, $0, c5, c0, 0");
+
+pub struct SCTLR;
+def_reg_get!(SCTLR, u32, "mrc p15, 0, $0, c1, c0, 0");
+def_reg_set!(SCTLR, u32, "mcr p15, 0, $0, c1, c0, 0");
+
 /// Invalidate TLBs
+#[inline(always)]
 pub fn tlbiall() {
     unsafe {
         asm!("mcr p15, 0, $0, c8, c7, 0" :: "r" (0) :: "volatile");
@@ -51,6 +64,7 @@ pub fn tlbiall() {
 }
 
 /// Invalidate I-Cache
+#[inline(always)]
 pub fn iciallu() {
     unsafe {
         asm!("mcr p15, 0, $0, c7, c5, 0" :: "r" (0) :: "volatile");
@@ -58,6 +72,7 @@ pub fn iciallu() {
 }
 
 /// Invalidate Branch Predictor Array
+#[inline(always)]
 pub fn bpiall() {
     unsafe {
         asm!("mcr p15, 0, $0, c7, c5, 6" :: "r" (0) :: "volatile");
@@ -65,16 +80,10 @@ pub fn bpiall() {
 }
 
 /// Invalidate D-Cache
+#[inline(always)]
 pub fn dccisw() {
     // TODO: $0 is r11 at what value?
     unsafe {
         asm!("mcr p15, 0, $0, c7, c5, 6" :: "r" (0) :: "volatile");
-    }
-}
-
-/// Enable I-Cache and D-Cache
-pub fn sctlr() {
-    unsafe {
-        asm!("mcr p15, 0, $0, c1, c0, 0" :: "r" (0x00401004) :: "volatile");
     }
 }

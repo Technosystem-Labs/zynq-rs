@@ -18,6 +18,7 @@ mod uart;
 use uart::Uart;
 mod eth;
 
+use crate::regs::{RegisterR, RegisterW};
 use crate::cortex_a9::{asm, regs::*};
 
 extern "C" {
@@ -32,9 +33,9 @@ extern "C" {
 pub unsafe extern "C" fn _boot_cores() -> ! {
     const CORE_MASK: u32 = 0x3;
 
-    match MPIDR.get() & CORE_MASK {
+    match MPIDR.read() & CORE_MASK {
         0 => {
-            SP.set(&mut __stack_start as *mut _ as u32);
+            SP.write(&mut __stack_start as *mut _ as u32);
             boot_core0();
         }
         _ => loop {
@@ -67,7 +68,7 @@ fn l1_cache_init() {
     // (Initialize MMU)
 
     // Enable I-Cache and D-Cache
-    sctlr();
+    SCTLR.write(0x00401004);
 
     // Synchronization barriers
     // Allows MMU to start
