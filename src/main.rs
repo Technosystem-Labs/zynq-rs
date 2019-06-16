@@ -68,7 +68,14 @@ fn l1_cache_init() {
     // (Initialize MMU)
 
     // Enable I-Cache and D-Cache
-    SCTLR.write(0x00401004);
+    SCTLR.write(
+        SCTLR::zeroed()
+            .m(false)
+            .a(false)
+            .c(true)
+            .i(true)
+            .unaligned(true)
+    );
 
     // Synchronization barriers
     // Allows MMU to start
