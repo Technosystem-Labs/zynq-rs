@@ -1,4 +1,4 @@
-use crate::register_bit;
+use crate::{register_bit, register_bits};
 use crate::regs::{RegisterR, RegisterW, RegisterRW};
 
 macro_rules! def_reg_r {
@@ -114,6 +114,28 @@ register_bit!(sctlr,
 register_bit!(sctlr,
               /// Thumb Exception Enable
               te, 30);
+
+/// Domain Access Control Register
+pub struct DACR;
+def_reg_r!(DACR, u32, "mrc p15, 0, $0, c3, c0, 0");
+def_reg_w!(DACR, u32, "mcr p15, 0, $0, c3, c0, 0");
+
+/// Translation Table Base Register 0
+pub struct TTBR0;
+/// Translation Table Base Register 1
+pub struct TTBR1;
+def_reg_r!(TTBR0, ttbr::Read, "mrc p15, 0, $0, c2, c0, 0");
+def_reg_w!(TTBR0, ttbr::Write, "mcr p15, 0, $0, c2, c0, 0");
+def_reg_r!(TTBR1, ttbr::Read, "mrc p15, 0, $0, c2, c0, 1");
+def_reg_w!(TTBR1, ttbr::Write, "mcr p15, 0, $0, c2, c0, 1");
+wrap_reg!(ttbr);
+register_bits!(ttbr, table_base, u32, 14, 31);
+register_bit!(ttbr, irgn0, 6);
+register_bits!(ttbr, rgn, u8, 3, 4);
+register_bit!(ttbr,
+              /// Translation table walk to shared memory?
+              s, 1);
+register_bit!(ttbr, irgn1, 0);
 
 /// Invalidate TLBs
 #[inline(always)]

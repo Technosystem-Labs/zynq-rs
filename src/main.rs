@@ -4,6 +4,7 @@
 #![feature(global_asm)]
 #![feature(naked_functions)]
 #![feature(compiler_builtins_lib)]
+#![feature(never_type)]
 
 use core::fmt::Write;
 use core::mem::uninitialized;
@@ -19,7 +20,7 @@ use uart::Uart;
 mod eth;
 
 use crate::regs::{RegisterR, RegisterW};
-use crate::cortex_a9::{asm, regs::*};
+use crate::cortex_a9::{asm, regs::*, mmu};
 
 extern "C" {
     static mut __bss_start: u32;
@@ -51,8 +52,10 @@ unsafe fn boot_core0() -> ! {
     l1_cache_init();
     zero_bss(&mut __bss_start, &mut __bss_end);
 
-    main();
-    panic!("return from main");
+    mmu::with_mmu(&mmu::L1Table::flat_layout(), || {
+        main();
+        panic!("return from main");
+    });
 }
 
 fn l1_cache_init() {
@@ -64,24 +67,6 @@ fn l1_cache_init() {
     bpiall();
     // Invalidate D-Cache
     dccisw();
-
-    // (Initialize MMU)
-
-    // Enable I-Cache and D-Cache
-    SCTLR.write(
-        SCTLR::zeroed()
-            .m(false)
-            .a(false)
-            .c(true)
-            .i(true)
-            .unaligned(true)
-    );
-
-    // Synchronization barriers
-    // Allows MMU to start
-    asm::dsb();
-    // Flushes pre-fetch buffer
-    asm::isb();
 }
 
 const UART_RATE: u32 = 115_200;
