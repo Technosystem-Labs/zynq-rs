@@ -52,7 +52,9 @@ unsafe fn boot_core0() -> ! {
     l1_cache_init();
     zero_bss(&mut __bss_start, &mut __bss_end);
 
-    mmu::with_mmu(&mmu::L1Table::flat_layout(), || {
+    let mmu_table = mmu::L1Table::get()
+        .setup_flat_layout();
+    mmu::with_mmu(mmu_table, || {
         main();
         panic!("return from main");
     });
@@ -99,7 +101,7 @@ fn main() {
         match eth.recv_next() {
             None => {}
             Some(pkt) => {
-                writeln!(uart, "eth: received {} bytes", pkt.len());
+                writeln!(uart, "eth: received {} bytes\r", pkt.len());
             }
         }
     }

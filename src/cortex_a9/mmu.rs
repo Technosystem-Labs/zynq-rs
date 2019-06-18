@@ -94,20 +94,31 @@ impl L1Entry {
     }
 }
 
-const L1TABLE_SIZE: usize = 4096;
+const L1_TABLE_SIZE: usize = 4096;
+#[doc(hidden)]
+#[link_section = ".bss.l1_table"]
+#[no_mangle]
+pub static mut l1_table: L1Table = L1Table {
+    table: [L1Entry(0); L1_TABLE_SIZE]
+};
 
-#[repr(C, align(16384))]
+/// The `#[repr(align(16384))]` is unfortunately ineffective. Hence we
+/// require explicit linking to a region defined in the linker script.
+#[repr(align(16384))]
 pub struct L1Table {
-    table: [L1Entry; L1TABLE_SIZE]
+    table: [L1Entry; L1_TABLE_SIZE]
 }
 
 impl L1Table {
-    pub fn flat_layout() -> Self {
-        let mut result = L1Table {
-            table: unsafe { uninitialized() }
-        };
+    pub fn get() -> &'static mut Self {
+        unsafe {
+            &mut l1_table
+        }
+    }
+
+    pub fn setup_flat_layout(&mut self) -> &Self {
         /* 0x00000000 - 0x00100000 (cacheable) */
-        result.direct_mapped_section(0, L1Section {
+        self.direct_mapped_section(0, L1Section {
             global: true,
             shareable: true,
             access: AccessPermissions::FullAccess,
@@ -119,7 +130,7 @@ impl L1Table {
         });
         /* (DDR cacheable) */
         for ddr in 1..=0x1ff {
-            result.direct_mapped_section(ddr, L1Section {
+            self.direct_mapped_section(ddr, L1Section {
                 global: true,
                 shareable: true,
                 access: AccessPermissions::FullAccess,
@@ -132,7 +143,7 @@ impl L1Table {
         }
         /* (unassigned/reserved). */
         for undef in 0x1ff..=0x3ff {
-            result.direct_mapped_section(undef, L1Section {
+            self.direct_mapped_section(undef, L1Section {
                 global: false,
                 shareable: false,
                 access: AccessPermissions::PermissionFault,
@@ -145,7 +156,7 @@ impl L1Table {
         }
         /* 0x40000000 - 0x7fffffff (FPGA slave0) */
         for fpga_slave in 0x400..=0x7ff {
-            result.direct_mapped_section(fpga_slave, L1Section {
+            self.direct_mapped_section(fpga_slave, L1Section {
                 global: true,
                 shareable: false,
                 access: AccessPermissions::FullAccess,
@@ -158,7 +169,7 @@ impl L1Table {
         }
         /* 0x80000000 - 0xbfffffff (FPGA slave1) */
         for fpga_slave in 0x800..=0xbff {
-            result.direct_mapped_section(fpga_slave, L1Section {
+            self.direct_mapped_section(fpga_slave, L1Section {
                 global: true,
                 shareable: false,
                 access: AccessPermissions::FullAccess,
@@ -171,7 +182,7 @@ impl L1Table {
         }
         /* 0xc0000000 - 0xdfffffff (unassigned/reserved). */
         for undef in 0xc00..=0xdff {
-            result.direct_mapped_section(undef, L1Section {
+            self.direct_mapped_section(undef, L1Section {
                 global: false,
                 shareable: false,
                 access: AccessPermissions::PermissionFault,
@@ -185,7 +196,7 @@ impl L1Table {
         /* 0xe0000000 - 0xe02fffff (Memory mapped devices)
          * UART/USB/IIC/SPI/CAN/GEM/GPIO/QSPI/SD/NAND */
         for mmapped_dev in 0xe00..=0xe02 {
-            result.direct_mapped_section(mmapped_dev, L1Section {
+            self.direct_mapped_section(mmapped_dev, L1Section {
                 global: true,
                 shareable: false,
                 access: AccessPermissions::FullAccess,
@@ -198,7 +209,7 @@ impl L1Table {
         }
         /* 0xe0300000 - 0xe0ffffff (unassigned/reserved). */
         for undef in 0xe03..=0xe0f {
-            result.direct_mapped_section(undef, L1Section {
+            self.direct_mapped_section(undef, L1Section {
                 global: false,
                 shareable: false,
                 access: AccessPermissions::PermissionFault,
@@ -211,7 +222,7 @@ impl L1Table {
         }
         /* 0xe1000000 - 0xe1ffffff (NAND) */
         for nand in 0xe10..=0xe1f {
-            result.direct_mapped_section(nand, L1Section {
+            self.direct_mapped_section(nand, L1Section {
                 global: true,
                 shareable: false,
                 access: AccessPermissions::FullAccess,
@@ -224,7 +235,7 @@ impl L1Table {
         }
         /* 0xe2000000 - 0xe3ffffff (NOR) */
         for nor in 0xe20..=0xe3f {
-            result.direct_mapped_section(nor, L1Section {
+            self.direct_mapped_section(nor, L1Section {
                 global: true,
                 shareable: false,
                 access: AccessPermissions::FullAccess,
@@ -237,7 +248,7 @@ impl L1Table {
         }
         /* 0xe4000000 - 0xe5ffffff (SRAM) */
         for nor in 0xe40..=0xe5f {
-            result.direct_mapped_section(nor, L1Section {
+            self.direct_mapped_section(nor, L1Section {
                 global: true,
                 shareable: false,
                 access: AccessPermissions::FullAccess,
@@ -250,7 +261,7 @@ impl L1Table {
         }
         /* 0xe6000000 - 0xf7ffffff (unassigned/reserved). */
         for undef in 0xe60..=0xf7f {
-            result.direct_mapped_section(undef, L1Section {
+            self.direct_mapped_section(undef, L1Section {
                 global: false,
                 shareable: false,
                 access: AccessPermissions::PermissionFault,
@@ -263,7 +274,7 @@ impl L1Table {
         }
         /* 0xf8000000 - 0xf8ffffff (AMBA APB Peripherals) */
         for apb in 0xf80..=0xf8f {
-            result.direct_mapped_section(apb, L1Section {
+            self.direct_mapped_section(apb, L1Section {
                 global: true,
                 shareable: false,
                 access: AccessPermissions::FullAccess,
@@ -276,7 +287,7 @@ impl L1Table {
         }
         /* 0xf9000000 - 0xfbffffff (unassigned/reserved). */
         for undef in 0xf90..=0xfbf {
-            result.direct_mapped_section(undef, L1Section {
+            self.direct_mapped_section(undef, L1Section {
                 global: false,
                 shareable: false,
                 access: AccessPermissions::PermissionFault,
@@ -289,7 +300,7 @@ impl L1Table {
         }
         /* 0xfc000000 - 0xfdffffff (Linear QSPI - XIP) */
         for qspi in 0xfc0..=0xfdf {
-            result.direct_mapped_section(qspi, L1Section {
+            self.direct_mapped_section(qspi, L1Section {
                 global: true,
                 shareable: false,
                 access: AccessPermissions::FullAccess,
@@ -302,7 +313,7 @@ impl L1Table {
         }
         /* 0xfe000000 - 0xffefffff (unassigned/reserved). */
         for undef in 0xfe0..=0xffe {
-            result.direct_mapped_section(undef, L1Section {
+            self.direct_mapped_section(undef, L1Section {
                 global: false,
                 shareable: false,
                 access: AccessPermissions::PermissionFault,
@@ -314,7 +325,7 @@ impl L1Table {
             });
         }
         /* 0xfff00000 - 0xffffffff (256K OCM when mapped to high address space) */
-        result.direct_mapped_section(0xfff, L1Section {
+        self.direct_mapped_section(0xfff, L1Section {
             global: true,
             shareable: false,
             access: AccessPermissions::FullAccess,
@@ -325,12 +336,12 @@ impl L1Table {
             bufferable: true,
         });
 
-        result
+        self
     }
 
     #[inline(always)]
     fn direct_mapped_section(&mut self, index: usize, section: L1Section) {
-        assert!(index < L1TABLE_SIZE);
+        assert!(index < L1_TABLE_SIZE);
 
         let base = (index as u32) << 20;
         self.table[index] = L1Entry::section(base, section);
@@ -353,7 +364,7 @@ pub fn with_mmu<F: FnMut() -> !>(l1table: &L1Table, mut f: F) -> ! {
             .irgn0(true)
             .table_base(table_base >> 14)
     );
-    
+
     // Enable I-Cache and D-Cache
     SCTLR.write(
         SCTLR::zeroed()

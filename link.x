@@ -40,8 +40,10 @@ SECTIONS
         *(.data)
     } > OCM
  
-    .bss ALIGN(0x1000) (NOLOAD) :
+    .bss ALIGN(0x4000) (NOLOAD) :
     {
+        /* Aligned to 16 kB */
+        KEEP(*(.bss.l1_table));
         *(.bss)
     } > OCM
     __bss_start = ADDR(.bss);
