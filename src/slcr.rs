@@ -175,7 +175,7 @@ pub struct RegisterBlock {
     reserved18: [u32; 3],
     pub ocm_cfg: RW<u32>,
     reserved19: [u32; 123],
-    pub gpiob_ctrl: RW<u32>,
+    pub gpiob_ctrl: GpiobCtrl,
     pub gpiob_cfg_cmos18: RW<u32>,
     pub gpiob_cfg_cmos25: RW<u32>,
     pub gpiob_cfg_cmos33: RW<u32>,
@@ -415,3 +415,6 @@ mio_pin_register!(mio_pin_50, MioPin50);
 mio_pin_register!(mio_pin_51, MioPin51);
 mio_pin_register!(mio_pin_52, MioPin52);
 mio_pin_register!(mio_pin_53, MioPin53);
+
+register!(gpiob_ctrl, GpiobCtrl, RW, u32);
+register_bit!(gpiob_ctrl, vref_en, 0);
