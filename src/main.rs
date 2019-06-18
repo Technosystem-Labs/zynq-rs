@@ -79,12 +79,21 @@ fn main() {
 
     let mut eth = eth::Eth::default([0x0, 0x17, 0xde, 0xea, 0xbe, 0xef]);
     writeln!(uart, "Eth on\r");
-    use eth::phy::PhyAccess;
-    for addr in 1..=31 {
-        let detect = eth.read_phy(addr, 1);
-        let id1 = eth.read_phy(addr, 2);
-        let id2 = eth.read_phy(addr, 3);
-        writeln!(uart, "phy {}: {:04X} {:04X} {:04X}\r", addr, detect, id1, id2);
+    match eth::phy::Phy::find(&mut eth) {
+        Some((addr, phy)) => {
+            writeln!(uart, "Found {} PHY at addr {}\r", phy.name(), addr);
+        }
+        None => {
+            use eth::phy::PhyAccess;
+            for addr in 1..32 {
+                match eth::phy::id::identify_phy(&mut eth, addr) {
+                    Some(identifier) => {
+                        writeln!(uart, "phy {}: {:?}\r", addr, identifier);
+                    }
+                    None => {}
+                }
+            }
+        }
     }
     while !uart.tx_fifo_empty() {}
 
