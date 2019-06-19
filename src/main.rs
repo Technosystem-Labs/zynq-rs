@@ -6,7 +6,6 @@
 #![feature(compiler_builtins_lib)]
 #![feature(never_type)]
 
-use core::fmt::Write;
 use core::mem::uninitialized;
 
 use r0::zero_bss;
@@ -16,7 +15,7 @@ mod regs;
 mod cortex_a9;
 mod slcr;
 mod uart;
-use uart::Uart;
+mod stdio;
 mod eth;
 
 use crate::regs::{RegisterR, RegisterW};
@@ -71,31 +70,27 @@ fn l1_cache_init() {
     dccisw();
 }
 
-const UART_RATE: u32 = 115_200;
-
 fn main() {
-    let mut uart = Uart::serial(UART_RATE);
-    writeln!(uart, "\r\nHello World!\r");
+    println!("Main.");
 
     let mut eth = eth::Eth::default([0x0, 0x17, 0xde, 0xea, 0xbe, 0xef]);
-    writeln!(uart, "Eth on\r");
+    println!("Eth on");
     match eth::phy::Phy::find(&mut eth) {
         Some((addr, phy)) => {
-            writeln!(uart, "Found {} PHY at addr {}\r", phy.name(), addr);
+            println!("Found {} PHY at addr {}", phy.name(), addr);
         }
         None => {
             use eth::phy::PhyAccess;
             for addr in 1..32 {
                 match eth::phy::id::identify_phy(&mut eth, addr) {
                     Some(identifier) => {
-                        writeln!(uart, "phy {}: {:?}\r", addr, identifier);
+                        println!("phy {}: {:?}", addr, identifier);
                     }
                     None => {}
                 }
             }
         }
     }
-    while !uart.tx_fifo_empty() {}
 
     let mut rx_buffers = [[0u8; 1536]; eth::rx::DESCS];
     let mut rx_buffer_ptrs: [&mut [u8]; eth::rx::DESCS] = unsafe {
@@ -110,7 +105,7 @@ fn main() {
         match eth.recv_next() {
             None => {}
             Some(pkt) => {
-                writeln!(uart, "eth: received {} bytes\r", pkt.len());
+                println!("eth: received {} bytes", pkt.len());
             }
         }
     }
@@ -119,9 +114,7 @@ fn main() {
 
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
-    let mut uart = Uart::serial(UART_RATE);
-    writeln!(uart, "\r\nPanic: {}\r", info);
-    while !uart.tx_fifo_empty() {}
+    println!("\nPanic: {}", info);
 
     slcr::RegisterBlock::unlocked(|slcr| slcr.soft_reset());
     loop {}
