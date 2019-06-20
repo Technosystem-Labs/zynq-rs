@@ -19,6 +19,15 @@ pub fn get_uart() -> &'static mut Uart {
 }
 
 #[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => ({
+        use core::fmt::Write;
+        let uart = crate::stdio::get_uart();
+        write!(uart, $($arg)*);
+    })
+}
+
+#[macro_export]
 macro_rules! println {
     ($($arg:tt)*) => ({
         use core::fmt::Write;
