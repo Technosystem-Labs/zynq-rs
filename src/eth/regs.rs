@@ -240,7 +240,9 @@ register_bit!(dma_cfg, ahb_endian_swp_pkt_en, 7);
 register_bits!(dma_cfg, rx_pktbuf_memsz_sel, u8, 8, 9);
 register_bit!(dma_cfg, tx_pktbuf_memsz_sel, 10);
 register_bit!(dma_cfg, csum_gen_offload_en, 11);
-register_bits!(dma_cfg, ahb_mem_rx_buf_size, u8, 16, 23);
+register_bits!(dma_cfg,
+               /// 64 bytes unit
+               ahb_mem_rx_buf_size, u8, 16, 23);
 register_bit!(dma_cfg, disc_when_no_ahb, 24);
 
 register!(tx_status, TxStatus, RW, u32);

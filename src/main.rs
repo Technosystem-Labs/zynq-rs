@@ -92,14 +92,9 @@ fn main() {
         }
     }
 
-    let mut rx_buffers = [[0u8; 1536]; eth::rx::DESCS];
-    let mut rx_buffer_ptrs: [&mut [u8]; eth::rx::DESCS] = unsafe {
-        uninitialized()
-    };
-    for (i, (ptr, buf)) in rx_buffer_ptrs.iter_mut().zip(rx_buffers.iter_mut()).enumerate() {
-        *ptr = buf;
-    }
-    let mut eth = eth.start_rx(rx_buffer_ptrs);
+    let mut rx_descs: [eth::rx::DescEntry; 8] = unsafe { uninitialized() };
+    let mut rx_buffers = [[0u8; 1536]; 8];
+    let mut eth = eth.start_rx(&mut rx_descs, &mut rx_buffers);
 
     loop {
         match eth.recv_next() {

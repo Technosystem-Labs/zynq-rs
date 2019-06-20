@@ -3,7 +3,7 @@ use crate::{register, register_bit, register_bits, register_bits_typed, regs::*}
 
 /// Descriptor entry
 #[repr(C)]
-struct DescEntry {
+pub struct DescEntry {
     word0: DescWord0,
     word1: DescWord1,
 }
@@ -32,38 +32,41 @@ register_bit!(desc_word1, uni_hash_match, 29);
 register_bit!(desc_word1, multi_hash_match, 30);
 register_bit!(desc_word1, global_broadcast, 31);
 
-/// Number of descriptors
-pub const DESCS: usize = 8;
-
 #[repr(C)]
 pub struct DescList<'a> {
-    list: [DescEntry; DESCS],
-    buffers: [&'a mut [u8]; DESCS],
+    list: &'a mut [DescEntry],
+    buffers: &'a mut [[u8; 1536]],
     next: usize,
 }
 
 impl<'a> DescList<'a> {
-    pub fn new(buffers: [&'a mut [u8]; DESCS]) -> Self {
-        let mut list: [DescEntry; DESCS] = unsafe { uninitialized() };
-        for i in 0..DESCS {
-            assert!(buffers[i].len() >= 1536);
-            let buffer_addr = &mut buffers[i][0] as *mut _ as u32;
+    pub fn new(list: &'a mut [DescEntry], buffers: &'a mut [[u8; 1536]]) -> Self {
+        let last = list.len().min(buffers.len()) - 1;
+        for (i, (entry, buffer)) in list.iter_mut().zip(buffers.iter_mut()).enumerate() {
+            let is_last = i == last;
+            assert!(buffer.len() >= 1536);
+            let buffer_addr = &mut buffer[0] as *mut _ as u32;
             assert!(buffer_addr & 0b11 == 0);
-            list[i].word0.write(
+            entry.word0.write(
                 DescWord0::zeroed()
                     .used(false)
-                    .wrap(i == DESCS - 1)
+                    .wrap(is_last)
                     .address(buffer_addr >> 2)
             );
-            list[i].word1.write(
+            entry.word1.write(
                 DescWord1::zeroed()
             );
         }
 
         DescList {
-            list, buffers,
+            list,
+            buffers,
             next: 0,
         }
+    }
+
+    pub fn list_addr(&self) -> u32 {
+        &self.list[0] as *const _ as u32
     }
 
     pub fn recv_next(&mut self) -> Option<&[u8]> {

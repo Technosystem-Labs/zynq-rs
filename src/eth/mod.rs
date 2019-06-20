@@ -290,8 +290,8 @@ impl<RX, TX> Eth<RX, TX> {
 
         self.regs.dma_cfg.write(
             regs::DmaCfg::zeroed()
-                // 1600 bytes
-                .ahb_mem_rx_buf_size(0x19)
+                // 1536 bytes
+                .ahb_mem_rx_buf_size(0x18)
                 // 8 KB
                 .rx_pktbuf_memsz_sel(0x3)
                 // 4 KB
@@ -306,37 +306,23 @@ impl<RX, TX> Eth<RX, TX> {
         self.regs.net_ctrl.write(
             regs::NetCtrl::zeroed()
                 .mgmt_port_en(true)
-                .tx_en(true)
-                .rx_en(true)
         );
     }
 
-    pub fn start_rx<'rx>(self, rx_buffers: [&'rx mut [u8]; rx::DESCS]) -> Eth<rx::DescList<'rx>, TX> {
+    pub fn start_rx<'rx>(self, list: &'rx mut [rx::DescEntry], rx_buffers: &'rx mut [[u8; 1536]]) -> Eth<rx::DescList<'rx>, TX> {
         let new_self = Eth {
             regs: self.regs,
-            rx: rx::DescList::new(rx_buffers),
+            rx: rx::DescList::new(list, rx_buffers),
             tx: self.tx,
         };
-        let list_addr = &new_self.rx as *const _ as u32;
+        let list_addr = new_self.rx.list_addr();
         assert!(list_addr & 0b11 == 0);
         new_self.regs.rx_qbar.write(
             regs::RxQbar::zeroed()
                 .rx_q_baseaddr(list_addr >> 2)
         );
-        new_self
-    }
-
-    pub fn start_tx<'tx>(self, tx_buffers: [&'tx [u8]; tx::DESCS]) -> Eth<RX, tx::DescList<'tx>> {
-        let new_self = Eth {
-            regs: self.regs,
-            rx: self.rx,
-            tx: tx::DescList::new(tx_buffers),
-        };
-        let list_addr = &new_self.tx as *const _ as u32;
-        assert!(list_addr & 0b11 == 0);
-        new_self.regs.tx_qbar.write(
-            regs::TxQbar::zeroed()
-                .tx_q_baseaddr(list_addr >> 2)
+        new_self.regs.net_ctrl.modify(|_, w|
+            w.rx_en(true)
         );
         new_self
     }
