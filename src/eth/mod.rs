@@ -333,7 +333,7 @@ impl<RX, TX> Eth<RX, TX> {
 }
 
 impl<'rx, TX> Eth<rx::DescList<'rx>, TX> {
-    pub fn recv_next(&mut self) -> Option<&[u8]> {
+    pub fn recv_next(&mut self) -> Option<rx::PktRef> {
         self.rx.recv_next()
     }
 }

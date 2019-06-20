@@ -1,4 +1,4 @@
-use core::mem::uninitialized;
+use core::ops::Deref;
 use crate::{register, register_bit, register_bits, register_bits_typed, regs::*};
 
 /// Descriptor entry
@@ -69,19 +69,42 @@ impl<'a> DescList<'a> {
         &self.list[0] as *const _ as u32
     }
 
-    pub fn recv_next(&mut self) -> Option<&[u8]> {
-        if self.list[self.next].word0.read().used() {
-            let len = self.list[self.next].word1
-                .read().frame_length_lsbs()
-                .into();
-            let pkt = &self.buffers[self.next][0..len];
+    pub fn recv_next<'s: 'p, 'p>(&'s mut self) -> Option<PktRef<'p>> {
+        let list_len = self.list.len();
+        let entry = &mut self.list[self.next];
+        if entry.word0.read().used() {
+            let len = entry.word1.read()
+                .frame_length_lsbs().into();
+            // TODO: check no split pkt across multiple buffers
+            let buffer = &self.buffers[self.next][0..len];
+
             self.next += 1;
-            if self.next >= self.list.len() {
+            if self.next >= list_len {
                 self.next = 0;
             }
-            Some(pkt)
+
+            Some(PktRef { entry, buffer })
         } else {
             None
         }
+    }
+}
+
+/// Releases a buffer back to the HW upon Drop
+pub struct PktRef<'a> {
+    entry: &'a mut DescEntry,
+    buffer: &'a [u8],
+}
+
+impl<'a> Drop for PktRef<'a> {
+    fn drop(&mut self) {
+        self.entry.word0.modify(|_, w| w.used(false));
+    }
+}
+
+impl<'a> Deref for PktRef<'a> {
+    type Target = [u8];
+    fn deref(&self) -> &Self::Target {
+        self.buffer
     }
 }
