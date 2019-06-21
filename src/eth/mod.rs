@@ -334,23 +334,23 @@ impl<RX, TX> Eth<RX, TX> {
         new_self
     }
 
-    // pub fn start_tx<'tx>(self, tx_buffers: [&'tx [u8]; tx::DESCS]) -> Eth<RX, tx::DescList<'tx>> {
-    //     let new_self = Eth {
-    //         regs: self.regs,
-    //         rx: self.rx,
-    //         tx: tx::DescList::new(tx_buffers),
-    //     };
-    //     let list_addr = &new_self.tx as *const _ as u32;
-    //     assert!(list_addr & 0b11 == 0);
-    //     new_self.regs.tx_qbar.write(
-    //         regs::TxQbar::zeroed()
-    //             .tx_q_baseaddr(list_addr >> 2)
-    //     );
-    //     new_self.regs.net_ctrl.modify(|_, w|
-    //         w.tx_en(true)
-    //     );
-    //     new_self
-    // }
+    pub fn start_tx<'tx>(self, tx_list: &'tx mut [tx::DescEntry], tx_buffers: &'tx mut [[u8; MTU]]) -> Eth<RX, tx::DescList<'tx>> {
+        let new_self = Eth {
+            regs: self.regs,
+            rx: self.rx,
+            tx: tx::DescList::new(tx_list, tx_buffers),
+        };
+        let list_addr = &new_self.tx.list_addr();
+        assert!(list_addr & 0b11 == 0);
+        new_self.regs.tx_qbar.write(
+            regs::TxQbar::zeroed()
+                .tx_q_baseaddr(list_addr >> 2)
+        );
+        new_self.regs.net_ctrl.modify(|_, w|
+            w.tx_en(true)
+        );
+        new_self
+    }
 
     fn wait_phy_idle(&self) {
         while !self.regs.net_status.read().phy_mgmt_idle() {}
@@ -401,6 +401,12 @@ impl<'rx, TX> Eth<rx::DescList<'rx>, TX> {
         } else {
             Ok(None)
         }
+    }
+}
+
+impl<'tx, RX> Eth<RX, tx::DescList<'tx>> {
+    pub fn send<'s: 'p, 'p>(&'s mut self, length: usize) -> Option<tx::PktRef<'p>> {
+        self.tx.send(&mut self.regs, length)
     }
 }
 

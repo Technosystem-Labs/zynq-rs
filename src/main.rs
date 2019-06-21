@@ -95,6 +95,9 @@ fn main() {
     let mut rx_descs: [eth::rx::DescEntry; 8] = unsafe { uninitialized() };
     let mut rx_buffers = [[0u8; 1536]; 8];
     let mut eth = eth.start_rx(&mut rx_descs, &mut rx_buffers);
+    let mut tx_descs: [eth::tx::DescEntry; 8] = unsafe { uninitialized() };
+    let mut tx_buffers = [[0u8; 1536]; 8];
+    let mut eth = eth.start_tx(&mut tx_descs, &mut tx_buffers);
 
     loop {
         match eth.recv_next() {
@@ -109,6 +112,18 @@ fn main() {
             Err(e) => {
                 println!("eth rx error: {:?}", e);
             }
+        }
+
+        match eth.send(512) {
+            Some(mut pkt) => {
+                let mut x = 0;
+                for b in pkt.iter_mut() {
+                    *b = x;
+                    x += 1;
+                }
+                println!("eth tx {} bytes", pkt.len());
+            }
+            None => println!("eth tx shortage"),
         }
     }
     panic!("End");

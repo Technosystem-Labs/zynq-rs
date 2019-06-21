@@ -1,8 +1,9 @@
-use core::mem::uninitialized;
+use core::ops::{Deref, DerefMut};
 use crate::{register, register_bit, register_bits, register_bits_typed, regs::*};
+use super::{MTU, regs};
 
 /// Descriptor entry
-struct DescEntry {
+pub struct DescEntry {
     word0: DescWord0,
     word1: DescWord1,
 }
@@ -28,26 +29,86 @@ pub const DESCS: usize = 8;
 
 #[repr(C)]
 pub struct DescList<'a> {
-    list: [DescEntry; DESCS],
-    buffers: [&'a [u8]; DESCS],
+    list: &'a mut [DescEntry],
+    buffers: &'a mut [[u8; MTU]],
+    next: usize,
 }
 
 impl<'a> DescList<'a> {
-    pub fn new(buffers: [&'a [u8]; DESCS]) -> Self {
-        let mut list: [DescEntry; DESCS] = unsafe { uninitialized() };
-        for i in 0..DESCS {
-            let buffer_addr = &buffers[i][0] as *const _ as u32;
-            list[i].word0.write(
+    pub fn new(list: &'a mut [DescEntry], buffers: &'a mut [[u8; MTU]]) -> Self {
+        let last = list.len().min(buffers.len()) - 1;
+        for (i, (entry, buffer)) in list.iter_mut().zip(buffers.iter_mut()).enumerate() {
+            let is_last = i == last;
+            let buffer_addr = &mut buffer[0] as *mut _ as u32;
+            assert!(buffer_addr & 0b11 == 0);
+            entry.word0.write(
                 DescWord0::zeroed()
                     .address(buffer_addr)
             );
-            list[i].word1.write(
+            entry.word1.write(
                 DescWord1::zeroed()
                     .used(true)
-                    .wrap(i == DESCS - 1)
+                    .wrap(is_last)
             );
         }
 
-        DescList { list, buffers }
+        DescList {
+            list,
+            buffers,
+            next: 0,
+        }
+    }
+
+    pub fn list_addr(&self) -> u32 {
+        &self.list[0] as *const _ as u32
+    }
+
+    pub fn send<'s: 'p, 'p>(&'s mut self, regs: &'p mut regs::RegisterBlock, length: usize) -> Option<PktRef<'p>> {
+        let list_len = self.list.len();
+        let entry = &mut self.list[self.next];
+        if entry.word1.read().used() {
+            entry.word1.modify(|_, w| w.length(length as u16));
+            let buffer = &mut self.buffers[self.next][0..length];
+
+            self.next += 1;
+            if self.next >= list_len {
+                self.next = 0;
+            }
+
+            Some(PktRef { entry, buffer, regs })
+        } else {
+            // Still in use by HW (sending too fast, ring exceeded)
+            None
+        }
+    }
+}
+
+/// Releases a buffer back to the HW upon Drop, and start the TX
+/// engine
+pub struct PktRef<'a> {
+    entry: &'a mut DescEntry,
+    buffer: &'a mut [u8],
+    regs: &'a mut regs::RegisterBlock,
+}
+
+impl<'a> Drop for PktRef<'a> {
+    fn drop(&mut self) {
+        self.entry.word1.modify(|_, w| w.used(false));
+        self.regs.net_ctrl.modify(|_, w|
+            w.tx_en(true)
+        );
+    }
+}
+
+impl<'a> Deref for PktRef<'a> {
+    type Target = [u8];
+    fn deref(&self) -> &Self::Target {
+        self.buffer
+    }
+}
+
+impl<'a> DerefMut for PktRef<'a> {
+    fn deref_mut(&mut self) -> &mut <Self as Deref>::Target {
+        self.buffer
     }
 }
