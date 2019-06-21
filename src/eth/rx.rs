@@ -1,5 +1,6 @@
 use core::ops::Deref;
 use crate::{register, register_bit, register_bits, register_bits_typed, regs::*};
+use super::MTU;
 
 #[derive(Debug)]
 pub enum Error {
@@ -43,12 +44,12 @@ register_bit!(desc_word1, global_broadcast, 31);
 #[repr(C)]
 pub struct DescList<'a> {
     list: &'a mut [DescEntry],
-    buffers: &'a mut [[u8; 1536]],
+    buffers: &'a mut [[u8; MTU]],
     next: usize,
 }
 
 impl<'a> DescList<'a> {
-    pub fn new(list: &'a mut [DescEntry], buffers: &'a mut [[u8; 1536]]) -> Self {
+    pub fn new(list: &'a mut [DescEntry], buffers: &'a mut [[u8; MTU]]) -> Self {
         let last = list.len().min(buffers.len()) - 1;
         for (i, (entry, buffer)) in list.iter_mut().zip(buffers.iter_mut()).enumerate() {
             let is_last = i == last;

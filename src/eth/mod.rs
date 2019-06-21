@@ -6,6 +6,9 @@ mod regs;
 pub mod rx;
 pub mod tx;
 
+/// Size of all the buffers
+pub const MTU: usize = 1536;
+
 pub struct Eth<RX, TX> {
     regs: &'static mut regs::RegisterBlock,
     rx: RX,
@@ -295,7 +298,7 @@ impl<RX, TX> Eth<RX, TX> {
         self.regs.dma_cfg.write(
             regs::DmaCfg::zeroed()
                 // 1536 bytes
-                .ahb_mem_rx_buf_size(0x18)
+                .ahb_mem_rx_buf_size((MTU >> 6) as u8)
                 // 8 KB
                 .rx_pktbuf_memsz_sel(0x3)
                 // 4 KB
@@ -313,10 +316,10 @@ impl<RX, TX> Eth<RX, TX> {
         );
     }
 
-    pub fn start_rx<'rx>(self, list: &'rx mut [rx::DescEntry], rx_buffers: &'rx mut [[u8; 1536]]) -> Eth<rx::DescList<'rx>, TX> {
+    pub fn start_rx<'rx>(self, rx_list: &'rx mut [rx::DescEntry], rx_buffers: &'rx mut [[u8; MTU]]) -> Eth<rx::DescList<'rx>, TX> {
         let new_self = Eth {
             regs: self.regs,
-            rx: rx::DescList::new(list, rx_buffers),
+            rx: rx::DescList::new(rx_list, rx_buffers),
             tx: self.tx,
         };
         let list_addr = new_self.rx.list_addr();
@@ -355,7 +358,7 @@ impl<RX, TX> Eth<RX, TX> {
 }
 
 impl<'rx, TX> Eth<rx::DescList<'rx>, TX> {
-    pub fn recv_next(&mut self) -> Result<Option<rx::PktRef>, rx::Error> {
+    pub fn recv_next<'s: 'p, 'p>(&'s mut self) -> Result<Option<rx::PktRef<'p>>, rx::Error> {
         let status = self.regs.rx_status.read();
         if status.hresp_not_ok() {
             // Clear
