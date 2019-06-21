@@ -98,9 +98,16 @@ fn main() {
 
     loop {
         match eth.recv_next() {
-            None => {}
-            Some(pkt) => {
-                println!("eth: received {} bytes", pkt.len());
+            Ok(Some(pkt)) => {
+                print!("eth: rx {} bytes", pkt.len());
+                for b in pkt.iter() {
+                    print!(" {:02X}", b);
+                }
+                println!("");
+            }
+            Ok(None) => {}
+            Err(e) => {
+                println!("eth rx error: {:?}", e);
             }
         }
     }

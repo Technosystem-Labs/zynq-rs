@@ -265,8 +265,12 @@ impl<RX, TX> Eth<RX, TX> {
                 .speed(true)
                 .no_broadcast(false)
                 .multi_hash_en(true)
-                // Promiscuous mode
+                // Promiscuous mode (TODO?)
                 .copy_all(true)
+                // Remove 4-byte Frame CheckSum
+                .fcs_remove(true)
+                // One of the slower speeds
+                // TODO: calculate properly
                 .mdc_clk_div(0b110)
         );
 
@@ -327,14 +331,73 @@ impl<RX, TX> Eth<RX, TX> {
         new_self
     }
 
+    // pub fn start_tx<'tx>(self, tx_buffers: [&'tx [u8]; tx::DESCS]) -> Eth<RX, tx::DescList<'tx>> {
+    //     let new_self = Eth {
+    //         regs: self.regs,
+    //         rx: self.rx,
+    //         tx: tx::DescList::new(tx_buffers),
+    //     };
+    //     let list_addr = &new_self.tx as *const _ as u32;
+    //     assert!(list_addr & 0b11 == 0);
+    //     new_self.regs.tx_qbar.write(
+    //         regs::TxQbar::zeroed()
+    //             .tx_q_baseaddr(list_addr >> 2)
+    //     );
+    //     new_self.regs.net_ctrl.modify(|_, w|
+    //         w.tx_en(true)
+    //     );
+    //     new_self
+    // }
+
     fn wait_phy_idle(&self) {
         while !self.regs.net_status.read().phy_mgmt_idle() {}
     }
 }
 
 impl<'rx, TX> Eth<rx::DescList<'rx>, TX> {
-    pub fn recv_next(&mut self) -> Option<rx::PktRef> {
-        self.rx.recv_next()
+    pub fn recv_next(&mut self) -> Result<Option<rx::PktRef>, rx::Error> {
+        let status = self.regs.rx_status.read();
+        if status.hresp_not_ok() {
+            // Clear
+            self.regs.rx_status.write(
+                regs::RxStatus::zeroed()
+                    .hresp_not_ok(true)
+            );
+            return Err(rx::Error::HrespNotOk);
+        }
+        if status.rx_overrun() {
+            // Clear
+            self.regs.rx_status.write(
+                regs::RxStatus::zeroed()
+                    .rx_overrun(true)
+            );
+            return Err(rx::Error::RxOverrun);
+        }
+        if status.buffer_not_avail() {
+            // Clear
+            self.regs.rx_status.write(
+                regs::RxStatus::zeroed()
+                    .buffer_not_avail(true)
+            );
+            return Err(rx::Error::BufferNotAvail);
+        }
+
+        if status.frame_recd() {
+            let result = self.rx.recv_next();
+            match result {
+                Ok(None) => {
+                    // No packet, clear status bit
+                    self.regs.rx_status.write(
+                        regs::RxStatus::zeroed()
+                            .frame_recd(true)
+                    );
+                }
+                _ => {}
+            }
+            result
+        } else {
+            Ok(None)
+        }
     }
 }
 

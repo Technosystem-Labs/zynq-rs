@@ -1,6 +1,14 @@
 use core::ops::Deref;
 use crate::{register, register_bit, register_bits, register_bits_typed, regs::*};
 
+#[derive(Debug)]
+pub enum Error {
+    HrespNotOk,
+    RxOverrun,
+    BufferNotAvail,
+    Truncated,
+}
+
 /// Descriptor entry
 #[repr(C)]
 pub struct DescEntry {
@@ -44,7 +52,6 @@ impl<'a> DescList<'a> {
         let last = list.len().min(buffers.len()) - 1;
         for (i, (entry, buffer)) in list.iter_mut().zip(buffers.iter_mut()).enumerate() {
             let is_last = i == last;
-            assert!(buffer.len() >= 1536);
             let buffer_addr = &mut buffer[0] as *mut _ as u32;
             assert!(buffer_addr & 0b11 == 0);
             entry.word0.write(
@@ -69,13 +76,12 @@ impl<'a> DescList<'a> {
         &self.list[0] as *const _ as u32
     }
 
-    pub fn recv_next<'s: 'p, 'p>(&'s mut self) -> Option<PktRef<'p>> {
+    pub fn recv_next<'s: 'p, 'p>(&'s mut self) -> Result<Option<PktRef<'p>>, Error> {
         let list_len = self.list.len();
         let entry = &mut self.list[self.next];
         if entry.word0.read().used() {
-            let len = entry.word1.read()
-                .frame_length_lsbs().into();
-            // TODO: check no split pkt across multiple buffers
+            let word1 = entry.word1.read();
+            let len = word1.frame_length_lsbs().into();
             let buffer = &self.buffers[self.next][0..len];
 
             self.next += 1;
@@ -83,9 +89,14 @@ impl<'a> DescList<'a> {
                 self.next = 0;
             }
 
-            Some(PktRef { entry, buffer })
+            let pkt = PktRef { entry, buffer };
+            if word1.start_of_frame() && word1.end_of_frame() {
+                Ok(Some(pkt))
+            } else {
+                Err(Error::Truncated)
+            }
         } else {
-            None
+            Ok(None)
         }
     }
 }
