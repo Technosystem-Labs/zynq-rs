@@ -1,6 +1,6 @@
 ENTRY(_boot_cores);
 
-STACK_SIZE = 0x2000 - 8;
+STACK_SIZE = 0x10000 - 8;
 
 /* Provide some defaults */
 PROVIDE(Reset = _boot_cores);
