@@ -49,6 +49,9 @@ impl<'a> DescList<'a> {
                 DescWord1::zeroed()
                     .used(true)
                     .wrap(is_last)
+                    // every frame contains 1 packet
+                    .last_buffer(true)
+            );
             );
         }
 
