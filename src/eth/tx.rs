@@ -97,9 +97,12 @@ pub struct PktRef<'a> {
 impl<'a> Drop for PktRef<'a> {
     fn drop(&mut self) {
         self.entry.word1.modify(|_, w| w.used(false));
-        self.regs.net_ctrl.modify(|_, w|
-            w.tx_en(true)
-        );
+        if ! self.regs.tx_status.read().tx_go() {
+            println!("tx start_tx");
+            self.regs.net_ctrl.modify(|_, w|
+                                      w.start_tx(true)
+            );
+        }
     }
 }
 
