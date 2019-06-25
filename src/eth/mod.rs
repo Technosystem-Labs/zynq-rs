@@ -8,6 +8,7 @@ pub mod tx;
 
 /// Size of all the buffers
 pub const MTU: usize = 1536;
+pub const IO_PLL: u32 = 1_000;
 
 pub struct Eth<RX, TX> {
     regs: &'static mut regs::RegisterBlock,
@@ -140,43 +141,14 @@ impl Eth<(), ()> {
     }
 
     pub fn gem0(macaddr: [u8; 6]) -> Self {
-        slcr::RegisterBlock::unlocked(|slcr| {
-            slcr.gem0_clk_ctrl.write(
-                // 0x0050_0801: 8, 5: 100 Mb/s
-                slcr::ClkCtrl::zeroed()
-                    .clkact(true)
-                    .srcsel(slcr::PllSource::IoPll)
-                    .divisor(8)
-                    .divisor1(5)
-            );
-            // Enable gem0 ref clock
-            slcr.gem0_rclk_ctrl.write(
-                // 0x0000_0801
-                slcr::RclkCtrl::zeroed()
-                    .clkact(true)
-            );
-        });
+        Self::setup_gem0_clock(125);
 
         let regs = regs::RegisterBlock::gem0();
         Self::from_regs(regs, macaddr)
     }
 
     pub fn gem1(macaddr: [u8; 6]) -> Self {
-        slcr::RegisterBlock::unlocked(|slcr| {
-            slcr.gem1_clk_ctrl.write(
-                // 0x0050_0801: 8, 5: 100 Mb/s
-                slcr::ClkCtrl::zeroed()
-                    .clkact(true)
-                    .srcsel(slcr::PllSource::IoPll)
-                    .divisor(8)
-                    .divisor1(5)
-            );
-            // Enable gem1 ref clock
-            slcr.gem1_rclk_ctrl.write(
-                slcr::RclkCtrl::zeroed()
-                    .clkact(true)
-            );
-        });
+        Self::setup_gem1_clock(125);
 
         let regs = regs::RegisterBlock::gem1();
         Self::from_regs(regs, macaddr)
@@ -194,6 +166,50 @@ impl Eth<(), ()> {
 }
 
 impl<RX, TX> Eth<RX, TX> {
+    pub fn setup_gem0_clock(tx_clock: u32) {
+        let d0 = (IO_PLL / tx_clock).min(63);
+        let d1 = (IO_PLL / tx_clock / d0).min(63);
+
+        slcr::RegisterBlock::unlocked(|slcr| {
+            slcr.gem0_clk_ctrl.write(
+                // 0x0050_0801: 8, 5: 100 Mb/s
+                // ...: 8, 1: 1000 Mb/s
+                slcr::ClkCtrl::zeroed()
+                    .clkact(true)
+                    .srcsel(slcr::PllSource::IoPll)
+                    .divisor(d0 as u8)
+                    .divisor1(d1 as u8)
+            );
+            // Enable gem0 recv clock
+            slcr.gem0_rclk_ctrl.write(
+                // 0x0000_0801
+                slcr::RclkCtrl::zeroed()
+                    .clkact(true)
+            );
+        });
+    }
+
+    pub fn setup_gem1_clock(tx_clock: u32) {
+        let d0 = (IO_PLL / tx_clock).min(63);
+        let d1 = (IO_PLL / tx_clock / d0).min(63);
+
+        slcr::RegisterBlock::unlocked(|slcr| {
+            slcr.gem1_clk_ctrl.write(
+                slcr::ClkCtrl::zeroed()
+                    .clkact(true)
+                    .srcsel(slcr::PllSource::IoPll)
+                    .divisor(d0 as u8)
+                    .divisor1(d1 as u8)
+            );
+            // Enable gem1 recv clock
+            slcr.gem1_rclk_ctrl.write(
+                // 0x0000_0801
+                slcr::RclkCtrl::zeroed()
+                    .clkact(true)
+            );
+        });
+    }
+
     fn init(mut self) -> Self {
         // Clear the Network Control register.
         self.regs.net_ctrl.write(regs::NetCtrl::zeroed());
