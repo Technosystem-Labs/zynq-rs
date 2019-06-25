@@ -75,22 +75,7 @@ fn main() {
 
     let mut eth = eth::Eth::default([0x0, 0x17, 0xde, 0xea, 0xbe, 0xef]);
     println!("Eth on");
-    match eth::phy::Phy::find(&mut eth) {
-        Some((addr, phy)) => {
-            println!("Found {} PHY at addr {}", phy.name(), addr);
-        }
-        None => {
-            use eth::phy::PhyAccess;
-            for addr in 1..32 {
-                match eth::phy::id::identify_phy(&mut eth, addr) {
-                    Some(identifier) => {
-                        println!("phy {}: {:?}", addr, identifier);
-                    }
-                    None => {}
-                }
-            }
-        }
-    }
+    eth.reset_phy();
 
     let mut rx_descs: [eth::rx::DescEntry; 8] = unsafe { uninitialized() };
     let mut rx_buffers = [[0u8; 1536]; 8];

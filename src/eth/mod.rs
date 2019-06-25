@@ -355,6 +355,28 @@ impl<RX, TX> Eth<RX, TX> {
     fn wait_phy_idle(&self) {
         while !self.regs.net_status.read().phy_mgmt_idle() {}
     }
+
+    pub fn reset_phy(&mut self) -> bool {
+        match phy::Phy::find(self) {
+            Some(phy) => {
+                phy.modify_control(self, |control|
+                    control.set_reset(true)
+                );
+                while phy.get_control(self).reset() {
+                    println!("Wait for PHY reset");
+                }
+                phy.modify_control(self, |control|
+                    control.set_autoneg_enable(true)
+                        .set_restart_autoneg(true)
+                );
+                // 125 MHz for 1000base-TX
+                Self::setup_gem0_clock(125);
+
+                true
+            }
+            None => false
+        }
+    }
 }
 
 impl<'rx, TX> Eth<rx::DescList<'rx>, TX> {

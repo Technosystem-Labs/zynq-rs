@@ -1,12 +1,21 @@
 pub mod id;
 use id::{identify_phy, PhyIdentifier};
+mod status;
+pub use status::Status;
+mod control;
+pub use control::Control;
 
 pub trait PhyAccess {
     fn read_phy(&mut self, addr: u8, reg: u8) -> u16;
     fn write_phy(&mut self, addr: u8, reg: u8, data: u16);
 }
 
-pub enum Phy {
+pub struct Phy {
+    pub addr: u8,
+    device: PhyDevice,
+}
+
+pub enum PhyDevice {
     Marvel88E1116R,
     Rtl8211E,
 }
@@ -16,20 +25,25 @@ const OUI_REALTEK: u32 = 0x000732;
 
 impl Phy {
     /// Probe all addresses on MDIO for a known PHY
-    pub fn find<PA: PhyAccess>(pa: &mut PA) -> Option<(u8, Phy)> {
+    pub fn find<PA: PhyAccess>(pa: &mut PA) -> Option<Phy> {
         for addr in 1..32 {
-            match identify_phy(pa, addr) {
+            let device = match identify_phy(pa, addr) {
                 Some(PhyIdentifier {
                     oui: OUI_MARVEL,
                     model: 36,
                     ..
-                }) => return Some((addr, Phy::Marvel88E1116R)),
+                }) => Some(PhyDevice::Marvel88E1116R),
                 Some(PhyIdentifier {
                     oui: OUI_REALTEK,
                     model: 0b010001,
                     rev: 0b0101,
-                }) => return Some((addr, Phy::Rtl8211E)),
-                _ => {}
+                }) => Some(PhyDevice::Rtl8211E),
+                _ => None,
+            };
+            match device {
+                Some(device) =>
+                    return Some(Phy { addr, device }),
+                None => {}
             }
         }
 
@@ -37,9 +51,48 @@ impl Phy {
     }
 
     pub fn name(&self) -> &'static str {
-        match self {
-            Phy::Marvel88E1116R => &"Marvel 88E1116R",
-            Phy::Rtl8211E => &"RTL8211E",
+        match self.device {
+            PhyDevice::Marvel88E1116R => &"Marvel 88E1116R",
+            PhyDevice::Rtl8211E => &"RTL8211E",
         }
     }
+
+    pub fn read_reg<PA, PR>(&self, pa: &mut PA) -> PR
+    where
+        PA: PhyAccess,
+        PR: PhyRegister + From<u16>,
+    {
+        pa.read_phy(self.addr, PR::addr()).into()
+    }
+
+    pub fn modify_reg<PA, PR, F>(&self, pa: &mut PA, mut f: F)
+    where
+        PA: PhyAccess,
+        PR: PhyRegister + From<u16> + Into<u16>,
+        F: FnMut(PR) -> PR,
+    {
+        let reg = pa.read_phy(self.addr, PR::addr()).into();
+        let reg = f(reg);
+        pa.write_phy(self.addr, PR::addr(), reg.into())
+    }
+
+    pub fn modify_control<PA, F>(&self, pa: &mut PA, f: F)
+    where
+        PA: PhyAccess,
+        F: FnMut(Control) -> Control,
+    {
+        self.modify_reg(pa, f)
+    }
+
+    pub fn get_control<PA: PhyAccess>(&self, pa: &mut PA) -> Control {
+        self.read_reg(pa)
+    }
+
+    pub fn get_status<PA: PhyAccess>(&self, pa: &mut PA) -> Status {
+        self.read_reg(pa)
+    }
+}
+
+pub trait PhyRegister {
+    fn addr() -> u8;
 }
