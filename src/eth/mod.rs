@@ -39,6 +39,7 @@ impl Eth<(), ()> {
             slcr.mio_pin_16.write(
                 slcr::MioPin16::zeroed()
                     .l0_sel(true)
+                    .speed(true)
                     .io_type(slcr::IoBufferType::Hstl)
                     .pullup(true)
                     .disable_rcvr(true)
@@ -47,6 +48,7 @@ impl Eth<(), ()> {
             slcr.mio_pin_21.write(
                 slcr::MioPin21::zeroed()
                     .l0_sel(true)
+                    .speed(true)
                     .io_type(slcr::IoBufferType::Hstl)
                     .pullup(true)
                     .disable_rcvr(true)
@@ -55,6 +57,7 @@ impl Eth<(), ()> {
             slcr.mio_pin_20.write(
                 slcr::MioPin20::zeroed()
                     .l0_sel(true)
+                    .speed(true)
                     .io_type(slcr::IoBufferType::Hstl)
                     .pullup(true)
                     .disable_rcvr(true)
@@ -62,6 +65,8 @@ impl Eth<(), ()> {
             // TXD2
             slcr.mio_pin_19.write(
                 slcr::MioPin19::zeroed()
+                    .l0_sel(true)
+                    .speed(true)
                     .io_type(slcr::IoBufferType::Hstl)
                     .pullup(true)
                     .disable_rcvr(true)
@@ -69,6 +74,8 @@ impl Eth<(), ()> {
             // TXD1
             slcr.mio_pin_18.write(
                 slcr::MioPin18::zeroed()
+                    .l0_sel(true)
+                    .speed(true)
                     .io_type(slcr::IoBufferType::Hstl)
                     .pullup(true)
                     .disable_rcvr(true)
@@ -77,6 +84,7 @@ impl Eth<(), ()> {
             slcr.mio_pin_17.write(
                 slcr::MioPin17::zeroed()
                     .l0_sel(true)
+                    .speed(true)
                     .io_type(slcr::IoBufferType::Hstl)
                     .pullup(true)
                     .disable_rcvr(true)
