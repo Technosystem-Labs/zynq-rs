@@ -36,14 +36,16 @@ Proceed using gdb with `load`, `c`
 
 ## Using OpenOCD
 
-### Resources for the ZC706
+### Running on the ZC706
 
-https://devel.rtems.org/wiki/Debugging/OpenOCD/Xilinx_Zynq
-https://github.com/nathanrossi/meta-random/tree/master/openocd-zynq
+```shell
+nix-shell --command "cargo build --release"
+openocd -f openocd/zc706.cfg
+```
 
 ### Running on the Cora Z7-10
 
 ```shell
 nix-shell --command "cargo build --release --no-default-features --features=target_cora_z7_10"
-openocd -f cora-z7-10.cfg
+openocd -f openocd/cora-z7-10.cfg
 ```
