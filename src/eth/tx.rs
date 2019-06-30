@@ -1,5 +1,6 @@
 use core::ops::{Deref, DerefMut};
 use crate::{register, register_bit, register_bits, register_bits_typed, regs::*};
+use crate::println;
 use super::{MTU, regs};
 
 /// Descriptor entry
@@ -51,7 +52,6 @@ impl<'a> DescList<'a> {
                     .wrap(is_last)
                     // every frame contains 1 packet
                     .last_buffer(true)
-            );
             );
         }
 

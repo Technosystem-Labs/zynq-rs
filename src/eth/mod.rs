@@ -1,5 +1,6 @@
 use crate::regs::*;
 use crate::slcr;
+use crate::println;
 
 pub mod phy;
 mod regs;
