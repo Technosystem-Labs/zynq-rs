@@ -120,3 +120,26 @@ impl<'a> DerefMut for PktRef<'a> {
         self.buffer
     }
 }
+
+/// TxToken for smoltcp support
+pub struct Token<'a, 'tx> {
+    pub regs: &'a mut regs::RegisterBlock,
+    pub desc_list: &'a mut DescList<'tx>,
+}
+
+impl<'a, 'tx: 'a> smoltcp::phy::TxToken for Token<'a, 'tx> {
+    fn consume<R, F>(self, _timestamp: smoltcp::time::Instant, len: usize, f: F) -> smoltcp::Result<R>
+        where F: FnOnce(&mut [u8]) -> smoltcp::Result<R>
+    {
+        match self.desc_list.send(self.regs, len) {
+            None =>
+                Err(smoltcp::Error::Exhausted),
+            Some(mut pktref) => {
+                let result = f(pktref.deref_mut());
+                // TODO: on result.is_err() don;t send
+                drop(pktref);
+                result
+            }
+        }
+    }
+}

@@ -122,3 +122,12 @@ impl<'a> Deref for PktRef<'a> {
         self.buffer
     }
 }
+
+impl<'a> smoltcp::phy::RxToken for PktRef<'a> {
+    fn consume<R, F>(mut self, _timestamp: smoltcp::time::Instant, f: F) -> smoltcp::Result<R>
+    where
+        F: FnOnce(&[u8]) -> smoltcp::Result<R>
+    {
+        f(self.buffer)
+    }
+}

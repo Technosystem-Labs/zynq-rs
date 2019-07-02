@@ -494,3 +494,40 @@ impl<RX, TX> phy::PhyAccess for Eth<RX, TX> {
         self.wait_phy_idle();
     }
 }
+
+impl<'a, 'rx: 'a, 'tx: 'a> smoltcp::phy::Device<'a> for Eth<rx::DescList<'rx>, tx::DescList<'tx>> {
+    type RxToken = rx::PktRef<'a>;
+    type TxToken = tx::Token<'a, 'tx>;
+
+    fn capabilities(&self) -> smoltcp::phy::DeviceCapabilities {
+        let mut caps = smoltcp::phy::DeviceCapabilities::default();
+        caps.max_transmission_unit = MTU;
+        caps
+    }
+
+    fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
+        match self.rx.recv_next() {
+            Ok(Some(mut pktref)) => {
+                let tx_token = tx::Token {
+                    regs: self.regs,
+                    desc_list: &mut self.tx,
+                };
+                Some((pktref, tx_token))
+            }
+            Ok(None) =>
+                None,
+            Err(e) => {
+                println!("eth recv error: {:?}", e);
+                None
+            }
+        }
+    }
+
+    fn transmit(&'a mut self) -> Option<Self::TxToken> {
+        Some(tx::Token {
+            regs: self.regs,
+            desc_list: &mut self.tx,
+        })
+    }
+
+}
