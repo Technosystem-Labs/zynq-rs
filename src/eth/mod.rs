@@ -15,13 +15,13 @@ const MAX_MDC: u32 = 2_500_000;
 /// Clock for GbE
 const TX_1000: u32 = 125_000_000;
 
-pub struct Eth<RX, TX> {
-    regs: &'static mut regs::RegisterBlock,
+pub struct Eth<'r, RX, TX> {
+    regs: &'r mut regs::RegisterBlock,
     rx: RX,
     tx: TX,
 }
 
-impl Eth<(), ()> {
+impl<'r> Eth<'r, (), ()> {
     pub fn default(macaddr: [u8; 6]) -> Self {
         slcr::RegisterBlock::unlocked(|slcr| {
             // Manual example: 0x0000_1280
@@ -167,7 +167,7 @@ impl Eth<(), ()> {
         Self::from_regs(regs, macaddr)
     }
 
-    fn from_regs(regs: &'static mut regs::RegisterBlock, macaddr: [u8; 6]) -> Self {
+    fn from_regs(regs: &'r mut regs::RegisterBlock, macaddr: [u8; 6]) -> Self {
         let mut eth = Eth {
             regs,
             rx: (),
@@ -178,7 +178,7 @@ impl Eth<(), ()> {
     }
 }
 
-impl<RX, TX> Eth<RX, TX> {
+impl<'r, RX, TX> Eth<'r, RX, TX> {
     pub fn setup_gem0_clock(tx_clock: u32) {
         let io_pll = CpuClocks::get().io;
         let d0 = (io_pll / tx_clock).min(63);
@@ -349,7 +349,7 @@ impl<RX, TX> Eth<RX, TX> {
         );
     }
 
-    pub fn start_rx<'rx>(self, rx_list: &'rx mut [rx::DescEntry], rx_buffers: &'rx mut [[u8; MTU]]) -> Eth<rx::DescList<'rx>, TX> {
+    pub fn start_rx<'rx>(self, rx_list: &'rx mut [rx::DescEntry], rx_buffers: &'rx mut [[u8; MTU]]) -> Eth<'r, rx::DescList<'rx>, TX> {
         let new_self = Eth {
             regs: self.regs,
             rx: rx::DescList::new(rx_list, rx_buffers),
@@ -367,7 +367,7 @@ impl<RX, TX> Eth<RX, TX> {
         new_self
     }
 
-    pub fn start_tx<'tx>(self, tx_list: &'tx mut [tx::DescEntry], tx_buffers: &'tx mut [[u8; MTU]]) -> Eth<RX, tx::DescList<'tx>> {
+    pub fn start_tx<'tx>(self, tx_list: &'tx mut [tx::DescEntry], tx_buffers: &'tx mut [[u8; MTU]]) -> Eth<'r, RX, tx::DescList<'tx>> {
         let new_self = Eth {
             regs: self.regs,
             rx: self.rx,
@@ -412,7 +412,7 @@ impl<RX, TX> Eth<RX, TX> {
     }
 }
 
-impl<'rx, TX> Eth<rx::DescList<'rx>, TX> {
+impl<'r, 'rx, TX> Eth<'r, rx::DescList<'rx>, TX> {
     pub fn recv_next<'s: 'p, 'p>(&'s mut self) -> Result<Option<rx::PktRef<'p>>, rx::Error> {
         let status = self.regs.rx_status.read();
         if status.hresp_not_ok() {
@@ -459,13 +459,13 @@ impl<'rx, TX> Eth<rx::DescList<'rx>, TX> {
     }
 }
 
-impl<'tx, RX> Eth<RX, tx::DescList<'tx>> {
+impl<'r, 'tx, RX> Eth<'r, RX, tx::DescList<'tx>> {
     pub fn send<'s: 'p, 'p>(&'s mut self, length: usize) -> Option<tx::PktRef<'p>> {
-        self.tx.send(&mut self.regs, length)
+        self.tx.send(self.regs, length)
     }
 }
 
-impl<RX, TX> phy::PhyAccess for Eth<RX, TX> {
+impl<'r, RX, TX> phy::PhyAccess for Eth<'r, RX, TX> {
     fn read_phy(&mut self, addr: u8, reg: u8) -> u16 {
         self.wait_phy_idle();
         self.regs.phy_maint.write(
@@ -495,7 +495,7 @@ impl<RX, TX> phy::PhyAccess for Eth<RX, TX> {
     }
 }
 
-impl<'a, 'rx: 'a, 'tx: 'a> smoltcp::phy::Device<'a> for Eth<rx::DescList<'rx>, tx::DescList<'tx>> {
+impl<'r, 'rx, 'tx: 'a, 'a> smoltcp::phy::Device<'a> for &mut Eth<'r, rx::DescList<'rx>, tx::DescList<'tx>> {
     type RxToken = rx::PktRef<'a>;
     type TxToken = tx::Token<'a, 'tx>;
 

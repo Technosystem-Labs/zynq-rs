@@ -8,10 +8,13 @@
 // TODO: disallow unused/dead_code when code moves into a lib crate
 #![allow(dead_code)]
 
-use core::mem::uninitialized;
-
+use core::mem::{uninitialized, transmute};
 use r0::zero_bss;
 use compiler_builtins as _;
+use smoltcp::wire::{EthernetAddress, IpAddress, IpCidr};
+use smoltcp::iface::{NeighborCache, EthernetInterfaceBuilder, EthernetInterface};
+use smoltcp::time::Instant;
+use smoltcp::socket::SocketSet;
 
 mod regs;
 mod cortex_a9;
@@ -73,6 +76,8 @@ fn l1_cache_init() {
     dccisw();
 }
 
+const HWADDR: [u8; 6] = [0, 0x23, 0xde, 0xea, 0xbe, 0xef];
+
 fn main() {
     println!("Main.");
     let clocks = clocks::CpuClocks::get();
@@ -83,7 +88,7 @@ fn main() {
              clocks.cpu_2x() / 1_000_000,
              clocks.cpu_1x() / 1_000_000);
 
-    let mut eth = eth::Eth::default([0x0, 0x17, 0xde, 0xea, 0xbe, 0xef]);
+    let mut eth = eth::Eth::default(HWADDR.clone());
     println!("Eth on");
     eth.reset_phy();
 
@@ -92,34 +97,67 @@ fn main() {
     let eth = eth.start_rx(&mut rx_descs, &mut rx_buffers);
     let mut tx_descs: [eth::tx::DescEntry; 8] = unsafe { uninitialized() };
     let mut tx_buffers = [[0u8; 1536]; 8];
-    let mut eth = eth.start_tx(&mut tx_descs, &mut tx_buffers);
+    //let mut eth = eth.start_tx(&mut tx_descs, &mut tx_buffers);
+    let mut eth = eth.start_tx(
+        // HACK
+        unsafe { transmute(tx_descs.as_mut()) },
+        unsafe { transmute(tx_buffers.as_mut()) },
+    );
 
+    let ethernet_addr = EthernetAddress(HWADDR);
+    // IP stack
+    let local_addr = IpAddress::v4(10, 0, 0, 1);
+    let mut ip_addrs = [IpCidr::new(local_addr, 24)];
+    let mut neighbor_storage = [None; 16];
+    let neighbor_cache = NeighborCache::new(&mut neighbor_storage[..]);
+    let mut iface = EthernetInterfaceBuilder::new(&mut eth)
+        .ethernet_addr(ethernet_addr)
+        .ip_addrs(&mut ip_addrs[..])
+        .neighbor_cache(neighbor_cache)
+        .finalize();
+    let mut sockets_storage = [
+        None, None, None, None,
+        None, None, None, None
+    ];
+    let mut sockets = SocketSet::new(&mut sockets_storage[..]);
+
+    let mut time = 0u32;
     loop {
-        match eth.recv_next() {
-            Ok(Some(pkt)) => {
-                print!("eth: rx {} bytes", pkt.len());
-                for b in pkt.iter() {
-                    print!(" {:02X}", b);
-                }
-                println!("");
-            }
-            Ok(None) => {}
+        time += 1;
+        let timestamp = Instant::from_millis(time.into());
+
+        match iface.poll(&mut sockets, timestamp) {
+            Ok(_) => {},
             Err(e) => {
-                println!("eth rx error: {:?}", e);
+                println!("poll error: {}", e);
             }
         }
 
-        match eth.send(512) {
-            Some(mut pkt) => {
-                let mut x = 0;
-                for b in pkt.iter_mut() {
-                    *b = x;
-                    x += 1;
-                }
-                println!("eth tx {} bytes", pkt.len());
-            }
-            None => println!("eth tx shortage"),
-        }
+        // match eth.recv_next() {
+        //     Ok(Some(pkt)) => {
+        //         print!("eth: rx {} bytes", pkt.len());
+        //         for b in pkt.iter() {
+        //             print!(" {:02X}", b);
+        //         }
+        //         println!("");
+        //     }
+        //     Ok(None) => {}
+        //     Err(e) => {
+        //         println!("eth rx error: {:?}", e);
+        //     }
+        // }
+
+        // match eth.send(512) {
+        //     Some(mut pkt) => {
+        //         let mut x = 0;
+        //         for b in pkt.iter_mut() {
+        //             *b = x;
+        //             x += 1;
+        //         }
+        //         println!("eth tx {} bytes", pkt.len());
+        //     }
+        //     None => println!("eth tx shortage"),
+        // }
     }
 }
 

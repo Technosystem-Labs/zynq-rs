@@ -68,7 +68,7 @@ impl<'a> DescList<'a> {
         &self.list[0] as *const _ as u32
     }
 
-    pub fn send<'s: 'p, 'p>(&'s mut self, regs: &'p mut regs::RegisterBlock, length: usize) -> Option<PktRef<'p>> {
+    pub fn send<'s: 'p, 'p>(&'s mut self, regs: &'s mut regs::RegisterBlock, length: usize) -> Option<PktRef<'p>> {
         let list_len = self.list.len();
         let entry = &mut self.list[self.next];
         if entry.word1.read().used() {
@@ -122,7 +122,7 @@ impl<'a> DerefMut for PktRef<'a> {
 }
 
 /// TxToken for smoltcp support
-pub struct Token<'a, 'tx> {
+pub struct Token<'a, 'tx: 'a> {
     pub regs: &'a mut regs::RegisterBlock,
     pub desc_list: &'a mut DescList<'tx>,
 }
