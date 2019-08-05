@@ -21,6 +21,11 @@ mod eth;
 use crate::regs::{RegisterR, RegisterW};
 use crate::cortex_a9::{asm, regs::*, mmu};
 
+#[no_mangle]
+pub unsafe extern "C" fn bcmp(s1: *const u8, s2: *const u8, n: usize) -> i32 {
+    compiler_builtins::mem::memcmp(s1, s2, n)
+}
+
 extern "C" {
     static mut __bss_start: u32;
     static mut __bss_end: u32;
