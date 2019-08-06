@@ -11,6 +11,7 @@ stdenv.mkDerivation {
   name = "adc2tcp-env";
   buildInputs = with rustPlatform.rust; [
     rustc cargo
+    cargo-xbuild rustcSrc
     pkgsCross.armhf-embedded.buildPackages.gcc
     #pkgsCross.armv7l-hf-multiplatform.buildPackages.gcc
     #pkgsCross.armhf-embedded.buildPackages.binutils
@@ -18,7 +19,9 @@ stdenv.mkDerivation {
 
   # Set Environment Variables
   RUST_BACKTRACE = 1;
+  XARGO_RUST_SRC = "${rustcSrc}/src";
 
   shellHook = ''
+    echo "Run 'cargo xbuild --release' to build."
   '';
 }

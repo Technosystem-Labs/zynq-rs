@@ -20,36 +20,45 @@ MEMORY
 
 SECTIONS
 {
-    .exceptions (0x0) :
+    .exceptions ORIGIN(OCM) :
     {
         KEEP(*(.text.exceptions));
     } > OCM
-    .text (0x8000) :
+
+    .__fill (NOLOAD) : {
+          . = ORIGIN(OCM) + 0x8000;
+    } > OCM
+
+    .text (ORIGIN(OCM) + 0x8000) :
     {
-        KEEP(*(.text.boot))
-        *(.text .text.*)
+        *(.text.boot);
+        *(.text .text.*);
+        . = ALIGN(4);
     } > OCM
  
-    .rodata ALIGN(0x1000) :
+    .rodata : ALIGN(4)
     {
-        *(.rodata)
+        *(.rodata .rodata.*);
+        . = ALIGN(4);
     } > OCM
  
-    .data ALIGN(0x1000) :
+    .data : ALIGN(4)
     {
-        *(.data)
+        *(.data .data.*);
+        . = ALIGN(4);
     } > OCM
  
-    .bss ALIGN(0x4000) (NOLOAD) :
+    .bss (NOLOAD) : ALIGN(0x4000)
     {
         /* Aligned to 16 kB */
         KEEP(*(.bss.l1_table));
-        *(.bss)
+        *(.bss .bss.*);
+        . = ALIGN(4);
     } > OCM
     __bss_start = ADDR(.bss);
     __bss_end = ADDR(.bss) + SIZEOF(.bss);
 
-    .stack ALIGN(0x1000) (NOLOAD) : {
+    .stack (NOLOAD) : ALIGN(0x1000) {
       . += STACK_SIZE;
     } > OCM
     __stack_end = ADDR(.stack);
@@ -58,6 +67,7 @@ SECTIONS
   /DISCARD/ :
   {
     /* Unused exception related info that only wastes space */
+    *(.ARM.exidx);
     *(.ARM.exidx.*);
     *(.ARM.extab.*);
   }
