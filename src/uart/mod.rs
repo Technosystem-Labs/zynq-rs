@@ -10,9 +10,9 @@ mod baud_rate_gen;
 /// Determined through experimentation. Actually supposed to be
 /// 1 GHz (IO PLL) / 0x14 (slcr.UART_CLK_CTRL[DIVISOR]) = 50 MHz.
 #[cfg(feature = "target_zc706")]
-const UART_REF_CLK: u32 = 45_000_000;
+const UART_REF_CLK: u32 = 50_000_000;
 #[cfg(feature = "target_cora_z7_10")]
-const UART_REF_CLK: u32 = 66_000_000;
+const UART_REF_CLK: u32 = 72_000_000;
 
 pub struct Uart {
     regs: &'static mut regs::RegisterBlock,
