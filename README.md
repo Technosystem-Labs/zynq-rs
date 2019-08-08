@@ -1,7 +1,7 @@
 # Build
 
 ```shell
-nix-shell --command "cargo build --release"
+nix-shell --command "cargo xbuild --release"
 ```
 
 # Debug
@@ -39,13 +39,13 @@ Proceed using gdb with `load`, `c`
 ### Running on the ZC706
 
 ```shell
-nix-shell --command "cargo build --release"
+nix-shell --command "cargo xbuild --release"
 openocd -f openocd/zc706.cfg
 ```
 
 ### Running on the Cora Z7-10
 
 ```shell
-nix-shell --command "cargo build --release --no-default-features --features=target_cora_z7_10"
+nix-shell --command "cargo xbuild --release --no-default-features --features=target_cora_z7_10"
 openocd -f openocd/cora-z7-10.cfg
 ```
