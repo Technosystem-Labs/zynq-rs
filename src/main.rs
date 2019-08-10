@@ -5,6 +5,8 @@
 #![feature(naked_functions)]
 #![feature(compiler_builtins_lib)]
 #![feature(never_type)]
+// TODO: disallow unused/dead_code when code moves into a lib crate
+#![allow(dead_code)]
 
 use core::mem::uninitialized;
 
@@ -79,7 +81,7 @@ fn main() {
 
     let mut rx_descs: [eth::rx::DescEntry; 8] = unsafe { uninitialized() };
     let mut rx_buffers = [[0u8; 1536]; 8];
-    let mut eth = eth.start_rx(&mut rx_descs, &mut rx_buffers);
+    let eth = eth.start_rx(&mut rx_descs, &mut rx_buffers);
     let mut tx_descs: [eth::tx::DescEntry; 8] = unsafe { uninitialized() };
     let mut tx_buffers = [[0u8; 1536]; 8];
     let mut eth = eth.start_tx(&mut tx_descs, &mut tx_buffers);
@@ -111,7 +113,6 @@ fn main() {
             None => println!("eth tx shortage"),
         }
     }
-    panic!("End");
 }
 
 #[panic_handler]

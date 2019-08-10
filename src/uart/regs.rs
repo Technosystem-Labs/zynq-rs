@@ -1,6 +1,6 @@
 use volatile_register::{RO, WO, RW};
 
-use crate::{register, register_bit, register_bits, register_bits_typed, register_at, regs::*};
+use crate::{register, register_bit, register_bits, register_bits_typed, register_at};
 
 #[repr(u8)]
 pub enum ChannelMode {

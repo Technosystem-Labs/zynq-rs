@@ -1,5 +1,4 @@
 use core::fmt;
-use volatile_register::RW;
 
 use crate::regs::*;
 use crate::slcr;

@@ -219,7 +219,7 @@ impl<RX, TX> Eth<RX, TX> {
         });
     }
 
-    fn init(mut self) -> Self {
+    fn init(self) -> Self {
         // Clear the Network Control register.
         self.regs.net_ctrl.write(regs::NetCtrl::zeroed());
         self.regs.net_ctrl.write(regs::NetCtrl::zeroed().clear_stat_regs(true));

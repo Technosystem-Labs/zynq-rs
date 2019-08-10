@@ -1,6 +1,6 @@
 use volatile_register::{RO, WO, RW};
 
-use crate::{register, register_bit, register_bits, register_bits_typed, regs::*};
+use crate::{register, register_bit, register_bits, register_bits_typed};
 
 #[repr(C)]
 pub struct RegisterBlock {

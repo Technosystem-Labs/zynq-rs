@@ -1,5 +1,5 @@
 use core::ops::{Deref, DerefMut};
-use crate::{register, register_bit, register_bits, register_bits_typed, regs::*};
+use crate::{register, register_bit, register_bits, regs::*};
 use crate::println;
 use super::{MTU, regs};
 
@@ -20,10 +20,12 @@ register_bits!(desc_word1, csum_offload_errors, u8, 20, 22);
 register_bit!(desc_word1, late_collision_tx_error, 26);
 register_bit!(desc_word1, ahb_frame_corruption, 27);
 register_bit!(desc_word1, retry_limit_exceeded, 29);
-/// marks last descriptor in list
-register_bit!(desc_word1, wrap, 30);
-/// true if owned by software, false if owned by hardware
-register_bit!(desc_word1, used, 31);
+register_bit!(desc_word1,
+              /// marks last descriptor in list
+              wrap, 30);
+register_bit!(desc_word1,
+              /// true if owned by software, false if owned by hardware
+              used, 31);
 
 /// Number of descriptors
 pub const DESCS: usize = 8;

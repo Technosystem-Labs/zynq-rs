@@ -9,7 +9,7 @@ pub fn get_uart() -> &'static mut Uart {
     unsafe {
         match &mut UART {
             None => {
-                let mut uart = Uart::serial(UART_RATE);
+                let uart = Uart::serial(UART_RATE);
                 UART = Some(uart);
                 UART.as_mut().unwrap()
             }
@@ -23,7 +23,7 @@ macro_rules! print {
     ($($arg:tt)*) => ({
         use core::fmt::Write;
         let uart = crate::stdio::get_uart();
-        write!(uart, $($arg)*);
+        let _ = write!(uart, $($arg)*);
     })
 }
 
@@ -32,8 +32,8 @@ macro_rules! println {
     ($($arg:tt)*) => ({
         use core::fmt::Write;
         let uart = crate::stdio::get_uart();
-        write!(uart, $($arg)*);
-        write!(uart, "\r\n");
+        let _ = write!(uart, $($arg)*);
+        let _ = write!(uart, "\r\n");
         while !uart.tx_fifo_empty() {}
     })
 }

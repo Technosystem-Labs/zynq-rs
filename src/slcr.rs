@@ -1,6 +1,6 @@
 ///! Register definitions for System Level Control
 
-use volatile_register::{RO, WO, RW};
+use volatile_register::{RO, RW};
 use crate::{register, register_at,
             register_bit, register_bits, register_bits_typed,
             regs::RegisterW, regs::RegisterRW};

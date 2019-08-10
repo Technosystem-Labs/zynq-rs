@@ -37,7 +37,7 @@ pub fn configure(regs: &mut RegisterBlock, mut clk: u32, baud: u32) {
     }
 
     match best {
-        Some((cd, bdiv, error)) => {
+        Some((cd, bdiv, _error)) => {
             regs.baud_rate_gen.write(BaudRateGen::zeroed().cd(cd));
             regs.baud_rate_divider.write(BaudRateDiv::zeroed().bdiv(bdiv));
         }

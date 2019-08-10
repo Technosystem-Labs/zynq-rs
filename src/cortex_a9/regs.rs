@@ -1,5 +1,5 @@
 use crate::{register_bit, register_bits};
-use crate::regs::{RegisterR, RegisterW, RegisterRW};
+use crate::regs::{RegisterR, RegisterW};
 
 macro_rules! def_reg_r {
     ($name:tt, $type: ty, $asm_instr:tt) => {

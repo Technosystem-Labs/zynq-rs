@@ -1,5 +1,5 @@
 use core::ops::Deref;
-use crate::{register, register_bit, register_bits, register_bits_typed, regs::*};
+use crate::{register, register_bit, register_bits, regs::*};
 use super::MTU;
 
 #[derive(Debug)]
@@ -18,10 +18,12 @@ pub struct DescEntry {
 }
 
 register!(desc_word0, DescWord0, RW, u32);
-/// true if owned by software, false if owned by hardware
-register_bit!(desc_word0, used, 0);
-/// mark last desc in list
-register_bit!(desc_word0, wrap, 1);
+register_bit!(desc_word0,
+              /// true if owned by software, false if owned by hardware
+              used, 0);
+register_bit!(desc_word0,
+              /// mark last desc in list
+              wrap, 1);
 register_bits!(desc_word0, address, u32, 2, 31);
 
 register!(desc_word1, DescWord1, RW, u32);

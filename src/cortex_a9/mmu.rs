@@ -1,4 +1,3 @@
-use core::mem::uninitialized;
 use bit_field::BitField;
 use super::{regs::*, asm};
 use crate::regs::RegisterW;
@@ -73,7 +72,7 @@ pub struct L1Entry(u32);
 impl L1Entry {
     #[inline(always)]
     pub fn section(phys_base: u32, section: L1Section) -> Self {
-        /// Must be aligned to 1 MB
+        // Must be aligned to 1 MB
         assert!(phys_base & 0x000f_ffff == 0);
         let mut entry = L1Entry(phys_base);
 
@@ -382,8 +381,4 @@ pub fn with_mmu<F: FnMut() -> !>(l1table: &L1Table, mut f: F) -> ! {
     asm::isb();
 
     f();
-
-    // table must live until here
-    drop(l1table.table);
-    unreachable!();
 }
