@@ -15,6 +15,7 @@ use compiler_builtins as _;
 
 mod regs;
 mod cortex_a9;
+mod clocks;
 mod slcr;
 mod uart;
 mod stdio;
@@ -74,6 +75,13 @@ fn l1_cache_init() {
 
 fn main() {
     println!("Main.");
+    let clocks = clocks::CpuClocks::get();
+    println!("Clocks: {:?}", clocks);
+    println!("CPU speeds: {}/{}/{}/{} MHz",
+             clocks.cpu_6x4x() / 1_000_000,
+             clocks.cpu_3x2x() / 1_000_000,
+             clocks.cpu_2x() / 1_000_000,
+             clocks.cpu_1x() / 1_000_000);
 
     let mut eth = eth::Eth::default([0x0, 0x17, 0xde, 0xea, 0xbe, 0xef]);
     println!("Eth on");

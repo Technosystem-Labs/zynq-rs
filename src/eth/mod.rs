@@ -1,6 +1,7 @@
 use crate::regs::*;
 use crate::slcr;
 use crate::println;
+use crate::clocks::CpuClocks;
 
 pub mod phy;
 mod regs;
@@ -9,7 +10,6 @@ pub mod tx;
 
 /// Size of all the buffers
 pub const MTU: usize = 1536;
-pub const IO_PLL: u32 = 1_000;
 
 pub struct Eth<RX, TX> {
     regs: &'static mut regs::RegisterBlock,
@@ -176,14 +176,15 @@ impl Eth<(), ()> {
 
 impl<RX, TX> Eth<RX, TX> {
     pub fn setup_gem0_clock(tx_clock: u32) {
-        let d0 = (IO_PLL / tx_clock).min(63);
-        let d1 = (IO_PLL / tx_clock / d0).min(63);
+        let io_pll = CpuClocks::get().io;
+        let d0 = (io_pll / tx_clock).min(63);
+        let d1 = (io_pll / tx_clock / d0).min(63);
 
         slcr::RegisterBlock::unlocked(|slcr| {
             slcr.gem0_clk_ctrl.write(
                 // 0x0050_0801: 8, 5: 100 Mb/s
                 // ...: 8, 1: 1000 Mb/s
-                slcr::ClkCtrl::zeroed()
+                slcr::GemClkCtrl::zeroed()
                     .clkact(true)
                     .srcsel(slcr::PllSource::IoPll)
                     .divisor(d0 as u8)
@@ -199,12 +200,13 @@ impl<RX, TX> Eth<RX, TX> {
     }
 
     pub fn setup_gem1_clock(tx_clock: u32) {
-        let d0 = (IO_PLL / tx_clock).min(63);
-        let d1 = (IO_PLL / tx_clock / d0).min(63);
+        let io_pll = CpuClocks::get().io;
+        let d0 = (io_pll / tx_clock).min(63);
+        let d1 = (io_pll / tx_clock / d0).min(63);
 
         slcr::RegisterBlock::unlocked(|slcr| {
             slcr.gem1_clk_ctrl.write(
-                slcr::ClkCtrl::zeroed()
+                slcr::GemClkCtrl::zeroed()
                     .clkact(true)
                     .srcsel(slcr::PllSource::IoPll)
                     .divisor(d0 as u8)

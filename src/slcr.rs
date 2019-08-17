@@ -12,6 +12,13 @@ pub enum PllSource {
     DdrPll = 0b11,
 }
 
+#[repr(u8)]
+pub enum ArmPllSource {
+    ArmPll = 0b00,
+    DdrPll = 0b10,
+    IoPll  = 0b11,
+}
+
 #[repr(C)]
 pub struct RegisterBlock {
     pub scl: RW<u32>,
@@ -19,15 +26,15 @@ pub struct RegisterBlock {
     pub slcr_unlock: SlcrUnlock,
     pub slcr_locksta: RO<u32>,
     reserved0: [u32; 60],
-    pub arm_pll_ctrl: RW<u32>,
-    pub ddr_pll_ctrl: RW<u32>,
-    pub io_pll_ctrl: RW<u32>,
+    pub arm_pll_ctrl: PllCtrl,
+    pub ddr_pll_ctrl: PllCtrl,
+    pub io_pll_ctrl: PllCtrl,
     pub pll_status: RO<u32>,
     pub arm_pll_cfg: RW<u32>,
     pub ddr_pll_cfg: RW<u32>,
     pub io_pll_cfg: RW<u32>,
     reserved1: [u32; 1],
-    pub arm_clk_ctrl: RW<u32>,
+    pub arm_clk_ctrl: ArmClkCtrl,
     pub ddr_clk_ctrl: RW<u32>,
     pub dci_clk_ctrl: RW<u32>,
     pub aper_clk_ctrl: AperClkCtrl,
@@ -35,8 +42,8 @@ pub struct RegisterBlock {
     pub usb1_clk_ctrl: RW<u32>,
     pub gem0_rclk_ctrl: RclkCtrl,
     pub gem1_rclk_ctrl: RclkCtrl,
-    pub gem0_clk_ctrl: ClkCtrl,
-    pub gem1_clk_ctrl: ClkCtrl,
+    pub gem0_clk_ctrl: GemClkCtrl,
+    pub gem1_clk_ctrl: GemClkCtrl,
     pub smc_clk_ctrl: RW<u32>,
     pub lqspi_clk_ctrl: RW<u32>,
     pub sdio_clk_ctrl: RW<u32>,
@@ -64,7 +71,7 @@ pub struct RegisterBlock {
     pub fpga3_thr_cnt: RW<u32>,
     pub fpga3_thr_sta: RO<u32>,
     reserved2: [u32; 5],
-    pub clk_621_true: RW<u32>,
+    pub clk_621_true: Clk621True,
     reserved3: [u32; 14],
     pub pss_rst_ctrl: PssRstCtrl,
     pub ddr_rst_ctrl: RW<u32>,
@@ -239,6 +246,27 @@ impl SlcrUnlock {
     }
 }
 
+register!(pll_ctrl, PllCtrl, RW, u32);
+register_bits!(pll_ctrl, pll_fdiv, u8, 12, 18);
+register_bit!(pll_ctrl, pll_bypass_force, 4);
+register_bit!(pll_ctrl, pll_bypass_qual, 3);
+register_bit!(pll_ctrl, pll_pwrdwn, 1);
+register_bit!(pll_ctrl, pll_reset, 0);
+
+register!(arm_clk_ctrl, ArmClkCtrl, RW, u32);
+register_bit!(arm_clk_ctrl,
+              /// Clock active
+              cpu_peri_clkact, 28);
+register_bit!(arm_clk_ctrl, cpu_1xclkact, 27);
+register_bit!(arm_clk_ctrl, cpu_2xclkact, 26);
+register_bit!(arm_clk_ctrl, cpu_3or2xclkact, 25);
+register_bit!(arm_clk_ctrl, cpu_6or4xclkact, 24);
+register_bits!(arm_clk_ctrl, divisor, u8, 8, 13);
+register_bits_typed!(arm_clk_ctrl, srcsel, u8, ArmPllSource, 8, 13);
+
+register!(clk_621_true, Clk621True, RW, u32);
+register_bit!(clk_621_true, clk_621_true, 0);
+
 register!(aper_clk_ctrl, AperClkCtrl, RW, u32);
 register_bit!(aper_clk_ctrl, uart1_cpu_1xclkact, 21);
 register_bit!(aper_clk_ctrl, uart0_cpu_1xclkact, 20);
@@ -260,17 +288,17 @@ register_bit!(rclk_ctrl,
               /// false: MIO, true: EMIO
               srcsel, 4);
 
-register!(clk_ctrl, ClkCtrl, RW, u32);
-register_bits!(clk_ctrl,
+register!(gem_clk_ctrl, GemClkCtrl, RW, u32);
+register_bits!(gem_clk_ctrl,
                /// 2nd divisor for source clock
                divisor1, u8, 20, 25);
-register_bits!(clk_ctrl,
+register_bits!(gem_clk_ctrl,
                /// 1st divisor for source clock
                divisor, u8, 8, 13);
-register_bits_typed!(clk_ctrl,
+register_bits_typed!(gem_clk_ctrl,
                      /// Source to generate the ref clock
                      srcsel, u8, PllSource, 4, 5);
-register_bit!(clk_ctrl,
+register_bit!(gem_clk_ctrl,
               /// SMC reference clock control
               clkact, 0);
 
