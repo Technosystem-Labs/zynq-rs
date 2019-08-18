@@ -9,9 +9,9 @@ with pkgs;
 let
   rustcSrc = fetchgit {
     url = https://github.com/rust-lang/rust.git;
-    # master of 2019-08-06
-    rev = "8996328ebf34aa73e83a1db326767c11041f811d";
-    sha256 = "1daz0y97dm35nfy7ip0wqvyax0g36szm25n77rcg20k6wab4fqi7";
+    # master of 2019-08-18
+    rev = "ea52be482ab4945fda63cb65b6a198309a041e3c";
+    sha256 = "1spifrkvyyrh1gazqrby29fjqsdbwvajv9k9f6mk2ldrdghlsd21";
     fetchSubmodules = true;
   };
   targets = [
