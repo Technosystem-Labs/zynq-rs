@@ -10,6 +10,8 @@ pub mod tx;
 
 /// Size of all the buffers
 pub const MTU: usize = 1536;
+/// Maximum MDC clock
+const MAX_MDC: u32 = 2_500_000;
 
 pub struct Eth<RX, TX> {
     regs: &'static mut regs::RegisterBlock,
@@ -288,6 +290,9 @@ impl<RX, TX> Eth<RX, TX> {
     }
 
     fn configure(&mut self, macaddr: [u8; 6]) {
+        let clocks = CpuClocks::get();
+        let mut mdc_clk_div = (clocks.cpu_1x() / MAX_MDC) + 1;
+
         self.regs.net_cfg.write(
             regs::NetCfg::zeroed()
                 .full_duplex(true)
@@ -301,7 +306,7 @@ impl<RX, TX> Eth<RX, TX> {
                 .fcs_remove(true)
                 // One of the slower speeds
                 // TODO: calculate properly
-                .mdc_clk_div(0b110)
+                .mdc_clk_div((mdc_clk_div >> 4).min(0b111) as u8)
         );
 
         let macaddr_msbs =
