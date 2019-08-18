@@ -305,7 +305,6 @@ impl<RX, TX> Eth<RX, TX> {
                 // Remove 4-byte Frame CheckSum
                 .fcs_remove(true)
                 // One of the slower speeds
-                // TODO: calculate properly
                 .mdc_clk_div((mdc_clk_div >> 4).min(0b111) as u8)
         );
 
