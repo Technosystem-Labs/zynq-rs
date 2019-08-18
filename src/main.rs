@@ -171,10 +171,12 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 
 #[no_mangle]
 pub unsafe extern "C" fn PrefetchAbort() {
-    panic!("PrefetchAbort");
+    println!("PrefetchAbort");
+    loop {}
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn DataAbort() {
-    panic!("DataAbort");
+    println!("DataAbort");
+    loop {}
 }
