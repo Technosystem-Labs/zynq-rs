@@ -12,6 +12,8 @@ pub mod tx;
 pub const MTU: usize = 1536;
 /// Maximum MDC clock
 const MAX_MDC: u32 = 2_500_000;
+/// Clock for GbE
+const TX_1000: u32 = 125_000_000;
 
 pub struct Eth<RX, TX> {
     regs: &'static mut regs::RegisterBlock,
@@ -152,14 +154,14 @@ impl Eth<(), ()> {
     }
 
     pub fn gem0(macaddr: [u8; 6]) -> Self {
-        Self::setup_gem0_clock(125);
+        Self::setup_gem0_clock(TX_1000);
 
         let regs = regs::RegisterBlock::gem0();
         Self::from_regs(regs, macaddr)
     }
 
     pub fn gem1(macaddr: [u8; 6]) -> Self {
-        Self::setup_gem1_clock(125);
+        Self::setup_gem1_clock(TX_1000);
 
         let regs = regs::RegisterBlock::gem1();
         Self::from_regs(regs, macaddr)
@@ -401,7 +403,7 @@ impl<RX, TX> Eth<RX, TX> {
                         .set_restart_autoneg(true)
                 );
                 // 125 MHz for 1000base-TX
-                Self::setup_gem0_clock(125);
+                Self::setup_gem0_clock(TX_1000);
 
                 true
             }
