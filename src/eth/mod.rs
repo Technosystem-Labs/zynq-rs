@@ -336,7 +336,7 @@ impl<RX, TX> Eth<RX, TX> {
                 .rx_pktbuf_memsz_sel(0x3)
                 // 4 KB
                 .tx_pktbuf_memsz_sel(true)
-                // .csum_gen_offload_en(true)
+                .csum_gen_offload_en(true)
                 // Little-endian
                 .ahb_endian_swp_mgmt_en(false)
                 // INCR16 AHB burst
