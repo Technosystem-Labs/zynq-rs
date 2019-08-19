@@ -392,17 +392,20 @@ impl<'r, RX, TX> Eth<'r, RX, TX> {
     pub fn reset_phy(&mut self) -> bool {
         match phy::Phy::find(self) {
             Some(phy) => {
+                println!("eth: Found PHY at {}: {}", phy.addr, phy.name());
                 phy.modify_control(self, |control|
                     control.set_reset(true)
                 );
                 while phy.get_control(self).reset() {
-                    println!("Wait for PHY reset");
+                    println!("eth: Wait for PHY reset");
                 }
                 phy.modify_control(self, |control|
                     control.set_autoneg_enable(true)
                         .set_restart_autoneg(true)
                 );
-                // 125 MHz for 1000base-TX
+                println!("eth: Wait for link");
+                while !phy.get_status(self).link_status() {}
+                println!("eth: Got link, setting clock for gigabit");
                 Self::setup_gem0_clock(TX_1000);
 
                 true
