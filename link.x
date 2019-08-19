@@ -1,6 +1,6 @@
 ENTRY(_boot_cores);
 
-STACK_SIZE = 0x8000 - 4;
+STACK_SIZE = 0x8000;
 
 /* Provide some defaults */
 PROVIDE(Reset = _boot_cores);
@@ -15,7 +15,8 @@ PROVIDE(FIQ = Reset);
 MEMORY
 {
   /* 256 kB On-Chip Memory */
-  OCM : ORIGIN = 0, LENGTH = 0x40000
+  OCM : ORIGIN = 0, LENGTH = 0x30000
+  OCM3 : ORIGIN = 0xFFFF0000, LENGTH = 0x10000
 }
 
 SECTIONS
@@ -59,7 +60,7 @@ SECTIONS
       . += STACK_SIZE;
     } > OCM
     __stack_end = ADDR(.stack);
-    __stack_start = ADDR(.stack) + SIZEOF(.stack);
+    __stack_start = ADDR(.stack) + SIZEOF(.stack) - 4;
 
   /DISCARD/ :
   {
