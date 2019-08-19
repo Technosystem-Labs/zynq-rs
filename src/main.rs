@@ -92,11 +92,13 @@ fn main() {
     println!("Eth on");
     eth.reset_phy();
 
-    let mut rx_descs: [eth::rx::DescEntry; 8] = unsafe { uninitialized() };
-    let mut rx_buffers = [[0u8; 1536]; 8];
+    const RX_LEN: usize = 1;
+    let mut rx_descs: [eth::rx::DescEntry; RX_LEN] = unsafe { uninitialized() };
+    let mut rx_buffers = [[0u8; eth::MTU]; RX_LEN];
+    const TX_LEN: usize = 1;
+    let mut tx_descs: [eth::tx::DescEntry; TX_LEN] = unsafe { uninitialized() };
+    let mut tx_buffers = [[0u8; eth::MTU]; TX_LEN];
     let eth = eth.start_rx(&mut rx_descs, &mut rx_buffers);
-    let mut tx_descs: [eth::tx::DescEntry; 8] = unsafe { uninitialized() };
-    let mut tx_buffers = [[0u8; 1536]; 8];
     //let mut eth = eth.start_tx(&mut tx_descs, &mut tx_buffers);
     let mut eth = eth.start_tx(
         // HACK
