@@ -18,7 +18,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "compiler_builtins"
 version = "0.1.19"
-source = "git+https://github.com/rust-lang-nursery/compiler-builtins#36da64f20e96206ac279f700586817c8abe3bdf8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "managed"
@@ -58,7 +58,7 @@ name = "zc706"
 version = "0.0.0"
 dependencies = [
  "bit_field 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "compiler_builtins 0.1.19 (git+https://github.com/rust-lang-nursery/compiler-builtins)",
+ "compiler_builtins 0.1.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "r0 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "smoltcp 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "volatile-register 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -68,7 +68,7 @@ dependencies = [
 "checksum bit_field 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a165d606cf084741d4ac3a28fb6e9b1eb0bd31f6cd999098cfddb0b2ab381dc0"
 "checksum bitflags 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3d155346769a6855b86399e9bc3814ab343cd3d62c7e985113d46a0ec3c281fd"
 "checksum byteorder 1.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "a7c3dd8985a7111efc5c80b44e23ecdd8c007de8ade3b96595387e812b957cf5"
-"checksum compiler_builtins 0.1.19 (git+https://github.com/rust-lang-nursery/compiler-builtins)" = "<none>"
+"checksum compiler_builtins 0.1.19 (registry+https://github.com/rust-lang/crates.io-index)" = "4e32b9fc11fdb3aefbd0a4761a8d3a2b7419608b759fa14a26525df4ea5deaba"
 "checksum managed 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)" = "fdcec5e97041c7f0f1c5b7d93f12e57293c831c646f4cc7a5db59460c7ea8de6"
 "checksum r0 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e2a38df5b15c8d5c7e8654189744d8e396bddc18ad48041a500ce52d6948941f"
 "checksum smoltcp 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fef582369edb298c6c41319a544ca9c4e83622f226055ccfcb35974fbb55ed34"
