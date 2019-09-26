@@ -1,5 +1,6 @@
 { # Use master branch of the overlay by default
   mozillaOverlay ? import (builtins.fetchTarball https://github.com/mozilla/nixpkgs-mozilla/archive/master.tar.gz),
+  rustManifest ? ./channel-rust-nightly.toml,
 }:
 
 let
@@ -14,8 +15,13 @@ let
     sha256 = "1nvddkxwvrsvyx187s5mwj4fwsf26xd4vr6ba1kfy7m2fj7w79hq";
     fetchSubmodules = true;
   };
-  targets = [
-  ];
+  manifestOverlay = self: super: {
+    rustChannelOfTargets = _channel: _date: targets:
+      (super.lib.rustLib.fromManifestFile rustManifest {
+        inherit (super) stdenv fetchurl patchelf;
+      }).rust.override { inherit targets; };
+  };
+  targets = [];
   rust =
     rustChannelOfTargets "nightly" null targets;
   rustPlatform = recurseIntoAttrs (makeRustPlatform {
