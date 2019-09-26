@@ -12,9 +12,7 @@ stdenv.mkDerivation {
   buildInputs = (with rustPlatform.rust; [
     rustc cargo
     cargo-xbuild rustcSrc
-    # pkgsCross.armhf-embedded.buildPackages.gcc
-    pkgsCross.armv7l-hf-multiplatform.buildPackages.gcc
-    #pkgsCross.armhf-embedded.buildPackages.binutils
+    gcc
   ]) ++ (with pkgs; [ openocd gdb ]);
 
   # Set Environment Variables

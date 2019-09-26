@@ -28,6 +28,30 @@ let
     rustc = rust // { src = rustcSrc; };
     cargo = rust;
   });
+  gcc = pkgsCross.armv7l-hf-multiplatform.buildPackages.gcc;
+  xbuildRustPackage = attrs:
+    (rustPlatform.buildRustPackage attrs)
+    .overrideAttrs (oldAttrs: with oldAttrs; {
+      nativeBuildInputs =
+        oldAttrs.nativeBuildInputs ++ [ cargo-xbuild ];
+      buildPhase = ''
+        cargo xbuild --release --frozen
+      '';
+      XARGO_RUST_SRC = "${rustcSrc}/src";
+      installPhase = ''
+        mkdir $out
+        cp target/armv7-none-eabihf/release/${name} $out/${name}.elf
+      '';
+    });
+  zc706 = xbuildRustPackage {
+    name = "zc706";
+    src = ./.;
+    cargoSha256 = "1n9d8z55cqgpdz4ywyzapbzj7ph7mkfvc87bzyfyyfkx680hz1l9";
+    nativeBuildInputs = [
+      gcc
+    ];
+    doCheck = false;
+  };
 in {
-  inherit pkgs rustPlatform rustcSrc;
+  inherit pkgs rustPlatform rustcSrc zc706 gcc;
 }
