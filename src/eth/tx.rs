@@ -4,6 +4,7 @@ use crate::println;
 use super::{MTU, regs};
 
 /// Descriptor entry
+#[repr(C, align(0x08))]
 pub struct DescEntry {
     word0: DescWord0,
     word1: DescWord1,

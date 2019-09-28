@@ -11,7 +11,7 @@ pub enum Error {
 }
 
 /// Descriptor entry
-#[repr(C)]
+#[repr(C, align(0x08))]
 pub struct DescEntry {
     word0: DescWord0,
     word1: DescWord1,
