@@ -60,7 +60,7 @@ SECTIONS
       . += STACK_SIZE;
     } > OCM
     __stack_end = ADDR(.stack);
-    __stack_start = ADDR(.stack) + SIZEOF(.stack) - 4;
+    __stack_start = ADDR(.stack) + SIZEOF(.stack);
 
   /DISCARD/ :
   {
