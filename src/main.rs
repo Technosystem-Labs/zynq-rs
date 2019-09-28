@@ -92,10 +92,12 @@ fn main() {
     println!("Eth on");
     eth.reset_phy();
 
-    const RX_LEN: usize = 1;
+    const RX_LEN: usize = 2;
     let mut rx_descs: [eth::rx::DescEntry; RX_LEN] = unsafe { uninitialized() };
     let mut rx_buffers = [[0u8; eth::MTU]; RX_LEN];
-    const TX_LEN: usize = 1;
+    // Number of transmission buffers (minimum is two because with
+    // one, duplicate packet transmission occurs)
+    const TX_LEN: usize = 2;
     let mut tx_descs: [eth::tx::DescEntry; TX_LEN] = unsafe { uninitialized() };
     let mut tx_buffers = [[0u8; eth::MTU]; TX_LEN];
     let eth = eth.start_rx(&mut rx_descs, &mut rx_buffers);
