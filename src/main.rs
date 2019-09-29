@@ -90,7 +90,6 @@ fn main() {
 
     let mut eth = eth::Eth::default(HWADDR.clone());
     println!("Eth on");
-    eth.reset_phy();
 
     const RX_LEN: usize = 2;
     let mut rx_descs: [eth::rx::DescEntry; RX_LEN] = unsafe { uninitialized() };

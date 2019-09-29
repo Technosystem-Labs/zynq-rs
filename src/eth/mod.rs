@@ -4,6 +4,7 @@ use crate::println;
 use crate::clocks::CpuClocks;
 
 pub mod phy;
+use phy::{Phy, PhyAccess};
 mod regs;
 pub mod rx;
 pub mod tx;
@@ -19,6 +20,9 @@ pub struct Eth<'r, RX, TX> {
     regs: &'r mut regs::RegisterBlock,
     rx: RX,
     tx: TX,
+    link: bool,
+    // TODO: no Option
+    phy: Option<Phy>,
 }
 
 impl<'r> Eth<'r, (), ()> {
@@ -172,8 +176,13 @@ impl<'r> Eth<'r, (), ()> {
             regs,
             rx: (),
             tx: (),
-        }.init();
+            link: false,
+            phy: None,
+        };
+        eth.init();
         eth.configure(macaddr);
+        eth.phy = Phy::find(&mut eth);
+        eth.reset_phy();
         eth
     }
 }
@@ -225,7 +234,7 @@ impl<'r, RX, TX> Eth<'r, RX, TX> {
         });
     }
 
-    fn init(self) -> Self {
+    fn init(&mut self) {
         // Clear the Network Control register.
         self.regs.net_ctrl.write(regs::NetCtrl::zeroed());
         self.regs.net_ctrl.write(regs::NetCtrl::zeroed().clear_stat_regs(true));
@@ -287,8 +296,6 @@ impl<'r, RX, TX> Eth<'r, RX, TX> {
         self.regs.tx_qbar.write(
             regs::TxQbar::zeroed()
         );
-
-        self
     }
 
     fn configure(&mut self, macaddr: [u8; 6]) {
@@ -354,6 +361,8 @@ impl<'r, RX, TX> Eth<'r, RX, TX> {
             regs: self.regs,
             rx: rx::DescList::new(rx_list, rx_buffers),
             tx: self.tx,
+            link: self.link,
+            phy: self.phy,
         };
         let list_addr = new_self.rx.list_addr();
         assert!(list_addr & 0b11 == 0);
@@ -372,6 +381,8 @@ impl<'r, RX, TX> Eth<'r, RX, TX> {
             regs: self.regs,
             rx: self.rx,
             tx: tx::DescList::new(tx_list, tx_buffers),
+            link: self.link,
+            phy: self.phy,
         };
         let list_addr = &new_self.tx.list_addr();
         assert!(list_addr & 0b11 == 0);
@@ -389,29 +400,42 @@ impl<'r, RX, TX> Eth<'r, RX, TX> {
         while !self.regs.net_status.read().phy_mgmt_idle() {}
     }
 
-    pub fn reset_phy(&mut self) -> bool {
-        match phy::Phy::find(self) {
-            Some(phy) => {
-                println!("eth: Found PHY at {}: {}", phy.addr, phy.name());
-                phy.modify_control(self, |control|
-                    control.set_reset(true)
-                );
-                while phy.get_control(self).reset() {
-                    println!("eth: Wait for PHY reset");
-                }
+    pub fn reset_phy(&mut self) {
+        let phy = self.phy.clone().expect("phy");
+        println!("eth: Reset PHY at {}: {}", phy.addr, phy.name());
+        phy.modify_control(self, |control|
+            control.set_reset(true)
+        );
+        while phy.get_control(self).reset() {
+            println!("eth: Wait for PHY reset");
+        }
+        phy.modify_control(self, |control|
+            control.set_autoneg_enable(true)
+                .set_restart_autoneg(true)
+        );
+    }
+
+    fn check_link_change(&mut self) {
+        let phy = self.phy.clone().expect("phy");
+        let link = phy.get_status(self).link_status();
+
+        // Check link state transition
+        match (self.link, link) {
+            (false, true) => {
+                println!("eth: got link, setting clock for gigabit");
+                Self::setup_gem0_clock(TX_1000);
+            }
+            (true, false) => {
+                println!("eth: link lost");
                 phy.modify_control(self, |control|
                     control.set_autoneg_enable(true)
                         .set_restart_autoneg(true)
                 );
-                println!("eth: Wait for link");
-                while !phy.get_status(self).link_status() {}
-                println!("eth: Got link, setting clock for gigabit");
-                Self::setup_gem0_clock(TX_1000);
-
-                true
             }
-            None => false
+            _ => {}
         }
+
+        self.link = link;
     }
 }
 
@@ -457,6 +481,7 @@ impl<'r, 'rx, TX> Eth<'r, rx::DescList<'rx>, TX> {
             }
             result
         } else {
+            self.check_link_change();
             Ok(None)
         }
     }
@@ -468,7 +493,7 @@ impl<'r, 'tx, RX> Eth<'r, RX, tx::DescList<'tx>> {
     }
 }
 
-impl<'r, RX, TX> phy::PhyAccess for Eth<'r, RX, TX> {
+impl<'r, RX, TX> PhyAccess for Eth<'r, RX, TX> {
     fn read_phy(&mut self, addr: u8, reg: u8) -> u16 {
         self.wait_phy_idle();
         self.regs.phy_maint.write(
@@ -517,8 +542,10 @@ impl<'r, 'rx, 'tx: 'a, 'a> smoltcp::phy::Device<'a> for &mut Eth<'r, rx::DescLis
                 };
                 Some((pktref, tx_token))
             }
-            Ok(None) =>
-                None,
+            Ok(None) => {
+                // TODO: self.check_link_change();
+                None
+            }
             Err(e) => {
                 println!("eth recv error: {:?}", e);
                 None

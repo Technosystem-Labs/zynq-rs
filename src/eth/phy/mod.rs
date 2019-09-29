@@ -10,11 +10,13 @@ pub trait PhyAccess {
     fn write_phy(&mut self, addr: u8, reg: u8, data: u16);
 }
 
+#[derive(Clone)]
 pub struct Phy {
     pub addr: u8,
     device: PhyDevice,
 }
 
+#[derive(Clone, Copy)]
 pub enum PhyDevice {
     Marvel88E1116R,
     Rtl8211E,
