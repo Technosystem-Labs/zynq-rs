@@ -88,7 +88,7 @@ fn main() {
              clocks.cpu_2x() / 1_000_000,
              clocks.cpu_1x() / 1_000_000);
 
-    let mut eth = eth::Eth::default(HWADDR.clone());
+    let eth = eth::Eth::default(HWADDR.clone());
     println!("Eth on");
 
     const RX_LEN: usize = 2;

@@ -176,16 +176,17 @@ impl<'r> Eth<'r, (), ()> {
         };
         inner.init();
         inner.configure(macaddr);
+
         let phy = Phy::find(&mut inner).expect("phy");
         phy.reset(&mut inner);
         phy.restart_autoneg(&mut inner);
-        let mut eth = Eth {
+
+        Eth {
             rx: (),
             tx: (),
             inner,
             phy,
-        };
-        eth
+        }
     }
 }
 
@@ -341,7 +342,7 @@ impl<'r, 'rx, 'tx: 'a, 'a> smoltcp::phy::Device<'a> for &mut Eth<'r, rx::DescLis
 
     fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
         match self.rx.recv_next() {
-            Ok(Some(mut pktref)) => {
+            Ok(Some(pktref)) => {
                 let tx_token = tx::Token {
                     regs: self.inner.regs,
                     desc_list: &mut self.tx,
@@ -441,7 +442,7 @@ impl<'r> EthInner<'r> {
 
     fn configure(&mut self, macaddr: [u8; 6]) {
         let clocks = CpuClocks::get();
-        let mut mdc_clk_div = (clocks.cpu_1x() / MAX_MDC) + 1;
+        let mdc_clk_div = (clocks.cpu_1x() / MAX_MDC) + 1;
 
         self.regs.net_cfg.write(
             regs::NetCfg::zeroed()

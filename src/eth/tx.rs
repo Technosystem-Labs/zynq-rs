@@ -1,6 +1,5 @@
 use core::ops::{Deref, DerefMut};
 use crate::{register, register_bit, register_bits, regs::*};
-use crate::println;
 use super::{MTU, regs};
 
 /// Descriptor entry
@@ -101,7 +100,6 @@ impl<'a> Drop for PktRef<'a> {
     fn drop(&mut self) {
         self.entry.word1.modify(|_, w| w.used(false));
         if ! self.regs.tx_status.read().tx_go() {
-            println!("tx start_tx");
             self.regs.net_ctrl.modify(|_, w|
                                       w.start_tx(true)
             );
