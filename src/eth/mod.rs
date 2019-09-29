@@ -17,12 +17,10 @@ const MAX_MDC: u32 = 2_500_000;
 const TX_1000: u32 = 125_000_000;
 
 pub struct Eth<'r, RX, TX> {
-    regs: &'r mut regs::RegisterBlock,
     rx: RX,
     tx: TX,
-    link: bool,
-    // TODO: no Option
-    phy: Option<Phy>,
+    inner: EthInner<'r>,
+    phy: Phy,
 }
 
 impl<'r> Eth<'r, (), ()> {
@@ -172,17 +170,21 @@ impl<'r> Eth<'r, (), ()> {
     }
 
     fn from_regs(regs: &'r mut regs::RegisterBlock, macaddr: [u8; 6]) -> Self {
-        let mut eth = Eth {
+        let mut inner = EthInner {
             regs,
+            link: false,
+        };
+        inner.init();
+        inner.configure(macaddr);
+        let phy = Phy::find(&mut inner).expect("phy");
+        phy.reset(&mut inner);
+        phy.restart_autoneg(&mut inner);
+        let mut eth = Eth {
             rx: (),
             tx: (),
-            link: false,
-            phy: None,
+            inner,
+            phy,
         };
-        eth.init();
-        eth.configure(macaddr);
-        eth.phy = Phy::find(&mut eth);
-        eth.reset_phy();
         eth
     }
 }
@@ -234,6 +236,145 @@ impl<'r, RX, TX> Eth<'r, RX, TX> {
         });
     }
 
+    pub fn start_rx<'rx>(self, rx_list: &'rx mut [rx::DescEntry], rx_buffers: &'rx mut [[u8; MTU]]) -> Eth<'r, rx::DescList<'rx>, TX> {
+        let new_self = Eth {
+            rx: rx::DescList::new(rx_list, rx_buffers),
+            tx: self.tx,
+            inner: self.inner,
+            phy: self.phy,
+        };
+        let list_addr = new_self.rx.list_addr();
+        assert!(list_addr & 0b11 == 0);
+        new_self.inner.regs.rx_qbar.write(
+            regs::RxQbar::zeroed()
+                .rx_q_baseaddr(list_addr >> 2)
+        );
+        new_self.inner.regs.net_ctrl.modify(|_, w|
+            w.rx_en(true)
+        );
+        new_self
+    }
+
+    pub fn start_tx<'tx>(self, tx_list: &'tx mut [tx::DescEntry], tx_buffers: &'tx mut [[u8; MTU]]) -> Eth<'r, RX, tx::DescList<'tx>> {
+        let new_self = Eth {
+            rx: self.rx,
+            tx: tx::DescList::new(tx_list, tx_buffers),
+            inner: self.inner,
+            phy: self.phy,
+        };
+        let list_addr = &new_self.tx.list_addr();
+        assert!(list_addr & 0b11 == 0);
+        new_self.inner.regs.tx_qbar.write(
+            regs::TxQbar::zeroed()
+                .tx_q_baseaddr(list_addr >> 2)
+        );
+        new_self.inner.regs.net_ctrl.modify(|_, w|
+            w.tx_en(true)
+        );
+        new_self
+    }
+}
+
+impl<'r, 'rx, TX> Eth<'r, rx::DescList<'rx>, TX> {
+    pub fn recv_next<'s: 'p, 'p>(&'s mut self) -> Result<Option<rx::PktRef<'p>>, rx::Error> {
+        let status = self.inner.regs.rx_status.read();
+        if status.hresp_not_ok() {
+            // Clear
+            self.inner.regs.rx_status.write(
+                regs::RxStatus::zeroed()
+                    .hresp_not_ok(true)
+            );
+            return Err(rx::Error::HrespNotOk);
+        }
+        if status.rx_overrun() {
+            // Clear
+            self.inner.regs.rx_status.write(
+                regs::RxStatus::zeroed()
+                    .rx_overrun(true)
+            );
+            return Err(rx::Error::RxOverrun);
+        }
+        if status.buffer_not_avail() {
+            // Clear
+            self.inner.regs.rx_status.write(
+                regs::RxStatus::zeroed()
+                    .buffer_not_avail(true)
+            );
+            return Err(rx::Error::BufferNotAvail);
+        }
+
+        if status.frame_recd() {
+            let result = self.rx.recv_next();
+            match result {
+                Ok(None) => {
+                    // No packet, clear status bit
+                    self.inner.regs.rx_status.write(
+                        regs::RxStatus::zeroed()
+                            .frame_recd(true)
+                    );
+                }
+                _ => {}
+            }
+            result
+        } else {
+            self.inner.check_link_change(&self.phy);
+            Ok(None)
+        }
+    }
+}
+
+impl<'r, 'tx, RX> Eth<'r, RX, tx::DescList<'tx>> {
+    pub fn send<'s: 'p, 'p>(&'s mut self, length: usize) -> Option<tx::PktRef<'p>> {
+        self.tx.send(self.inner.regs, length)
+    }
+}
+
+impl<'r, 'rx, 'tx: 'a, 'a> smoltcp::phy::Device<'a> for &mut Eth<'r, rx::DescList<'rx>, tx::DescList<'tx>> {
+    type RxToken = rx::PktRef<'a>;
+    type TxToken = tx::Token<'a, 'tx>;
+
+    fn capabilities(&self) -> smoltcp::phy::DeviceCapabilities {
+        let mut caps = smoltcp::phy::DeviceCapabilities::default();
+        caps.max_transmission_unit = MTU;
+        caps
+    }
+
+    fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
+        match self.rx.recv_next() {
+            Ok(Some(mut pktref)) => {
+                let tx_token = tx::Token {
+                    regs: self.inner.regs,
+                    desc_list: &mut self.tx,
+                };
+                Some((pktref, tx_token))
+            }
+            Ok(None) => {
+                self.inner.check_link_change(&self.phy);
+                None
+            }
+            Err(e) => {
+                println!("eth recv error: {:?}", e);
+                None
+            }
+        }
+    }
+
+    fn transmit(&'a mut self) -> Option<Self::TxToken> {
+        Some(tx::Token {
+            regs: self.inner.regs,
+            desc_list: &mut self.tx,
+        })
+    }
+
+}
+
+
+struct EthInner<'r> {
+    regs: &'r mut regs::RegisterBlock,
+    link: bool,
+}
+
+impl<'r> EthInner<'r> {
     fn init(&mut self) {
         // Clear the Network Control register.
         self.regs.net_ctrl.write(regs::NetCtrl::zeroed());
@@ -356,74 +497,21 @@ impl<'r, RX, TX> Eth<'r, RX, TX> {
         );
     }
 
-    pub fn start_rx<'rx>(self, rx_list: &'rx mut [rx::DescEntry], rx_buffers: &'rx mut [[u8; MTU]]) -> Eth<'r, rx::DescList<'rx>, TX> {
-        let new_self = Eth {
-            regs: self.regs,
-            rx: rx::DescList::new(rx_list, rx_buffers),
-            tx: self.tx,
-            link: self.link,
-            phy: self.phy,
-        };
-        let list_addr = new_self.rx.list_addr();
-        assert!(list_addr & 0b11 == 0);
-        new_self.regs.rx_qbar.write(
-            regs::RxQbar::zeroed()
-                .rx_q_baseaddr(list_addr >> 2)
-        );
-        new_self.regs.net_ctrl.modify(|_, w|
-            w.rx_en(true)
-        );
-        new_self
-    }
-
-    pub fn start_tx<'tx>(self, tx_list: &'tx mut [tx::DescEntry], tx_buffers: &'tx mut [[u8; MTU]]) -> Eth<'r, RX, tx::DescList<'tx>> {
-        let new_self = Eth {
-            regs: self.regs,
-            rx: self.rx,
-            tx: tx::DescList::new(tx_list, tx_buffers),
-            link: self.link,
-            phy: self.phy,
-        };
-        let list_addr = &new_self.tx.list_addr();
-        assert!(list_addr & 0b11 == 0);
-        new_self.regs.tx_qbar.write(
-            regs::TxQbar::zeroed()
-                .tx_q_baseaddr(list_addr >> 2)
-        );
-        new_self.regs.net_ctrl.modify(|_, w|
-            w.tx_en(true)
-        );
-        new_self
-    }
 
     fn wait_phy_idle(&self) {
         while !self.regs.net_status.read().phy_mgmt_idle() {}
     }
 
-    pub fn reset_phy(&mut self) {
-        let phy = self.phy.clone().expect("phy");
-        println!("eth: Reset PHY at {}: {}", phy.addr, phy.name());
-        phy.modify_control(self, |control|
-            control.set_reset(true)
-        );
-        while phy.get_control(self).reset() {
-            println!("eth: Wait for PHY reset");
-        }
-        phy.modify_control(self, |control|
-            control.set_autoneg_enable(true)
-                .set_restart_autoneg(true)
-        );
-    }
 
-    fn check_link_change(&mut self) {
-        let phy = self.phy.clone().expect("phy");
+    fn check_link_change(&mut self, phy: &Phy) {
         let link = phy.get_status(self).link_status();
 
         // Check link state transition
         match (self.link, link) {
             (false, true) => {
                 println!("eth: got link, setting clock for gigabit");
-                Self::setup_gem0_clock(TX_1000);
+                // TODO: should derive gem0/gem107
+                Eth::<(), ()>::setup_gem0_clock(TX_1000);
             }
             (true, false) => {
                 println!("eth: link lost");
@@ -439,61 +527,7 @@ impl<'r, RX, TX> Eth<'r, RX, TX> {
     }
 }
 
-impl<'r, 'rx, TX> Eth<'r, rx::DescList<'rx>, TX> {
-    pub fn recv_next<'s: 'p, 'p>(&'s mut self) -> Result<Option<rx::PktRef<'p>>, rx::Error> {
-        let status = self.regs.rx_status.read();
-        if status.hresp_not_ok() {
-            // Clear
-            self.regs.rx_status.write(
-                regs::RxStatus::zeroed()
-                    .hresp_not_ok(true)
-            );
-            return Err(rx::Error::HrespNotOk);
-        }
-        if status.rx_overrun() {
-            // Clear
-            self.regs.rx_status.write(
-                regs::RxStatus::zeroed()
-                    .rx_overrun(true)
-            );
-            return Err(rx::Error::RxOverrun);
-        }
-        if status.buffer_not_avail() {
-            // Clear
-            self.regs.rx_status.write(
-                regs::RxStatus::zeroed()
-                    .buffer_not_avail(true)
-            );
-            return Err(rx::Error::BufferNotAvail);
-        }
-
-        if status.frame_recd() {
-            let result = self.rx.recv_next();
-            match result {
-                Ok(None) => {
-                    // No packet, clear status bit
-                    self.regs.rx_status.write(
-                        regs::RxStatus::zeroed()
-                            .frame_recd(true)
-                    );
-                }
-                _ => {}
-            }
-            result
-        } else {
-            self.check_link_change();
-            Ok(None)
-        }
-    }
-}
-
-impl<'r, 'tx, RX> Eth<'r, RX, tx::DescList<'tx>> {
-    pub fn send<'s: 'p, 'p>(&'s mut self, length: usize) -> Option<tx::PktRef<'p>> {
-        self.tx.send(self.regs, length)
-    }
-}
-
-impl<'r, RX, TX> PhyAccess for Eth<'r, RX, TX> {
+impl<'r> PhyAccess for EthInner<'r> {
     fn read_phy(&mut self, addr: u8, reg: u8) -> u16 {
         self.wait_phy_idle();
         self.regs.phy_maint.write(
@@ -523,41 +557,4 @@ impl<'r, RX, TX> PhyAccess for Eth<'r, RX, TX> {
     }
 }
 
-impl<'r, 'rx, 'tx: 'a, 'a> smoltcp::phy::Device<'a> for &mut Eth<'r, rx::DescList<'rx>, tx::DescList<'tx>> {
-    type RxToken = rx::PktRef<'a>;
-    type TxToken = tx::Token<'a, 'tx>;
 
-    fn capabilities(&self) -> smoltcp::phy::DeviceCapabilities {
-        let mut caps = smoltcp::phy::DeviceCapabilities::default();
-        caps.max_transmission_unit = MTU;
-        caps
-    }
-
-    fn receive(&'a mut self) -> Option<(Self::RxToken, Self::TxToken)> {
-        match self.rx.recv_next() {
-            Ok(Some(mut pktref)) => {
-                let tx_token = tx::Token {
-                    regs: self.regs,
-                    desc_list: &mut self.tx,
-                };
-                Some((pktref, tx_token))
-            }
-            Ok(None) => {
-                // TODO: self.check_link_change();
-                None
-            }
-            Err(e) => {
-                println!("eth recv error: {:?}", e);
-                None
-            }
-        }
-    }
-
-    fn transmit(&'a mut self) -> Option<Self::TxToken> {
-        Some(tx::Token {
-            regs: self.regs,
-            desc_list: &mut self.tx,
-        })
-    }
-
-}

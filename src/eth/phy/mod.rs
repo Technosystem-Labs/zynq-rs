@@ -93,6 +93,20 @@ impl Phy {
     pub fn get_status<PA: PhyAccess>(&self, pa: &mut PA) -> Status {
         self.read_reg(pa)
     }
+
+    pub fn reset<PA: PhyAccess>(&self, pa: &mut PA) {
+        self.modify_control(pa, |control|
+            control.set_reset(true)
+        );
+        while self.get_control(pa).reset() {}
+    }
+
+    pub fn restart_autoneg<PA: PhyAccess>(&self, pa: &mut PA) {
+        self.modify_control(pa, |control|
+            control.set_autoneg_enable(true)
+                .set_restart_autoneg(true)
+        );
+    }
 }
 
 pub trait PhyRegister {
