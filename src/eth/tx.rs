@@ -1,5 +1,6 @@
 use core::ops::{Deref, DerefMut};
 use crate::{register, register_bit, register_bits, regs::*};
+use crate::cortex_a9::asm;
 use super::{MTU, regs};
 
 /// Descriptor entry
@@ -62,6 +63,8 @@ impl<'a> DescList<'a> {
                     .last_buffer(true)
             );
         }
+        // Ensure the descriptor words get written before they are read.
+        asm::dsb();
 
         DescList {
             // Shorten the list of descriptors to the required number.
@@ -79,8 +82,8 @@ impl<'a> DescList<'a> {
         let list_len = self.list.len();
         let entry = &mut self.list[self.next];
         if entry.word1.read().used() {
-            entry.word1.modify(|_, w| w.length(length as u16));
             let buffer = &mut self.buffers[self.next][0..length];
+            entry.word1.modify(|_, w| w.length(length as u16));
 
             self.next += 1;
             if self.next >= list_len {
@@ -105,7 +108,14 @@ pub struct PktRef<'a> {
 
 impl<'a> Drop for PktRef<'a> {
     fn drop(&mut self) {
+        // Ensure that all writes to the buffer have finished before
+        // they are read again.
+        asm::dmb();
         self.entry.word1.modify(|_, w| w.used(false));
+        // Ensure that the descriptor write has finished before it is
+        // read again, and (by DSB, not just DMB) that it has been
+        // written before the register access.
+        asm::dsb();
         if ! self.regs.tx_status.read().tx_go() {
             self.regs.net_ctrl.modify(|_, w|
                                       w.start_tx(true)
