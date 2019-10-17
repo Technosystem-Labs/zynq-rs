@@ -136,36 +136,3 @@ register_bit!(ttbr,
               /// Translation table walk to shared memory?
               s, 1);
 register_bit!(ttbr, irgn1, 0);
-
-/// Invalidate TLBs
-#[inline(always)]
-pub fn tlbiall() {
-    unsafe {
-        asm!("mcr p15, 0, $0, c8, c7, 0" :: "r" (0) :: "volatile");
-    }
-}
-
-/// Invalidate I-Cache
-#[inline(always)]
-pub fn iciallu() {
-    unsafe {
-        asm!("mcr p15, 0, $0, c7, c5, 0" :: "r" (0) :: "volatile");
-    }
-}
-
-/// Invalidate Branch Predictor Array
-#[inline(always)]
-pub fn bpiall() {
-    unsafe {
-        asm!("mcr p15, 0, $0, c7, c5, 6" :: "r" (0) :: "volatile");
-    }
-}
-
-/// Invalidate D-Cache
-#[inline(always)]
-pub fn dccisw() {
-    // TODO: $0 is r11 at what value?
-    unsafe {
-        asm!("mcr p15, 0, $0, c7, c5, 6" :: "r" (0) :: "volatile");
-    }
-}

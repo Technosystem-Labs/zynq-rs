@@ -66,6 +66,8 @@ unsafe fn boot_core0() -> ! {
 }
 
 fn l1_cache_init() {
+    use crate::cortex_a9::cache::*;
+
     // Invalidate TLBs
     tlbiall();
     // Invalidate I-Cache
@@ -73,7 +75,14 @@ fn l1_cache_init() {
     // Invalidate Branch Predictor Array
     bpiall();
     // Invalidate D-Cache
-    dccisw();
+    //
+    // NOTE: It is both faster and correct to only invalidate instead
+    //       of also flush the cache (as was done before with
+    //       `dccisw()`) and it is correct to perform this operation
+    //       for all of the L1 data cache rather than a (previously
+    //       unspecified) combination of one cache set and one cache
+    //       way.
+    dciall();
 }
 
 const HWADDR: [u8; 6] = [0, 0x23, 0xde, 0xea, 0xbe, 0xef];
