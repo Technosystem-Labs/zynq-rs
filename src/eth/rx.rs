@@ -69,7 +69,8 @@ impl<'a> DescList<'a> {
         }
 
         DescList {
-            list,
+            // Shorten the list of descriptors to the required number.
+            list: &mut list[0..=last],
             buffers,
             next: 0,
         }
@@ -85,7 +86,7 @@ impl<'a> DescList<'a> {
         if entry.word0.read().used() {
             let word1 = entry.word1.read();
             let len = word1.frame_length_lsbs().into();
-            let buffer = &self.buffers[self.next][0..len];
+            let buffer = &mut self.buffers[self.next][0..len];
 
             self.next += 1;
             if self.next >= list_len {
@@ -107,7 +108,7 @@ impl<'a> DescList<'a> {
 /// Releases a buffer back to the HW upon Drop
 pub struct PktRef<'a> {
     entry: &'a mut DescEntry,
-    buffer: &'a [u8],
+    buffer: &'a mut [u8],
 }
 
 impl<'a> Drop for PktRef<'a> {

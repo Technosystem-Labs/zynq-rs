@@ -40,6 +40,12 @@ pub struct DescList<'a> {
 impl<'a> DescList<'a> {
     pub fn new(list: &'a mut [DescEntry], buffers: &'a mut [[u8; MTU]]) -> Self {
         let last = list.len().min(buffers.len()) - 1;
+        // Sending seems to not work properly with only one packet
+        // buffer (two duplicates get send with every packet), so
+        // check that at least 2 are allocated, i.e. that the index of
+        // the last one is at least one.
+        assert!(last > 0);
+
         for (i, (entry, buffer)) in list.iter_mut().zip(buffers.iter_mut()).enumerate() {
             let is_last = i == last;
             let buffer_addr = &mut buffer[0] as *mut _ as u32;
@@ -58,7 +64,8 @@ impl<'a> DescList<'a> {
         }
 
         DescList {
-            list,
+            // Shorten the list of descriptors to the required number.
+            list: &mut list[0..=last],
             buffers,
             next: 0,
         }
