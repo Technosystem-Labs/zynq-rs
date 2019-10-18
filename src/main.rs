@@ -23,6 +23,7 @@ mod slcr;
 mod uart;
 mod stdio;
 mod eth;
+mod zynq;
 
 use crate::regs::{RegisterR, RegisterW};
 use crate::cortex_a9::{asm, regs::*, mmu};
