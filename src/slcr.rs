@@ -30,12 +30,12 @@ pub struct RegisterBlock {
     pub ddr_pll_ctrl: PllCtrl,
     pub io_pll_ctrl: PllCtrl,
     pub pll_status: RO<u32>,
-    pub arm_pll_cfg: RW<u32>,
-    pub ddr_pll_cfg: RW<u32>,
-    pub io_pll_cfg: RW<u32>,
+    pub arm_pll_cfg: PllCfg,
+    pub ddr_pll_cfg: PllCfg,
+    pub io_pll_cfg: PllCfg,
     reserved1: [u32; 1],
     pub arm_clk_ctrl: ArmClkCtrl,
-    pub ddr_clk_ctrl: RW<u32>,
+    pub ddr_clk_ctrl: DdrClkCtrl,
     pub dci_clk_ctrl: RW<u32>,
     pub aper_clk_ctrl: AperClkCtrl,
     pub usb0_clk_ctrl: RW<u32>,
@@ -253,6 +253,11 @@ register_bit!(pll_ctrl, pll_bypass_qual, 3);
 register_bit!(pll_ctrl, pll_pwrdwn, 1);
 register_bit!(pll_ctrl, pll_reset, 0);
 
+register!(pll_cfg, PllCfg, RW, u32);
+register_bits!(pll_cfg, pll_res, u8, 4, 7);
+register_bits!(pll_cfg, pll_cp, u8, 8, 11);
+register_bits!(pll_cfg, lock_cnt, u16, 12, 21);
+
 register!(arm_clk_ctrl, ArmClkCtrl, RW, u32);
 register_bit!(arm_clk_ctrl,
               /// Clock active
@@ -263,6 +268,12 @@ register_bit!(arm_clk_ctrl, cpu_3or2xclkact, 25);
 register_bit!(arm_clk_ctrl, cpu_6or4xclkact, 24);
 register_bits!(arm_clk_ctrl, divisor, u8, 8, 13);
 register_bits_typed!(arm_clk_ctrl, srcsel, u8, ArmPllSource, 8, 13);
+
+register!(ddr_clk_ctrl, DdrClkCtrl, RW, u32);
+register_bit!(ddr_clk_ctrl, ddr_3xclkact, 0);
+register_bit!(ddr_clk_ctrl, ddr_2xclkact, 1);
+register_bits!(ddr_clk_ctrl, ddr_3xclk_divisor, u8, 20, 25);
+register_bits!(ddr_clk_ctrl, ddr_2xclk_divisor, u8, 26, 31);
 
 register!(clk_621_true, Clk621True, RW, u32);
 register_bit!(clk_621_true, clk_621_true, 0);
