@@ -1,6 +1,6 @@
 use crate::regs::RegisterW;
-use crate::slcr;
-use crate::clocks::CpuClocks;
+use super::slcr;
+use super::clocks::CpuClocks;
 
 /// Micron MT41J256M8HX-15E: 667 MHz
 const DDR_FREQ: u32 = 666_666_666;

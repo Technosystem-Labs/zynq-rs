@@ -1,4 +1,4 @@
-use crate::uart::Uart;
+use crate::zynq::uart::Uart;
 
 const UART_RATE: u32 = 115_200;
 static mut UART: Option<Uart> = None;

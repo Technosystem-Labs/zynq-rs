@@ -1,7 +1,7 @@
 use crate::regs::*;
-use crate::slcr;
 use crate::println;
-use crate::clocks::CpuClocks;
+use super::slcr;
+use super::clocks::CpuClocks;
 
 pub mod phy;
 use phy::{Phy, PhyAccess};

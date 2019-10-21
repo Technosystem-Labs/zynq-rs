@@ -18,11 +18,7 @@ use smoltcp::socket::SocketSet;
 
 mod regs;
 mod cortex_a9;
-mod clocks;
-mod slcr;
-mod uart;
 mod stdio;
-mod eth;
 mod zynq;
 
 use crate::regs::{RegisterR, RegisterW};
@@ -90,7 +86,8 @@ const HWADDR: [u8; 6] = [0, 0x23, 0xde, 0xea, 0xbe, 0xef];
 
 fn main() {
     println!("Main.");
-    let clocks = clocks::CpuClocks::get();
+
+    let clocks = zynq::clocks::CpuClocks::get();
     println!("Clocks: {:?}", clocks);
     println!("CPU speeds: {}/{}/{}/{} MHz",
              clocks.cpu_6x4x() / 1_000_000,
@@ -98,17 +95,17 @@ fn main() {
              clocks.cpu_2x() / 1_000_000,
              clocks.cpu_1x() / 1_000_000);
 
-    let eth = eth::Eth::default(HWADDR.clone());
+    let eth = zynq::eth::Eth::default(HWADDR.clone());
     println!("Eth on");
 
     const RX_LEN: usize = 2;
-    let mut rx_descs: [eth::rx::DescEntry; RX_LEN] = unsafe { uninitialized() };
-    let mut rx_buffers = [[0u8; eth::MTU]; RX_LEN];
+    let mut rx_descs: [zynq::eth::rx::DescEntry; RX_LEN] = unsafe { uninitialized() };
+    let mut rx_buffers = [[0u8; zynq::eth::MTU]; RX_LEN];
     // Number of transmission buffers (minimum is two because with
     // one, duplicate packet transmission occurs)
     const TX_LEN: usize = 2;
-    let mut tx_descs: [eth::tx::DescEntry; TX_LEN] = unsafe { uninitialized() };
-    let mut tx_buffers = [[0u8; eth::MTU]; TX_LEN];
+    let mut tx_descs: [zynq::eth::tx::DescEntry; TX_LEN] = unsafe { uninitialized() };
+    let mut tx_buffers = [[0u8; zynq::eth::MTU]; TX_LEN];
     let eth = eth.start_rx(&mut rx_descs, &mut rx_buffers);
     //let mut eth = eth.start_tx(&mut tx_descs, &mut tx_buffers);
     let mut eth = eth.start_tx(
@@ -178,7 +175,7 @@ fn main() {
 fn panic(info: &core::panic::PanicInfo) -> ! {
     println!("\nPanic: {}", info);
 
-    slcr::RegisterBlock::unlocked(|slcr| slcr.soft_reset());
+    zynq::slcr::RegisterBlock::unlocked(|slcr| slcr.soft_reset());
     loop {}
 }
 

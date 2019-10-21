@@ -1,8 +1,8 @@
 use core::fmt;
 
 use crate::regs::*;
-use crate::slcr;
-use crate::clocks::CpuClocks;
+use super::slcr;
+use super::clocks::CpuClocks;
 
 mod regs;
 mod baud_rate_gen;

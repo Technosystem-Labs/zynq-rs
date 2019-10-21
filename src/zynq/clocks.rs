@@ -1,5 +1,5 @@
-use crate::slcr;
 use crate::regs::RegisterR;
+use super::slcr;
 
 #[cfg(feature = "target_zc706")]
 const PS_CLK: u32 = 33_333_333;
