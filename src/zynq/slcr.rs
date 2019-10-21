@@ -36,7 +36,7 @@ pub struct RegisterBlock {
     reserved1: [u32; 1],
     pub arm_clk_ctrl: ArmClkCtrl,
     pub ddr_clk_ctrl: DdrClkCtrl,
-    pub dci_clk_ctrl: RW<u32>,
+    pub dci_clk_ctrl: DciClkCtrl,
     pub aper_clk_ctrl: AperClkCtrl,
     pub usb0_clk_ctrl: RW<u32>,
     pub usb1_clk_ctrl: RW<u32>,
@@ -201,8 +201,8 @@ pub struct RegisterBlock {
     pub w_diff: RW<u32>,
     pub w_clock: RW<u32>,
     pub ddriob_ddr_ctrl: RW<u32>,
-    pub ddriob_dci_ctrl: RW<u32>,
-    pub ddriob_dci_status: RW<u32>,
+    pub ddriob_dci_ctrl: DdriobDciCtrl,
+    pub ddriob_dci_status: DdriobDciStatus,
 }
 register_at!(RegisterBlock, 0xF8000000, new);
 
@@ -274,6 +274,11 @@ register_bit!(ddr_clk_ctrl, ddr_3xclkact, 0);
 register_bit!(ddr_clk_ctrl, ddr_2xclkact, 1);
 register_bits!(ddr_clk_ctrl, ddr_3xclk_divisor, u8, 20, 25);
 register_bits!(ddr_clk_ctrl, ddr_2xclk_divisor, u8, 26, 31);
+
+register!(dci_clk_ctrl, DciClkCtrl, RW, u32);
+register_bit!(dci_clk_ctrl, clkact, 0);
+register_bits!(dci_clk_ctrl, divisor0, u8, 8, 13);
+register_bits!(dci_clk_ctrl, divisor1, u8, 20, 25);
 
 register!(clk_621_true, Clk621True, RW, u32);
 register_bit!(clk_621_true, clk_621_true, 0);
@@ -457,3 +462,17 @@ mio_pin_register!(mio_pin_53, MioPin53);
 
 register!(gpiob_ctrl, GpiobCtrl, RW, u32);
 register_bit!(gpiob_ctrl, vref_en, 0);
+
+register!(ddriob_dci_ctrl, DdriobDciCtrl, RW, u32);
+register_bit!(ddriob_dci_ctrl, reset, 0);
+register_bit!(ddriob_dci_ctrl, enable, 0);
+register_bits!(ddriob_dci_ctrl, nref_opt1, u8, 6, 7);
+register_bits!(ddriob_dci_ctrl, nref_opt2, u8, 8, 10);
+register_bits!(ddriob_dci_ctrl, nref_opt4, u8, 11, 13);
+register_bits!(ddriob_dci_ctrl, pref_opt1, u8, 14, 15);
+register_bits!(ddriob_dci_ctrl, pref_opt2, u8, 17, 19);
+register_bit!(ddriob_dci_ctrl, update_control, 20);
+
+register!(ddriob_dci_status, DdriobDciStatus, RW, u32);
+register_bit!(ddriob_dci_status, done, 0);
+register_bit!(ddriob_dci_status, lock, 13);
