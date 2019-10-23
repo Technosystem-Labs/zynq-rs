@@ -35,9 +35,11 @@ macro_rules! register_common {
         }
 
         pub mod $mod_name {
+            #[derive(Clone)]
             pub struct Read {
                 pub inner: $inner,
             }
+            #[derive(Clone)]
             pub struct Write {
                 pub inner: $inner,
             }

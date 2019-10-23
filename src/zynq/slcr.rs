@@ -19,6 +19,45 @@ pub enum ArmPllSource {
     IoPll  = 0b11,
 }
 
+#[repr(u8)]
+pub enum DdriobInputType {
+    Off = 0b00,
+    /// For SSTL, HSTL
+    VrefDifferential = 0b01,
+    Differential = 0b10,
+    Lvcmos = 0b11,
+}
+
+#[repr(u8)]
+pub enum DdriobDciType {
+    /// DDR2/3L Addr and Clock
+    Disabled = 0b00,
+    /// LPDDR2
+    Drive = 0b01,
+    /// DDR2/3/3L Data and Diff
+    Termination = 0b11,
+}
+
+#[repr(u8)]
+pub enum DdriobOutputEn {
+    Ibuf = 0b00,
+    Obuf = 0b11,
+}
+
+
+#[repr(u8)]
+pub enum DdriobVrefSel {
+    /// For LPDDR2 with 1.2V IO
+    Vref0_6V,
+    /// For DDR3L with 1.35V IO
+    Vref0_675V,
+    /// For DDR3 with 1.5V IO
+    Vref0_75V,
+    /// For DDR2 with 1.8V IO
+    Vref0_9V,
+}
+
+
 #[repr(C)]
 pub struct RegisterBlock {
     pub scl: RW<u32>,
@@ -190,17 +229,18 @@ pub struct RegisterBlock {
     pub gpiob_cfg_hstl: RW<u32>,
     pub gpiob_drvr_bias_ctrl: RW<u32>,
     reserved21: [u32; 9],
-    pub ddriob_addr1: RW<u32>,
-    pub ddriob_data0: RW<u32>,
-    pub ddriob_data1: RW<u32>,
-    pub ddriob_diff0: RW<u32>,
-    pub ddriob_diff1: RW<u32>,
-    pub ddriob_clock: RW<u32>,
-    pub w_addr: RW<u32>,
-    pub w_data: RW<u32>,
-    pub w_diff: RW<u32>,
-    pub w_clock: RW<u32>,
-    pub ddriob_ddr_ctrl: RW<u32>,
+    pub ddriob_addr0: DdriobConfig,
+    pub ddriob_addr1: DdriobConfig,
+    pub ddriob_data0: DdriobConfig,
+    pub ddriob_data1: DdriobConfig,
+    pub ddriob_diff0: DdriobConfig,
+    pub ddriob_diff1: DdriobConfig,
+    pub ddriob_clock: DdriobConfig,
+    pub ddriob_drive_slew_addr: RW<u32>,
+    pub ddriob_drive_slew_data: RW<u32>,
+    pub ddriob_drive_slew_diff: RW<u32>,
+    pub ddriob_drive_slew_clock: RW<u32>,
+    pub ddriob_ddr_ctrl: DdriobDdrCtrl,
     pub ddriob_dci_ctrl: DdriobDciCtrl,
     pub ddriob_dci_status: DdriobDciStatus,
 }
@@ -462,6 +502,23 @@ mio_pin_register!(mio_pin_53, MioPin53);
 
 register!(gpiob_ctrl, GpiobCtrl, RW, u32);
 register_bit!(gpiob_ctrl, vref_en, 0);
+
+register!(ddriob_config, DdriobConfig, RW, u32);
+register_bits_typed!(ddriob_config, inp_type, u8, DdriobInputType, 1, 2);
+register_bit!(ddriob_config, dci_update_b, 3);
+register_bit!(ddriob_config, term_en, 4);
+register_bits_typed!(ddriob_config, dci_type, u8, DdriobDciType, 5, 6);
+register_bit!(ddriob_config, ibuf_disable_mode, 7);
+register_bit!(ddriob_config, term_disable_mode, 8);
+register_bits_typed!(ddriob_config, output_en, u8, DdriobOutputEn, 9, 10);
+register_bit!(ddriob_config, pullup_en, 11);
+
+register!(ddriob_ddr_ctrl, DdriobDdrCtrl, RW, u32);
+register_bit!(ddriob_ddr_ctrl, vref_int_en, 1);
+register_bits_typed!(ddriob_ddr_ctrl, vref_sel, u8, DdriobVrefSel, 1, 4);
+register_bit!(ddriob_ddr_ctrl, vref_ext_en_lower, 5);
+register_bit!(ddriob_ddr_ctrl, vref_ext_en_upper, 6);
+register_bit!(ddriob_ddr_ctrl, refio_en, 9);
 
 register!(ddriob_dci_ctrl, DdriobDciCtrl, RW, u32);
 register_bit!(ddriob_dci_ctrl, reset, 0);
