@@ -2,9 +2,15 @@ use volatile_register::{RO, WO, RW};
 
 use crate::{register, register_bit, register_bits, register_bits_typed};
 
+#[repr(u8)]
+pub enum DataBusWidth {
+    Width32bit = 0b00,
+    Width16bit = 0b01,
+}
+
 #[repr(C)]
 pub struct RegisterBlock {
-    pub ddrc_ctrl: RW<u32>,
+    pub ddrc_ctrl: DdrcCtrl,
     pub two_rank_cfg: RW<u32>,
     pub hpr_reg: RW<u32>,
     pub lpr_reg: RW<u32>,
@@ -135,3 +141,16 @@ pub struct RegisterBlock {
     pub lpddr_ctrl3: RW<u32>,
 }
 
+impl RegisterBlock {
+    pub unsafe fn new() -> &'static mut Self {
+        &mut *(0xF8006000 as *mut _)
+    }
+}
+
+register!(ddrc_ctrl, DdrcCtrl, RW, u32);
+register_bit!(ddrc_ctrl,
+              /// `false` resets controller, `true` continues
+              soft_rstb, 0);
+register_bit!(ddrc_ctrl, powerdown_en, 1);
+register_bits_typed!(ddrc_ctrl, data_bus_width, u8, DataBusWidth, 2, 3);
+// (ddrc_ctrl) ...

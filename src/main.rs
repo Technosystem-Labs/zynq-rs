@@ -94,6 +94,7 @@ fn main() {
              clocks.cpu_3x2x() / 1_000_000,
              clocks.cpu_2x() / 1_000_000,
              clocks.cpu_1x() / 1_000_000);
+    let ddr = zynq::ddr::DdrRam::new();
 
     let eth = zynq::eth::Eth::default(HWADDR.clone());
     println!("Eth on");

@@ -2,12 +2,13 @@ use crate::regs::{RegisterR, RegisterW, RegisterRW};
 use super::slcr;
 use super::clocks::CpuClocks;
 
+mod regs;
+
 /// Micron MT41J256M8HX-15E: 667 MHz DDR3
 const DDR_FREQ: u32 = 666_666_666;
 const DCI_FREQ: u32 = 10_000_000;
 
-pub struct DdrRam {
-}
+pub struct DdrRam;
 
 impl DdrRam {
     pub fn new() -> Self {
@@ -15,9 +16,9 @@ impl DdrRam {
         Self::clock_setup(&clocks);
         Self::calibrate_iob_impedance(&clocks);
         Self::configure_iob();
+        Self::reset_ddrc();
 
-        let ram = DdrRam {};
-        ram
+        DdrRam
     }
 
     /// Zynq-7000 AP SoC Technical Reference Manual:
@@ -129,5 +130,18 @@ impl DdrRam {
                     .vref_int_en(true)
             );
         });
+    }
+
+    /// Reset DDR controller
+    fn reset_ddrc() {
+        let regs = unsafe { regs::RegisterBlock::new() };
+        regs.ddrc_ctrl.modify(|_, w| w
+            .soft_rstb(false)
+        );
+        regs.ddrc_ctrl.modify(|_, w| w
+            .soft_rstb(true)
+            .powerdown_en(false)
+            .data_bus_width(regs::DataBusWidth::Width32bit)
+        );
     }
 }
