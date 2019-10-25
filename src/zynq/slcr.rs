@@ -247,6 +247,8 @@ pub struct RegisterBlock {
 register_at!(RegisterBlock, 0xF8000000, new);
 
 impl RegisterBlock {
+    /// Required to modify these sclr registers: scl, pss_rst_ctrl,
+    /// apu_ctrl, and wdt_clk_sel
     pub fn unlocked<F: FnMut(&mut Self) -> R, R>(mut f: F) -> R {
         let mut self_ = Self::new();
         self_.slcr_unlock.unlock();
@@ -287,7 +289,7 @@ impl SlcrUnlock {
 }
 
 register!(pll_ctrl, PllCtrl, RW, u32);
-register_bits!(pll_ctrl, pll_fdiv, u8, 12, 18);
+register_bits!(pll_ctrl, pll_fdiv, u16, 12, 18);
 register_bit!(pll_ctrl, pll_bypass_force, 4);
 register_bit!(pll_ctrl, pll_bypass_qual, 3);
 register_bit!(pll_ctrl, pll_pwrdwn, 1);
