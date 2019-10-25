@@ -1,11 +1,19 @@
 use crate::regs::{RegisterR, RegisterW, RegisterRW};
+use crate::println;
 use super::slcr;
 use super::clocks::CpuClocks;
 
 mod regs;
 
+#[cfg(feature = "target_zc706")]
 /// Micron MT41J256M8HX-15E: 667 MHz DDR3
 const DDR_FREQ: u32 = 666_666_666;
+
+#[cfg(feature = "target_cora_z7_10")]
+/// Micron MT41K256M16HA-125: 800 MHz DDR3L
+const DDR_FREQ: u32 = 800_000_000;
+
+/// MT41K256M16HA-125
 const DCI_FREQ: u32 = 10_000_000;
 
 pub struct DdrRam {
@@ -131,12 +139,24 @@ impl DdrRam {
                 slcr.ddriob_drive_slew_clock.write(0x00F9861C);
             }
 
-            // Enable internal V[REF]
+            #[cfg(feature = "target_zc706")]
+            let vref_sel = slcr::DdriobVrefSel::Vref0_75V;
+            #[cfg(feature = "target_cora_z7_10")]
+            let vref_sel = slcr::DdriobVrefSel::Vref0_675V;
+
+            // // Enable internal V[REF]
+            // slcr.ddriob_ddr_ctrl.modify(|_, w| w
+            //         .vref_ext_en_lower(false)
+            //         .vref_ext_en_upper(false)
+            //         .vref_sel(vref_sel)
+            //         .vref_int_en(true)
+            // );
+            // Enable external V[REF]
             slcr.ddriob_ddr_ctrl.modify(|_, w| w
-                    .vref_ext_en_lower(false)
-                    .vref_ext_en_upper(false)
-                    .vref_sel(slcr::DdriobVrefSel::Vref0_75V)
-                    .vref_int_en(true)
+                    .vref_ext_en_lower(true)
+                    .vref_ext_en_upper(true)
+                    .vref_sel(vref_sel)
+                    .vref_int_en(false)
             );
         });
     }
@@ -157,5 +177,48 @@ impl DdrRam {
 
     pub fn status(&self) -> regs::ControllerStatus {
         self.regs.mode_sts_reg.read().operating_mode()
+    }
+
+    // TODO: move into trait
+    pub fn ptr(&mut self) -> *mut u8 {
+        // 0x0010_0000 as *mut _
+        0x0020_0000 as *mut _
+    }
+
+    pub fn size(&self) -> usize {
+        // #[cfg(feature = "target_zc706")]
+        // 1024 * 1024 * 1024
+        4 * 1024 * 1024
+    }
+
+    pub fn memtest(&mut self) {
+        let slice = unsafe {
+            core::slice::from_raw_parts_mut(self.ptr(), self.size())
+        };
+        let patterns: &'static [u8] = &[0, 0xff, 0x55, 0xaa, 0];
+        let mut expected = None;
+        for (i, pattern) in patterns.iter().enumerate() {
+            println!("memtest phase {} (status: {:?})", i, self.status());
+
+            let slice_len = slice.len();
+            let mut progress = 0;
+            for (j, b) in slice.iter_mut().enumerate() {
+                expected.map(|expected| {
+                    let read: u8 = *b;
+                    if read != expected {
+                        println!("{:08X}: expected {:02X}, read {:02X}", b as *mut u8 as usize, expected, read);
+                    }
+                });
+                *b = *pattern;
+                // println!("{:08X}", b as *mut u8 as usize);
+                let new_progress = 100 * j / slice_len;
+                if new_progress > progress {
+                    progress = new_progress;
+                    println!("{}%", progress);
+                }
+            }
+
+            expected = Some(*pattern);
+        }
     }
 }

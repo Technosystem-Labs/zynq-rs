@@ -1,4 +1,4 @@
-use crate::regs::{RegisterR, RegisterRW};
+use crate::regs::{RegisterR, RegisterW, RegisterRW};
 use super::slcr;
 
 #[cfg(feature = "target_zc706")]
@@ -90,18 +90,32 @@ impl CpuClocks {
         pll / u32::from(uart_clk_ctrl.divisor())
     }
 
+    /// Zynq-7000 AP SoC Technical Reference Manual:
+    /// 25.10.4 PLLs
     pub fn enable_ddr(target_clock: u32) {
+        let fdiv = (target_clock / PS_CLK).min(66) as u16;
         let regs = slcr::RegisterBlock::new();
         regs.ddr_pll_ctrl.modify(|_, w| w
             .pll_pwrdwn(false)
-            .pll_reset(true)
             .pll_bypass_force(true)
-        );
-        let fdiv = (target_clock / PS_CLK).max(127) as u16;
-        regs.ddr_pll_ctrl.modify(|_, w| w
-            .pll_pwrdwn(false)
-            .pll_reset(false)
             .pll_fdiv(fdiv)
+        );
+        let (pll_res, pll_cp, lock_cnt) = PLL_FDIV_LOCK_PARAM.iter()
+            .filter(|(fdiv_max, _)| fdiv <= *fdiv_max)
+            .last()
+            .expect("PLL_FDIV_LOCK_PARAM")
+            .1.clone();
+        regs.ddr_pll_cfg.write(
+            slcr::PllCfg::zeroed()
+                .pll_res(pll_res)
+                .pll_cp(pll_cp)
+                .lock_cnt(lock_cnt)
+        );
+        regs.ddr_pll_ctrl.modify(|_, w| w
+            .pll_reset(true)
+        );
+        regs.ddr_pll_ctrl.modify(|_, w| w
+            .pll_reset(false)
         );
         while ! regs.pll_status.read().ddr_pll_lock() {}
         regs.ddr_pll_ctrl.modify(|_, w| w
@@ -110,3 +124,27 @@ impl CpuClocks {
         );
     }
 }
+
+/// (pll_fdiv_max, (pll_cp, pll_res, lock_cnt))
+const PLL_FDIV_LOCK_PARAM: &[(u16, (u8, u8, u16))] = &[
+    (13, (2, 6, 750)),
+    (14, (2, 6, 700)),
+    (15, (2, 6, 650)),
+    (16, (2, 10, 625)),
+    (17, (2, 10, 575)),
+    (18, (2, 10, 550)),
+    (19, (2, 10, 525)),
+    (20, (2, 12, 500)),
+    (21, (2, 12, 475)),
+    (22, (2, 12, 450)),
+    (23, (2, 12, 425)),
+    (25, (2, 12, 400)),
+    (26, (2, 12, 375)),
+    (28, (2, 12, 350)),
+    (30, (2, 12, 325)),
+    (33, (2, 2, 300)),
+    (36, (2, 2, 275)),
+    (40, (2, 2, 250)),
+    (47, (3, 12, 250)),
+    (66, (2, 4, 250)),
+];
