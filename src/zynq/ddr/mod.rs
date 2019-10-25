@@ -28,6 +28,8 @@ impl DdrRam {
     /// Zynq-7000 AP SoC Technical Reference Manual:
     /// 10.6.1 DDR Clock Initialization
     fn clock_setup(clocks: &CpuClocks) {
+        CpuClocks::enable_ddr(1_066_000_000);
+
         let ddr3x_clk_divisor = ((clocks.ddr - 1) / DDR_FREQ + 1).min(255) as u8;
         let ddr2x_clk_divisor = 3 * ddr3x_clk_divisor / 2;
 
@@ -99,6 +101,7 @@ impl DdrRam {
                 .output_en(slcr::DdriobOutputEn::Obuf);
             slcr.ddriob_addr0.write(addr_config.clone());
             slcr.ddriob_addr1.write(addr_config);
+
             let data_config = slcr::DdriobConfig::zeroed()
                 .inp_type(slcr::DdriobInputType::VrefDifferential)
                 .term_en(true)
@@ -106,6 +109,7 @@ impl DdrRam {
                 .output_en(slcr::DdriobOutputEn::Obuf);
             slcr.ddriob_data0.write(data_config.clone());
             slcr.ddriob_data1.write(data_config);
+
             let diff_config = slcr::DdriobConfig::zeroed()
                 .inp_type(slcr::DdriobInputType::Differential)
                 .term_en(true)
@@ -113,6 +117,7 @@ impl DdrRam {
                 .output_en(slcr::DdriobOutputEn::Obuf);
             slcr.ddriob_diff0.write(diff_config.clone());
             slcr.ddriob_diff1.write(diff_config);
+
             slcr.ddriob_clock.write(
                 slcr::DdriobConfig::zeroed()
                     .output_en(slcr::DdriobOutputEn::Obuf)

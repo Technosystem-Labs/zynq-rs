@@ -1,4 +1,4 @@
-use crate::regs::RegisterR;
+use crate::regs::{RegisterR, RegisterRW};
 use super::slcr;
 
 #[cfg(feature = "target_zc706")]
@@ -88,5 +88,25 @@ impl CpuClocks {
                 self.io,
         };
         pll / u32::from(uart_clk_ctrl.divisor())
+    }
+
+    pub fn enable_ddr(target_clock: u32) {
+        let regs = slcr::RegisterBlock::new();
+        regs.ddr_pll_ctrl.modify(|_, w| w
+            .pll_pwrdwn(false)
+            .pll_reset(true)
+            .pll_bypass_force(true)
+        );
+        let fdiv = (target_clock / PS_CLK).max(127) as u16;
+        regs.ddr_pll_ctrl.modify(|_, w| w
+            .pll_pwrdwn(false)
+            .pll_reset(false)
+            .pll_fdiv(fdiv)
+        );
+        while ! regs.pll_status.read().ddr_pll_lock() {}
+        regs.ddr_pll_ctrl.modify(|_, w| w
+            .pll_bypass_force(false)
+            .pll_bypass_qual(false)
+        );
     }
 }

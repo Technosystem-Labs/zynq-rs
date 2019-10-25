@@ -68,7 +68,7 @@ pub struct RegisterBlock {
     pub arm_pll_ctrl: PllCtrl,
     pub ddr_pll_ctrl: PllCtrl,
     pub io_pll_ctrl: PllCtrl,
-    pub pll_status: RO<u32>,
+    pub pll_status: PllStatus,
     pub arm_pll_cfg: PllCfg,
     pub ddr_pll_cfg: PllCfg,
     pub io_pll_cfg: PllCfg,
@@ -292,6 +292,27 @@ register_bit!(pll_ctrl, pll_bypass_force, 4);
 register_bit!(pll_ctrl, pll_bypass_qual, 3);
 register_bit!(pll_ctrl, pll_pwrdwn, 1);
 register_bit!(pll_ctrl, pll_reset, 0);
+
+register!(pll_status, PllStatus, RO, u32);
+register_bit!(pll_status, arm_pll_lock, 0);
+register_bit!(pll_status, ddr_pll_lock, 1);
+register_bit!(pll_status, io_pll_lock, 2);
+register_bit!(pll_status, arm_pll_stable, 3);
+register_bit!(pll_status, ddr_pll_stable, 4);
+register_bit!(pll_status, io_pll_stable, 5);
+
+impl core::fmt::Display for pll_status::Read {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter) -> Result<(), core::fmt::Error> {
+        write!(fmt, "ARM: {}/{} DDR: {}/{} IO: {}/{}",
+               if self.arm_pll_lock() { "locked" } else { "NOT locked" },
+               if self.arm_pll_stable() { "stable" } else { "UNSTABLE" },
+               if self.ddr_pll_lock() { "locked" } else { "NOT locked" },
+               if self.ddr_pll_stable() { "stable" } else { "UNSTABLE" },
+               if self.io_pll_lock() { "locked" } else { "NOT locked" },
+               if self.io_pll_stable() { "stable" } else { "UNSTABLE" },
+        )
+    }
+}
 
 register!(pll_cfg, PllCfg, RW, u32);
 register_bits!(pll_cfg, pll_res, u8, 4, 7);
