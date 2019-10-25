@@ -8,7 +8,9 @@ mod regs;
 const DDR_FREQ: u32 = 666_666_666;
 const DCI_FREQ: u32 = 10_000_000;
 
-pub struct DdrRam;
+pub struct DdrRam {
+    regs: &'static mut regs::RegisterBlock,
+}
 
 impl DdrRam {
     pub fn new() -> Self {
@@ -16,9 +18,11 @@ impl DdrRam {
         Self::clock_setup(&clocks);
         Self::calibrate_iob_impedance(&clocks);
         Self::configure_iob();
-        Self::reset_ddrc();
 
-        DdrRam
+        let regs = unsafe { regs::RegisterBlock::new() };
+        let mut ddr = DdrRam { regs };
+        ddr.reset_ddrc();
+        ddr
     }
 
     /// Zynq-7000 AP SoC Technical Reference Manual:
@@ -133,15 +137,20 @@ impl DdrRam {
     }
 
     /// Reset DDR controller
-    fn reset_ddrc() {
-        let regs = unsafe { regs::RegisterBlock::new() };
-        regs.ddrc_ctrl.modify(|_, w| w
+    fn reset_ddrc(&mut self) {
+        self.regs.ddrc_ctrl.modify(|_, w| w
             .soft_rstb(false)
         );
-        regs.ddrc_ctrl.modify(|_, w| w
+        self.regs.ddrc_ctrl.modify(|_, w| w
             .soft_rstb(true)
             .powerdown_en(false)
             .data_bus_width(regs::DataBusWidth::Width32bit)
         );
+
+        while self.status() == regs::ControllerStatus::Init {}
+    }
+
+    pub fn status(&self) -> regs::ControllerStatus {
+        self.regs.mode_sts_reg.read().operating_mode()
     }
 }

@@ -8,6 +8,21 @@ pub enum DataBusWidth {
     Width16bit = 0b01,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+#[repr(u8)]
+pub enum ControllerStatus {
+    Init = 0,
+    Normal = 1,
+    Powerdown = 2,
+    SelfRefresh = 3,
+    Powerdown1 = 4,
+    Powerdown2 = 5,
+    Powerdown3 = 6,
+    Powerdown4 = 7,
+}
+
+
+
 #[repr(C)]
 pub struct RegisterBlock {
     pub ddrc_ctrl: DdrcCtrl,
@@ -31,7 +46,7 @@ pub struct RegisterBlock {
     pub dram_odt_reg: RW<u32>,
     pub phy_dbg_reg: RW<u32>,
     pub phy_cmd_timeout_rddata_cpt: RW<u32>,
-    pub mode_sts_reg: RW<u32>,
+    pub mode_sts_reg: ModeStsReg,
     pub dll_calib: RW<u32>,
     pub odt_delay_hold: RW<u32>,
     pub ctrl_reg1: RW<u32>,
@@ -154,3 +169,8 @@ register_bit!(ddrc_ctrl,
 register_bit!(ddrc_ctrl, powerdown_en, 1);
 register_bits_typed!(ddrc_ctrl, data_bus_width, u8, DataBusWidth, 2, 3);
 // (ddrc_ctrl) ...
+
+/// Controller operation mode status
+register!(mode_sts_reg, ModeStsReg, RO, u32);
+register_bits_typed!(mode_sts_reg, operating_mode, u8, ControllerStatus, 0, 2);
+// (mode_sts_reg) ...
