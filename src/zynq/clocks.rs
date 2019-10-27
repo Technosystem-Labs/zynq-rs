@@ -102,7 +102,7 @@ impl CpuClocks {
         );
         let (pll_res, pll_cp, lock_cnt) = PLL_FDIV_LOCK_PARAM.iter()
             .filter(|(fdiv_max, _)| fdiv <= *fdiv_max)
-            .last()
+            .nth(0)
             .expect("PLL_FDIV_LOCK_PARAM")
             .1.clone();
         regs.ddr_pll_cfg.write(
