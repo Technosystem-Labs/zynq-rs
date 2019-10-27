@@ -42,10 +42,6 @@ impl DdrRam {
         let ddr2x_clk_divisor = 3 * ddr3x_clk_divisor / 2;
 
         slcr::RegisterBlock::unlocked(|slcr| {
-            slcr.ddr_pll_ctrl.write(
-                slcr::PllCtrl::zeroed()
-            );
-
             slcr.ddr_clk_ctrl.write(
                 slcr::DdrClkCtrl::zeroed()
                     .ddr_2xclkact(true)
