@@ -87,7 +87,7 @@ const HWADDR: [u8; 6] = [0, 0x23, 0xde, 0xea, 0xbe, 0xef];
 fn main() {
     println!("Main.");
 
-    zynq::clocks::CpuClocks::enable_ddr(1_066_000_000);
+    zynq::clocks::CpuClocks::enable_ddr(1_066_666_666);
     let pll_status = zynq::slcr::RegisterBlock::new().pll_status.read();
     println!("PLLs: {}", pll_status);
     let clocks = zynq::clocks::CpuClocks::get();

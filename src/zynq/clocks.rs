@@ -94,34 +94,35 @@ impl CpuClocks {
     /// 25.10.4 PLLs
     pub fn enable_ddr(target_clock: u32) {
         let fdiv = (target_clock / PS_CLK).min(66) as u16;
-        let regs = slcr::RegisterBlock::new();
-        regs.ddr_pll_ctrl.modify(|_, w| w
-            .pll_pwrdwn(false)
-            .pll_bypass_force(true)
-            .pll_fdiv(fdiv)
-        );
         let (pll_res, pll_cp, lock_cnt) = PLL_FDIV_LOCK_PARAM.iter()
             .filter(|(fdiv_max, _)| fdiv <= *fdiv_max)
             .nth(0)
             .expect("PLL_FDIV_LOCK_PARAM")
             .1.clone();
-        regs.ddr_pll_cfg.write(
-            slcr::PllCfg::zeroed()
-                .pll_res(pll_res)
-                .pll_cp(pll_cp)
-                .lock_cnt(lock_cnt)
-        );
-        regs.ddr_pll_ctrl.modify(|_, w| w
-            .pll_reset(true)
-        );
-        regs.ddr_pll_ctrl.modify(|_, w| w
-            .pll_reset(false)
-        );
-        while ! regs.pll_status.read().ddr_pll_lock() {}
-        regs.ddr_pll_ctrl.modify(|_, w| w
-            .pll_bypass_force(false)
-            .pll_bypass_qual(false)
-        );
+        slcr::RegisterBlock::unlocked(|regs| {
+            regs.ddr_pll_ctrl.modify(|_, w| w
+                                     .pll_pwrdwn(false)
+                                     .pll_bypass_force(true)
+                                     .pll_fdiv(fdiv)
+            );
+            regs.ddr_pll_cfg.write(
+                slcr::PllCfg::zeroed()
+                    .pll_res(pll_res)
+                    .pll_cp(pll_cp)
+                    .lock_cnt(lock_cnt)
+            );
+            regs.ddr_pll_ctrl.modify(|_, w| w
+                                     .pll_reset(true)
+            );
+            regs.ddr_pll_ctrl.modify(|_, w| w
+                                     .pll_reset(false)
+            );
+            while ! regs.pll_status.read().ddr_pll_lock() {}
+            regs.ddr_pll_ctrl.modify(|_, w| w
+                                     .pll_bypass_force(false)
+                                     .pll_bypass_qual(false)
+            );
+        });
     }
 }
 

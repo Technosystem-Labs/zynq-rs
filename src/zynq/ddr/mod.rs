@@ -36,7 +36,7 @@ impl DdrRam {
     /// Zynq-7000 AP SoC Technical Reference Manual:
     /// 10.6.1 DDR Clock Initialization
     fn clock_setup(clocks: &CpuClocks) {
-        CpuClocks::enable_ddr(1_066_000_000);
+        CpuClocks::enable_ddr(1_066_666_666);
 
         let ddr3x_clk_divisor = ((clocks.ddr - 1) / DDR_FREQ + 1).min(255) as u8;
         let ddr2x_clk_divisor = 3 * ddr3x_clk_divisor / 2;
@@ -181,14 +181,16 @@ impl DdrRam {
 
     // TODO: move into trait
     pub fn ptr(&mut self) -> *mut u8 {
-        // 0x0010_0000 as *mut _
-        0x0020_0000 as *mut _
+        0x0010_0000 as *mut _
     }
 
     pub fn size(&self) -> usize {
-        // #[cfg(feature = "target_zc706")]
-        // 1024 * 1024 * 1024
-        4 * 1024 * 1024
+        #[cfg(feature = "target_zc706")]
+        let megabytes = 1024;
+        #[cfg(feature = "target_cora_z7_10")]
+        let megabytes = 512;
+
+        megabytes * 1024 * 1024
     }
 
     pub fn memtest(&mut self) {
