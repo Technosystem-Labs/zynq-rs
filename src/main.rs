@@ -20,6 +20,7 @@ mod regs;
 mod cortex_a9;
 mod stdio;
 mod zynq;
+mod ram;
 
 use crate::regs::{RegisterR, RegisterW};
 use crate::cortex_a9::{asm, regs::*, mmu};
