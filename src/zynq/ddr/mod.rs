@@ -10,8 +10,8 @@ mod regs;
 const DDR_FREQ: u32 = 666_666_666;
 
 #[cfg(feature = "target_cora_z7_10")]
-/// Micron MT41K256M16HA-125: 800 MHz DDR3L
-const DDR_FREQ: u32 = 800_000_000;
+/// Micron MT41K256M16HA-125: 800 MHz DDR3L, max supported 533 MHz
+const DDR_FREQ: u32 = 533_333_333;
 
 /// MT41K256M16HA-125
 const DCI_FREQ: u32 = 10_000_000;
@@ -22,8 +22,7 @@ pub struct DdrRam {
 
 impl DdrRam {
     pub fn new() -> Self {
-        let clocks = CpuClocks::get();
-        Self::clock_setup(&clocks);
+        let clocks = Self::clock_setup();
         Self::calibrate_iob_impedance(&clocks);
         Self::configure_iob();
 
@@ -35,8 +34,10 @@ impl DdrRam {
 
     /// Zynq-7000 AP SoC Technical Reference Manual:
     /// 10.6.1 DDR Clock Initialization
-    fn clock_setup(clocks: &CpuClocks) {
-        CpuClocks::enable_ddr(1_066_666_666);
+    fn clock_setup() -> CpuClocks {
+        let clocks = CpuClocks::get();
+        CpuClocks::enable_ddr(clocks.cpu);
+        let clocks = CpuClocks::get();
 
         let ddr3x_clk_divisor = ((clocks.ddr - 1) / DDR_FREQ + 1).min(255) as u8;
         let ddr2x_clk_divisor = 3 * ddr3x_clk_divisor / 2;
@@ -50,6 +51,7 @@ impl DdrRam {
                     .ddr_3xclk_divisor(ddr3x_clk_divisor)
             );
         });
+        clocks
     }
 
     /// Zynq-7000 AP SoC Technical Reference Manual:
@@ -57,7 +59,7 @@ impl DdrRam {
     fn calibrate_iob_impedance(clocks: &CpuClocks) {
         let divisor0 = (clocks.ddr / DCI_FREQ)
             .max(1).min(63) as u8;
-        let divisor1 = (clocks.ddr / DCI_FREQ / u32::from(divisor0))
+        let divisor1 = 1 + (clocks.ddr / DCI_FREQ / u32::from(divisor0))
             .max(1).min(63) as u8;
 
         slcr::RegisterBlock::unlocked(|slcr| {
@@ -76,7 +78,7 @@ impl DdrRam {
             slcr.ddriob_dci_ctrl.modify(|_, w|
                 w.reset(true)
             );
-            // Step 3.b. for DDR3
+            // Step 3.b. for DDR3/DDR3L
             slcr.ddriob_dci_ctrl.modify(|_, w|
                 w.nref_opt1(0)
                  .nref_opt2(0)
