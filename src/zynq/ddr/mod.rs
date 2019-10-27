@@ -202,7 +202,8 @@ impl DdrRam {
         for (i, pattern) in patterns.iter().enumerate() {
             println!("memtest phase {} (status: {:?})", i, self.status());
 
-            let slice_len = slice.len();
+            // shift by 7 bits to be able to multiply with 100 (%)
+            let progress_max = (slice.len() >> 7) - 1;
             let mut progress = 0;
             for (j, b) in slice.iter_mut().enumerate() {
                 expected.map(|expected| {
@@ -212,9 +213,8 @@ impl DdrRam {
                     }
                 });
                 *b = *pattern;
-                // println!("{:08X}", b as *mut u8 as usize);
-                let new_progress = 100 * j / slice_len;
-                if new_progress > progress {
+                let new_progress = 100 * (j >> 7) / progress_max;
+                if new_progress != progress {
                     progress = new_progress;
                     println!("{}%", progress);
                 }
