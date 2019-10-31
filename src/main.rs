@@ -5,6 +5,7 @@
 #![feature(naked_functions)]
 #![feature(compiler_builtins_lib)]
 #![feature(never_type)]
+#![feature(alloc_error_handler)]
 // TODO: disallow unused/dead_code when code moves into a lib crate
 #![allow(dead_code)]
 
@@ -15,12 +16,12 @@ use smoltcp::wire::{EthernetAddress, IpAddress, IpCidr};
 use smoltcp::iface::{NeighborCache, EthernetInterfaceBuilder, EthernetInterface};
 use smoltcp::time::Instant;
 use smoltcp::socket::SocketSet;
+use linked_list_allocator::LockedHeap;
 
 mod regs;
 mod cortex_a9;
 mod stdio;
 mod zynq;
-mod ram;
 
 use crate::regs::{RegisterR, RegisterW};
 use crate::cortex_a9::{asm, regs::*, mmu};
@@ -83,6 +84,9 @@ fn l1_cache_init() {
     dciall();
 }
 
+#[global_allocator]
+static ALLOCATOR: LockedHeap = LockedHeap::empty();
+
 const HWADDR: [u8; 6] = [0, 0x23, 0xde, 0xea, 0xbe, 0xef];
 
 fn main() {
@@ -91,6 +95,10 @@ fn main() {
     let mut ddr = zynq::ddr::DdrRam::new();
     println!("DDR: {:?}", ddr.status());
     ddr.memtest();
+
+    unsafe {
+        ALLOCATOR.lock().init(ddr.ptr::<u8>() as usize, ddr.size());
+    }
 
     let eth = zynq::eth::Eth::default(HWADDR.clone());
     println!("Eth on");
@@ -174,6 +182,11 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 
     zynq::slcr::RegisterBlock::unlocked(|slcr| slcr.soft_reset());
     loop {}
+}
+
+#[alloc_error_handler]
+fn alloc_error(_: core::alloc::Layout) -> ! {
+    panic!("alloc_error")
 }
 
 #[no_mangle]
