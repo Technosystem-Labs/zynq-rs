@@ -9,6 +9,11 @@
 // TODO: disallow unused/dead_code when code moves into a lib crate
 #![allow(dead_code)]
 
+extern crate alloc;
+use alloc::{vec, vec::Vec, alloc::Layout};
+use core::alloc::GlobalAlloc;
+use core::ptr::NonNull;
+use core::cell::RefCell;
 use core::mem::{uninitialized, transmute};
 use r0::zero_bss;
 use compiler_builtins as _;
@@ -16,7 +21,7 @@ use smoltcp::wire::{EthernetAddress, IpAddress, IpCidr};
 use smoltcp::iface::{NeighborCache, EthernetInterfaceBuilder, EthernetInterface};
 use smoltcp::time::Instant;
 use smoltcp::socket::SocketSet;
-use linked_list_allocator::LockedHeap;
+use linked_list_allocator::Heap;
 
 mod regs;
 mod cortex_a9;
@@ -84,9 +89,6 @@ fn l1_cache_init() {
     dciall();
 }
 
-#[global_allocator]
-static ALLOCATOR: LockedHeap = LockedHeap::empty();
-
 const HWADDR: [u8; 6] = [0, 0x23, 0xde, 0xea, 0xbe, 0xef];
 
 fn main() {
@@ -97,33 +99,38 @@ fn main() {
     ddr.memtest();
 
     unsafe {
-        ALLOCATOR.lock().init(ddr.ptr::<u8>() as usize, ddr.size());
+        ALLOCATOR.0.borrow_mut()
+            .init(ddr.ptr::<u8>() as usize, ddr.size());
     }
 
     let eth = zynq::eth::Eth::default(HWADDR.clone());
     println!("Eth on");
 
-    const RX_LEN: usize = 2;
-    let mut rx_descs: [zynq::eth::rx::DescEntry; RX_LEN] = unsafe { uninitialized() };
-    let mut rx_buffers = [[0u8; zynq::eth::MTU]; RX_LEN];
+    const RX_LEN: usize = 8;
+    let mut rx_descs = (0..RX_LEN)
+        .map(|_| zynq::eth::rx::DescEntry::zeroed())
+        .collect::<Vec<_>>();
+    let mut rx_buffers = vec![[0u8; zynq::eth::MTU]; RX_LEN];
     // Number of transmission buffers (minimum is two because with
     // one, duplicate packet transmission occurs)
-    const TX_LEN: usize = 2;
-    let mut tx_descs: [zynq::eth::tx::DescEntry; TX_LEN] = unsafe { uninitialized() };
-    let mut tx_buffers = [[0u8; zynq::eth::MTU]; TX_LEN];
+    const TX_LEN: usize = 8;
+    let mut tx_descs = (0..TX_LEN)
+        .map(|_| zynq::eth::tx::DescEntry::zeroed())
+        .collect::<Vec<_>>();
+    let mut tx_buffers = vec![[0u8; zynq::eth::MTU]; TX_LEN];
     let eth = eth.start_rx(&mut rx_descs, &mut rx_buffers);
     //let mut eth = eth.start_tx(&mut tx_descs, &mut tx_buffers);
     let mut eth = eth.start_tx(
         // HACK
-        unsafe { transmute(tx_descs.as_mut()) },
-        unsafe { transmute(tx_buffers.as_mut()) },
+        unsafe { transmute(tx_descs.as_mut_slice()) },
+        unsafe { transmute(tx_buffers.as_mut_slice()) },
     );
 
     let ethernet_addr = EthernetAddress(HWADDR);
     // IP stack
     let local_addr = IpAddress::v4(10, 0, 0, 1);
     let mut ip_addrs = [IpCidr::new(local_addr, 24)];
-    let mut neighbor_storage = [None; 16];
+    let mut neighbor_storage = vec![None; 256];
     let neighbor_cache = NeighborCache::new(&mut neighbor_storage[..]);
     let mut iface = EthernetInterfaceBuilder::new(&mut eth)
         .ethernet_addr(ethernet_addr)
@@ -182,6 +189,29 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
 
     zynq::slcr::RegisterBlock::unlocked(|slcr| slcr.soft_reset());
     loop {}
+}
+
+#[global_allocator]
+static ALLOCATOR: HeapAlloc = HeapAlloc(RefCell::new(Heap::empty()));
+
+/// LockedHeap doesn't locking properly
+struct HeapAlloc(RefCell<Heap>);
+
+/// FIXME: unsound; lock properly
+unsafe impl Sync for HeapAlloc {}
+
+unsafe impl GlobalAlloc for HeapAlloc {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        self.0.borrow_mut()
+            .allocate_first_fit(layout)
+            .ok()
+            .map_or(0 as *mut u8, |allocation| allocation.as_ptr())
+    }
+
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        self.0.borrow_mut()
+            .deallocate(NonNull::new_unchecked(ptr), layout)
+    }
 }
 
 #[alloc_error_handler]
