@@ -99,30 +99,29 @@ impl CpuClocks {
             .nth(0)
             .expect("PLL_FDIV_LOCK_PARAM")
             .1.clone();
-        slcr::RegisterBlock::unlocked(|regs| {
-            regs.ddr_pll_ctrl.modify(|_, w| w
-                                     .pll_pwrdwn(false)
-                                     .pll_bypass_force(true)
-                                     .pll_fdiv(fdiv)
-            );
-            regs.ddr_pll_cfg.write(
-                slcr::PllCfg::zeroed()
-                    .pll_res(pll_res)
-                    .pll_cp(pll_cp)
-                    .lock_cnt(lock_cnt)
-            );
-            regs.ddr_pll_ctrl.modify(|_, w| w
-                                     .pll_reset(true)
-            );
-            regs.ddr_pll_ctrl.modify(|_, w| w
-                                     .pll_reset(false)
-            );
-            while ! regs.pll_status.read().ddr_pll_lock() {}
-            regs.ddr_pll_ctrl.modify(|_, w| w
-                                     .pll_bypass_force(false)
-                                     .pll_bypass_qual(false)
-            );
-        });
+        let slcr = slcr::RegisterBlock::new();
+        slcr.ddr_pll_ctrl.modify(|_, w| w
+                                 .pll_pwrdwn(false)
+                                 .pll_bypass_force(true)
+                                 .pll_fdiv(fdiv)
+        );
+        slcr.ddr_pll_cfg.write(
+            slcr::PllCfg::zeroed()
+                .pll_res(pll_res)
+                .pll_cp(pll_cp)
+                .lock_cnt(lock_cnt)
+        );
+        slcr.ddr_pll_ctrl.modify(|_, w| w
+                                 .pll_reset(true)
+        );
+        slcr.ddr_pll_ctrl.modify(|_, w| w
+                                 .pll_reset(false)
+        );
+        while ! slcr.pll_status.read().ddr_pll_lock() {}
+        slcr.ddr_pll_ctrl.modify(|_, w| w
+                                 .pll_bypass_force(false)
+                                 .pll_bypass_qual(false)
+        );
     }
 }
 

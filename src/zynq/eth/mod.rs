@@ -25,132 +25,131 @@ pub struct Eth<'r, RX, TX> {
 
 impl<'r> Eth<'r, (), ()> {
     pub fn default(macaddr: [u8; 6]) -> Self {
-        slcr::RegisterBlock::unlocked(|slcr| {
-            // Manual example: 0x0000_1280
-            // MDIO
-            slcr.mio_pin_53.write(
-                slcr::MioPin53::zeroed()
-                    .l3_sel(0b100)
-                    .io_type(slcr::IoBufferType::Lvcmos18)
-                    .pullup(true)
-            );
-            // MDC
-            slcr.mio_pin_52.write(
-                slcr::MioPin52::zeroed()
-                    .l3_sel(0b100)
-                    .io_type(slcr::IoBufferType::Lvcmos18)
-                    .pullup(true)
-            );
-            // Manual example: 0x0000_3902
-            // TX_CLK
-            slcr.mio_pin_16.write(
-                slcr::MioPin16::zeroed()
-                    .l0_sel(true)
-                    .speed(true)
-                    .io_type(slcr::IoBufferType::Hstl)
-                    .pullup(true)
-                    .disable_rcvr(true)
-            );
-            // TX_CTRL
-            slcr.mio_pin_21.write(
-                slcr::MioPin21::zeroed()
-                    .l0_sel(true)
-                    .speed(true)
-                    .io_type(slcr::IoBufferType::Hstl)
-                    .pullup(true)
-                    .disable_rcvr(true)
-            );
-            // TXD3
-            slcr.mio_pin_20.write(
-                slcr::MioPin20::zeroed()
-                    .l0_sel(true)
-                    .speed(true)
-                    .io_type(slcr::IoBufferType::Hstl)
-                    .pullup(true)
-                    .disable_rcvr(true)
-            );
-            // TXD2
-            slcr.mio_pin_19.write(
-                slcr::MioPin19::zeroed()
-                    .l0_sel(true)
-                    .speed(true)
-                    .io_type(slcr::IoBufferType::Hstl)
-                    .pullup(true)
-                    .disable_rcvr(true)
-            );
-            // TXD1
-            slcr.mio_pin_18.write(
-                slcr::MioPin18::zeroed()
-                    .l0_sel(true)
-                    .speed(true)
-                    .io_type(slcr::IoBufferType::Hstl)
-                    .pullup(true)
-                    .disable_rcvr(true)
-            );
-            // TXD0
-            slcr.mio_pin_17.write(
-                slcr::MioPin17::zeroed()
-                    .l0_sel(true)
-                    .speed(true)
-                    .io_type(slcr::IoBufferType::Hstl)
-                    .pullup(true)
-                    .disable_rcvr(true)
-            );
-            // Manual example: 0x0000_1903
-            // RX_CLK
-            slcr.mio_pin_22.write(
-                slcr::MioPin22::zeroed()
-                    .tri_enable(true)
-                    .l0_sel(true)
-                    .io_type(slcr::IoBufferType::Hstl)
-                    .pullup(true)
-            );
-            // RX_CTRL
-            slcr.mio_pin_27.write(
-                slcr::MioPin27::zeroed()
-                    .tri_enable(true)
-                    .l0_sel(true)
-                    .io_type(slcr::IoBufferType::Hstl)
-                    .pullup(true)
-            );
-            // RXD3
-            slcr.mio_pin_26.write(
-                slcr::MioPin26::zeroed()
-                    .tri_enable(true)
-                    .l0_sel(true)
-                    .io_type(slcr::IoBufferType::Hstl)
-                    .pullup(true)
-            );
-            // RXD2
-            slcr.mio_pin_25.write(
-                slcr::MioPin25::zeroed()
-                    .tri_enable(true)
-                    .l0_sel(true)
-                    .io_type(slcr::IoBufferType::Hstl)
-                    .pullup(true)
-            );
-            // RXD1
-            slcr.mio_pin_24.write(
-                slcr::MioPin24::zeroed()
-                    .tri_enable(true)
-                    .l0_sel(true)
-                    .io_type(slcr::IoBufferType::Hstl)
-                    .pullup(true)
-            );
-            // RXD0
-            slcr.mio_pin_23.write(
-                slcr::MioPin23::zeroed()
-                    .tri_enable(true)
-                    .l0_sel(true)
-                    .io_type(slcr::IoBufferType::Hstl)
-                    .pullup(true)
-            );
-            // VREF internal generator
-            slcr.gpiob_ctrl.write(
-                slcr::GpiobCtrl::zeroed()
-                    .vref_en(true)
-            );
-        });
+        let slcr = slcr::RegisterBlock::new();
+        // Manual example: 0x0000_1280
+        // MDIO
+        slcr.mio_pin_53.write(
+            slcr::MioPin53::zeroed()
+                .l3_sel(0b100)
+                .io_type(slcr::IoBufferType::Lvcmos18)
+                .pullup(true)
+        );
+        // MDC
+        slcr.mio_pin_52.write(
+            slcr::MioPin52::zeroed()
+                .l3_sel(0b100)
+                .io_type(slcr::IoBufferType::Lvcmos18)
+                .pullup(true)
+        );
+        // Manual example: 0x0000_3902
+        // TX_CLK
+        slcr.mio_pin_16.write(
+            slcr::MioPin16::zeroed()
+                .l0_sel(true)
+                .speed(true)
+                .io_type(slcr::IoBufferType::Hstl)
+                .pullup(true)
+                .disable_rcvr(true)
+        );
+        // TX_CTRL
+        slcr.mio_pin_21.write(
+            slcr::MioPin21::zeroed()
+                .l0_sel(true)
+                .speed(true)
+                .io_type(slcr::IoBufferType::Hstl)
+                .pullup(true)
+                .disable_rcvr(true)
+        );
+        // TXD3
+        slcr.mio_pin_20.write(
+            slcr::MioPin20::zeroed()
+                .l0_sel(true)
+                .speed(true)
+                .io_type(slcr::IoBufferType::Hstl)
+                .pullup(true)
+                .disable_rcvr(true)
+        );
+        // TXD2
+        slcr.mio_pin_19.write(
+            slcr::MioPin19::zeroed()
+                .l0_sel(true)
+                .speed(true)
+                .io_type(slcr::IoBufferType::Hstl)
+                .pullup(true)
+                .disable_rcvr(true)
+        );
+        // TXD1
+        slcr.mio_pin_18.write(
+            slcr::MioPin18::zeroed()
+                .l0_sel(true)
+                .speed(true)
+                .io_type(slcr::IoBufferType::Hstl)
+                .pullup(true)
+                .disable_rcvr(true)
+        );
+        // TXD0
+        slcr.mio_pin_17.write(
+            slcr::MioPin17::zeroed()
+                .l0_sel(true)
+                .speed(true)
+                .io_type(slcr::IoBufferType::Hstl)
+                .pullup(true)
+                .disable_rcvr(true)
+        );
+        // Manual example: 0x0000_1903
+        // RX_CLK
+        slcr.mio_pin_22.write(
+            slcr::MioPin22::zeroed()
+                .tri_enable(true)
+                .l0_sel(true)
+                .io_type(slcr::IoBufferType::Hstl)
+                .pullup(true)
+        );
+        // RX_CTRL
+        slcr.mio_pin_27.write(
+            slcr::MioPin27::zeroed()
+                .tri_enable(true)
+                .l0_sel(true)
+                .io_type(slcr::IoBufferType::Hstl)
+                .pullup(true)
+        );
+        // RXD3
+        slcr.mio_pin_26.write(
+            slcr::MioPin26::zeroed()
+                .tri_enable(true)
+                .l0_sel(true)
+                .io_type(slcr::IoBufferType::Hstl)
+                .pullup(true)
+        );
+        // RXD2
+        slcr.mio_pin_25.write(
+            slcr::MioPin25::zeroed()
+                .tri_enable(true)
+                .l0_sel(true)
+                .io_type(slcr::IoBufferType::Hstl)
+                .pullup(true)
+        );
+        // RXD1
+        slcr.mio_pin_24.write(
+            slcr::MioPin24::zeroed()
+                .tri_enable(true)
+                .l0_sel(true)
+                .io_type(slcr::IoBufferType::Hstl)
+                .pullup(true)
+        );
+        // RXD0
+        slcr.mio_pin_23.write(
+            slcr::MioPin23::zeroed()
+                .tri_enable(true)
+                .l0_sel(true)
+                .io_type(slcr::IoBufferType::Hstl)
+                .pullup(true)
+        );
+        // VREF internal generator
+        slcr.gpiob_ctrl.write(
+            slcr::GpiobCtrl::zeroed()
+                .vref_en(true)
+        );
 
         Self::gem0(macaddr)
     }
@@ -196,23 +195,22 @@ impl<'r, RX, TX> Eth<'r, RX, TX> {
         let d0 = (io_pll / tx_clock).min(63);
         let d1 = (io_pll / tx_clock / d0).min(63);
 
-        slcr::RegisterBlock::unlocked(|slcr| {
-            slcr.gem0_clk_ctrl.write(
-                // 0x0050_0801: 8, 5: 100 Mb/s
-                // ...: 8, 1: 1000 Mb/s
-                slcr::GemClkCtrl::zeroed()
-                    .clkact(true)
-                    .srcsel(slcr::PllSource::IoPll)
-                    .divisor(d0 as u8)
-                    .divisor1(d1 as u8)
-            );
-            // Enable gem0 recv clock
-            slcr.gem0_rclk_ctrl.write(
-                // 0x0000_0801
-                slcr::RclkCtrl::zeroed()
-                    .clkact(true)
-            );
-        });
+        let slcr = slcr::RegisterBlock::new();
+        slcr.gem0_clk_ctrl.write(
+            // 0x0050_0801: 8, 5: 100 Mb/s
+            // ...: 8, 1: 1000 Mb/s
+            slcr::GemClkCtrl::zeroed()
+                .clkact(true)
+                .srcsel(slcr::PllSource::IoPll)
+                .divisor(d0 as u8)
+                .divisor1(d1 as u8)
+        );
+        // Enable gem0 recv clock
+        slcr.gem0_rclk_ctrl.write(
+            // 0x0000_0801
+            slcr::RclkCtrl::zeroed()
+                .clkact(true)
+        );
     }
 
     pub fn setup_gem1_clock(tx_clock: u32) {
@@ -220,21 +218,20 @@ impl<'r, RX, TX> Eth<'r, RX, TX> {
         let d0 = (io_pll / tx_clock).min(63);
         let d1 = (io_pll / tx_clock / d0).min(63);
 
-        slcr::RegisterBlock::unlocked(|slcr| {
-            slcr.gem1_clk_ctrl.write(
-                slcr::GemClkCtrl::zeroed()
-                    .clkact(true)
-                    .srcsel(slcr::PllSource::IoPll)
-                    .divisor(d0 as u8)
-                    .divisor1(d1 as u8)
-            );
-            // Enable gem1 recv clock
-            slcr.gem1_rclk_ctrl.write(
-                // 0x0000_0801
-                slcr::RclkCtrl::zeroed()
-                    .clkact(true)
-            );
-        });
+        let slcr = slcr::RegisterBlock::new();
+        slcr.gem1_clk_ctrl.write(
+            slcr::GemClkCtrl::zeroed()
+                .clkact(true)
+                .srcsel(slcr::PllSource::IoPll)
+                .divisor(d0 as u8)
+                .divisor1(d1 as u8)
+        );
+        // Enable gem1 recv clock
+        slcr.gem1_rclk_ctrl.write(
+            // 0x0000_0801
+            slcr::RclkCtrl::zeroed()
+                .clkact(true)
+        );
     }
 
     pub fn start_rx<'rx>(self, rx_list: &'rx mut [rx::DescEntry], rx_buffers: &'rx mut [[u8; MTU]]) -> Eth<'r, rx::DescList<'rx>, TX> {
