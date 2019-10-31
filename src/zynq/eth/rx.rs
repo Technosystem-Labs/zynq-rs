@@ -1,4 +1,5 @@
 use core::ops::Deref;
+use vcell::VolatileCell;
 use crate::{register, register_bit, register_bits, regs::*};
 use super::MTU;
 
@@ -19,7 +20,16 @@ pub struct DescEntry {
     word1: DescWord1,
 }
 
-register!(desc_word0, DescWord0, RW, u32);
+impl DescEntry {
+    pub fn zeroed() -> Self {
+        DescEntry {
+            word0: DescWord0 { inner: VolatileCell::new(0) },
+            word1: DescWord1 { inner: VolatileCell::new(0) },
+        }
+    }
+}
+
+register!(desc_word0, DescWord0, VolatileCell, u32);
 register_bit!(desc_word0,
               /// true if owned by software, false if owned by hardware
               used, 0);
@@ -28,7 +38,7 @@ register_bit!(desc_word0,
               wrap, 1);
 register_bits!(desc_word0, address, u32, 2, 31);
 
-register!(desc_word1, DescWord1, RW, u32);
+register!(desc_word1, DescWord1, VolatileCell, u32);
 register_bits!(desc_word1, frame_length_lsbs, u16, 0, 12);
 register_bit!(desc_word1, bad_fcs, 13);
 register_bit!(desc_word1, start_of_frame, 14);

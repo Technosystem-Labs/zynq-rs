@@ -2,6 +2,7 @@
 //! svd2rust generates.
 #![allow(unused)]
 
+use vcell::VolatileCell;
 use volatile_register::{RO, WO, RW};
 use bit_field::BitField;
 
@@ -64,7 +65,7 @@ macro_rules! register_r {
 #[macro_export]
 macro_rules! register_w {
     ($mod_name: ident, $struct_name: ident) => (
-         impl crate::regs::RegisterW for $struct_name {
+        impl crate::regs::RegisterW for $struct_name {
             type W = $mod_name::Write;
 
             fn zeroed() -> $mod_name::Write {
@@ -96,6 +97,40 @@ macro_rules! register_rw {
     );
 }
 
+#[doc(hidden)]
+#[macro_export]
+macro_rules! register_vcell {
+    ($mod_name: ident, $struct_name: ident) => (
+        impl crate::regs::RegisterR for $struct_name {
+            type R = $mod_name::Read;
+
+            fn read(&self) -> Self::R {
+                let inner = self.inner.get();
+                $mod_name::Read { inner }
+            }
+        }
+        impl crate::regs::RegisterW for $struct_name {
+            type W = $mod_name::Write;
+
+            fn zeroed() -> $mod_name::Write {
+                $mod_name::Write { inner: 0 }
+            }
+
+            fn write(&mut self, w: Self::W) {
+                self.inner.set(w.inner);
+            }
+        }
+        impl crate::regs::RegisterRW for $struct_name {
+            fn modify<F: FnOnce(Self::R, Self::W) -> Self::W>(&mut self, f: F) {
+                let r = self.read();
+                let w = $mod_name::Write { inner: r.inner };
+                let w = f(r, w);
+                self.write(w);
+            }
+        }
+    );
+}
+
 /// Main macro for register definition
 #[macro_export]
 macro_rules! register {
@@ -117,6 +152,12 @@ macro_rules! register {
         crate::register_r!($mod_name, $struct_name);
         crate::register_w!($mod_name, $struct_name);
         crate::register_rw!($mod_name, $struct_name);
+    );
+
+    // Define read-write register
+    ($mod_name: ident, $struct_name: ident, VolatileCell, $inner: ty) => (
+        crate::register_common!($mod_name, $struct_name, VolatileCell<$inner>, $inner);
+        crate::register_vcell!($mod_name, $struct_name);
     );
 }
 

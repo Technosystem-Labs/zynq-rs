@@ -1,4 +1,5 @@
 use core::ops::{Deref, DerefMut};
+use vcell::VolatileCell;
 use crate::{register, register_bit, register_bits, regs::*};
 use crate::cortex_a9::asm;
 use super::{MTU, regs};
@@ -10,10 +11,10 @@ pub struct DescEntry {
     word1: DescWord1,
 }
 
-register!(desc_word0, DescWord0, RW, u32);
+register!(desc_word0, DescWord0, VolatileCell, u32);
 register_bits!(desc_word0, address, u32, 0, 31);
 
-register!(desc_word1, DescWord1, RW, u32);
+register!(desc_word1, DescWord1, VolatileCell, u32);
 register_bits!(desc_word1, length, u16, 0, 13);
 register_bit!(desc_word1, last_buffer, 15);
 register_bit!(desc_word1, no_crc_append, 16);
@@ -27,6 +28,15 @@ register_bit!(desc_word1,
 register_bit!(desc_word1,
               /// true if owned by software, false if owned by hardware
               used, 31);
+
+impl DescEntry {
+    pub fn zeroed() -> Self {
+        DescEntry {
+            word0: DescWord0 { inner: VolatileCell::new(0) },
+            word1: DescWord1 { inner: VolatileCell::new(0) },
+        }
+    }
+}
 
 /// Number of descriptors
 pub const DESCS: usize = 8;
