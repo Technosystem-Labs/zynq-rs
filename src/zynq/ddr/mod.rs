@@ -1,5 +1,5 @@
 use crate::regs::{RegisterR, RegisterW, RegisterRW};
-use crate::println;
+use crate::{print, println};
 use super::slcr;
 use super::clocks::CpuClocks;
 
@@ -178,7 +178,7 @@ impl DdrRam {
     }
 
     // TODO: move into trait
-    pub fn ptr(&mut self) -> *mut u8 {
+    pub fn ptr<T>(&mut self) -> *mut T {
         0x0010_0000 as *mut _
     }
 
@@ -195,28 +195,27 @@ impl DdrRam {
         let slice = unsafe {
             core::slice::from_raw_parts_mut(self.ptr(), self.size())
         };
-        let patterns: &'static [u8] = &[0, 0xff, 0x55, 0xaa, 0];
+        let patterns: &'static [u32] = &[0xffff_ffff, 0x5555_5555, 0xaaaa_aaaa, 0];
         let mut expected = None;
         for (i, pattern) in patterns.iter().enumerate() {
             println!("memtest phase {} (status: {:?})", i, self.status());
 
-            // shift by 7 bits to be able to multiply with 100 (%)
-            let progress_max = (slice.len() >> 7) - 1;
-            let mut progress = 0;
-            for (j, b) in slice.iter_mut().enumerate() {
-                expected.map(|expected| {
-                    let read: u8 = *b;
-                    if read != expected {
-                        println!("{:08X}: expected {:02X}, read {:02X}", b as *mut u8 as usize, expected, read);
-                    }
-                });
-                *b = *pattern;
-                let new_progress = 100 * (j >> 7) / progress_max;
-                if new_progress != progress {
-                    progress = new_progress;
-                    println!("{}%", progress);
+            for megabyte in 0..=(slice.len() / (1024 * 1024)) {
+                let start = megabyte * 1024 * 1024 / 4;
+                let end = ((megabyte + 1) * 1024 * 1024 / 4).min(slice.len());
+                for b in slice[start..end].iter_mut() {
+                    expected.map(|expected| {
+                        let read: u32 = *b;
+                        if read != expected {
+                            println!("{:08X}: expected {:08X}, read {:08X}", b as *mut _ as usize, expected, read);
+                        }
+                    });
+                    *b = *pattern;
                 }
+
+                print!("\r{} MB", megabyte);
             }
+            println!(" Ok");
 
             expected = Some(*pattern);
         }
