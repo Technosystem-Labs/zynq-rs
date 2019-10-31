@@ -184,9 +184,9 @@ impl DdrRam {
 
     pub fn size(&self) -> usize {
         #[cfg(feature = "target_zc706")]
-        let megabytes = 1024;
+        let megabytes = 511;
         #[cfg(feature = "target_cora_z7_10")]
-        let megabytes = 512;
+        let megabytes = 511;
 
         megabytes * 1024 * 1024
     }
