@@ -192,8 +192,8 @@ impl<'r> Eth<'r, (), ()> {
 impl<'r, RX, TX> Eth<'r, RX, TX> {
     pub fn setup_gem0_clock(tx_clock: u32) {
         let io_pll = CpuClocks::get().io;
-        let d0 = (io_pll / tx_clock).min(63);
-        let d1 = (io_pll / tx_clock / d0).min(63);
+        let d0 = ((tx_clock - 1 + io_pll) / tx_clock).max(1).min(63);
+        let d1 = (io_pll / tx_clock / d0).max(1).min(63);
 
         let slcr = slcr::RegisterBlock::new();
         slcr.gem0_clk_ctrl.write(
@@ -215,8 +215,8 @@ impl<'r, RX, TX> Eth<'r, RX, TX> {
 
     pub fn setup_gem1_clock(tx_clock: u32) {
         let io_pll = CpuClocks::get().io;
-        let d0 = (io_pll / tx_clock).min(63);
-        let d1 = (io_pll / tx_clock / d0).min(63);
+        let d0 = ((tx_clock - 1 + io_pll) / tx_clock).max(1).min(63);
+        let d1 = (io_pll / tx_clock / d0).max(1).min(63);
 
         let slcr = slcr::RegisterBlock::new();
         slcr.gem1_clk_ctrl.write(

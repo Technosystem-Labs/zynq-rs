@@ -56,9 +56,9 @@ impl DdrRam {
     /// Zynq-7000 AP SoC Technical Reference Manual:
     /// 10.6.2 DDR IOB Impedance Calibration
     fn calibrate_iob_impedance(clocks: &CpuClocks) {
-        let divisor0 = (clocks.ddr / DCI_FREQ)
+        let divisor0 = ((DCI_FREQ - 1 + clocks.ddr) / DCI_FREQ)
             .max(1).min(63) as u8;
-        let divisor1 = 1 + (clocks.ddr / DCI_FREQ / u32::from(divisor0))
+        let divisor1 = (clocks.ddr / DCI_FREQ / u32::from(divisor0))
             .max(1).min(63) as u8;
 
         let slcr = slcr::RegisterBlock::new();
