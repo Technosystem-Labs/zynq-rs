@@ -376,7 +376,7 @@ register_bits!(gem_clk_ctrl,
                divisor, u8, 8, 13);
 register_bits_typed!(gem_clk_ctrl,
                      /// Source to generate the ref clock
-                     srcsel, u8, PllSource, 4, 5);
+                     srcsel, u8, PllSource, 4, 6);
 register_bit!(gem_clk_ctrl,
               /// SMC reference clock control
               clkact, 0);
