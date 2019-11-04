@@ -13,6 +13,8 @@ pub mod tx;
 pub const MTU: usize = 1536;
 /// Maximum MDC clock
 const MAX_MDC: u32 = 2_500_000;
+const TX_10: u32 = 10_000_000;
+const TX_100: u32 = 25_000_000;
 /// Clock for GbE
 const TX_1000: u32 = 125_000_000;
 
@@ -171,7 +173,7 @@ impl<'r> Eth<'r, (), ()> {
     fn from_regs(regs: &'r mut regs::RegisterBlock, macaddr: [u8; 6]) -> Self {
         let mut inner = EthInner {
             regs,
-            link: false,
+            link: None,
         };
         inner.init();
         inner.configure(macaddr);
@@ -369,7 +371,7 @@ impl<'r, 'rx, 'tx: 'a, 'a> smoltcp::phy::Device<'a> for &mut Eth<'r, rx::DescLis
 
 struct EthInner<'r> {
     regs: &'r mut regs::RegisterBlock,
-    link: bool,
+    link: Option<phy::Link>,
 }
 
 impl<'r> EthInner<'r> {
@@ -502,26 +504,40 @@ impl<'r> EthInner<'r> {
 
 
     fn check_link_change(&mut self, phy: &Phy) {
-        let link = phy.get_status(self).link_status();
+        let link = phy.get_link(self);
 
         // Check link state transition
-        match (self.link, link) {
-            (false, true) => {
-                println!("eth: got link, setting clock for gigabit");
-                // TODO: should derive gem0/gem107
-                Eth::<(), ()>::setup_gem0_clock(TX_1000);
-            }
-            (true, false) => {
-                println!("eth: link lost");
-                phy.modify_control(self, |control|
-                    control.set_autoneg_enable(true)
-                        .set_restart_autoneg(true)
-                );
-            }
-            _ => {}
-        }
+        if self.link != link {
+            match &link {
+                Some(link) => {
+                    println!("eth: got {:?}", link);
 
-        self.link = link;
+                    use phy::LinkSpeed::*;
+                    let txclock = match link.speed {
+                        S10 => TX_10,
+                        S100 => TX_100,
+                        S1000 => TX_1000,
+                    };
+                    Eth::<(), ()>::setup_gem0_clock(txclock);
+                    /* .full_duplex(false) doesn't work even if
+                       half duplex has been negotiated. */
+                    self.regs.net_cfg.modify(|_, w| w
+                        .full_duplex(true)
+                        .gige_en(link.speed == S1000)
+                        .speed(link.speed != S10)
+                    );
+                }
+                None => {
+                    println!("eth: link lost");
+                    phy.modify_control(self, |control|
+                                       control.set_autoneg_enable(true)
+                                       .set_restart_autoneg(true)
+                    );
+                }
+            }
+
+            self.link = link;
+        }
     }
 }
 

@@ -2,8 +2,29 @@ pub mod id;
 use id::{identify_phy, PhyIdentifier};
 mod status;
 pub use status::Status;
+mod extended_status;
+pub use extended_status::ExtendedStatus;
 mod control;
 pub use control::Control;
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Link {
+    pub speed: LinkSpeed,
+    pub duplex: LinkDuplex,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum LinkSpeed {
+    S10,
+    S100,
+    S1000,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum LinkDuplex {
+    Half,
+    Full,
+}
 
 pub trait PhyAccess {
     fn read_phy(&mut self, addr: u8, reg: u8) -> u16;
@@ -92,6 +113,22 @@ impl Phy {
 
     pub fn get_status<PA: PhyAccess>(&self, pa: &mut PA) -> Status {
         self.read_reg(pa)
+    }
+
+    pub fn get_link<PA: PhyAccess>(&self, pa: &mut PA) -> Option<Link> {
+        let status = self.get_status(pa);
+        if !status.link_status() {
+            None
+        } else if status.cap_1000base_t_extended_status() {
+            let ext_status: ExtendedStatus = self.read_reg(pa);
+            if let Some(link) = ext_status.get_link() {
+                Some(link)
+            } else {
+                status.get_link()
+            }
+        } else {
+            status.get_link()
+        }
     }
 
     pub fn reset<PA: PhyAccess>(&self, pa: &mut PA) {

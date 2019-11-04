@@ -1,5 +1,5 @@
 use bit_field::BitField;
-use super::PhyRegister;
+use super::{PhyRegister, Link, LinkDuplex, LinkSpeed};
 
 #[derive(Clone, Copy, Debug)]
 /// Basic Mode Status Register
@@ -50,6 +50,49 @@ impl Status {
     }
     pub fn cap_100base_t4(&self) -> bool {
         self.0.get_bit(15)
+    }
+
+    pub fn get_link(&self) -> Option<Link> {
+        if ! self.link_status() {
+            None
+        } else if self.cap_10base_t_half() {
+            Some(Link {
+                speed: LinkSpeed::S10,
+                duplex: LinkDuplex::Half,
+            })
+        } else if self.cap_10base_t_full() {
+            Some(Link {
+                speed: LinkSpeed::S10,
+                duplex: LinkDuplex::Full,
+            })
+        } else if self.cap_10base_t2_half() {
+            Some(Link {
+                speed: LinkSpeed::S10,
+                duplex: LinkDuplex::Half,
+            })
+        } else if self.cap_10base_t2_full() {
+            Some(Link {
+                speed: LinkSpeed::S10,
+                duplex: LinkDuplex::Full,
+            })
+        } else if self.cap_100base_t4() {
+            Some(Link {
+                speed: LinkSpeed::S100,
+                duplex: LinkDuplex::Half,
+            })
+        } else if self.cap_100base_tx_half() {
+            Some(Link {
+                speed: LinkSpeed::S100,
+                duplex: LinkDuplex::Half,
+            })
+        } else if self.cap_100base_tx_full() {
+            Some(Link {
+                speed: LinkSpeed::S100,
+                duplex: LinkDuplex::Full,
+            })
+        } else {
+            None
+        }
     }
 }
 
