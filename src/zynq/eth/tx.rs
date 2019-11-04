@@ -93,7 +93,12 @@ impl<'a> DescList<'a> {
         let entry = &mut self.list[self.next];
         if entry.word1.read().used() {
             let buffer = &mut self.buffers[self.next][0..length];
-            entry.word1.modify(|_, w| w.length(length as u16));
+            entry.word1.write(DescWord1::zeroed()
+                .length(length as u16)
+                .last_buffer(true)
+                .wrap(self.next >= list_len - 1)
+                .used(true)
+            );
 
             self.next += 1;
             if self.next >= list_len {
