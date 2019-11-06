@@ -36,8 +36,11 @@ impl DdrRam {
     /// 10.6.1 DDR Clock Initialization
     fn clock_setup() -> CpuClocks {
         let clocks = CpuClocks::get();
-        CpuClocks::enable_ddr(clocks.arm);
+        if clocks.ddr == 0 {
+            CpuClocks::enable_ddr(clocks.arm);
+        }
         let clocks = CpuClocks::get();
+        println!("Clocks: {:?}", clocks);
 
         let ddr3x_clk_divisor = ((clocks.ddr - 1) / DDR_FREQ + 1).min(255) as u8;
         let ddr2x_clk_divisor = 3 * ddr3x_clk_divisor / 2;
