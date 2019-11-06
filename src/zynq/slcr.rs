@@ -247,8 +247,7 @@ pub struct RegisterBlock {
 register_at!(RegisterBlock, 0xF8000000, new);
 
 impl RegisterBlock {
-    /// Required to modify these sclr registers: scl, pss_rst_ctrl,
-    /// apu_ctrl, and wdt_clk_sel
+    /// Required to modify any sclr register
     pub fn unlocked<F: FnMut(&mut Self) -> R, R>(mut f: F) -> R {
         let mut self_ = Self::new();
         self_.slcr_unlock.unlock();
