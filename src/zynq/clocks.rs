@@ -92,6 +92,30 @@ impl CpuClocks {
 
     /// Zynq-7000 AP SoC Technical Reference Manual:
     /// 25.10.4 PLLs
+    pub fn enable_io(target_clock: u32) {
+        let fdiv = (target_clock / PS_CLK).min(66) as u16;
+        slcr::RegisterBlock::unlocked(|slcr| {
+            slcr.io_pll_ctrl.modify(|_, w| w
+                                    .pll_pwrdwn(false)
+                                    .pll_bypass_force(true)
+                                    .pll_fdiv(fdiv)
+            );
+            slcr.io_pll_ctrl.modify(|_, w| w
+                                    .pll_reset(true)
+            );
+            slcr.io_pll_ctrl.modify(|_, w| w
+                                    .pll_reset(false)
+            );
+            while ! slcr.pll_status.read().io_pll_lock() {}
+            slcr.io_pll_ctrl.modify(|_, w| w
+                                    .pll_bypass_force(false)
+                                    .pll_bypass_qual(false)
+            );
+        });
+    }
+
+    /// Zynq-7000 AP SoC Technical Reference Manual:
+    /// 25.10.4 PLLs
     pub fn enable_ddr(target_clock: u32) {
         let fdiv = (target_clock / PS_CLK).min(66) as u16;
         let (pll_res, pll_cp, lock_cnt) = PLL_FDIV_LOCK_PARAM.iter()
