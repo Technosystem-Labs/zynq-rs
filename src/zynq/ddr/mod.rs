@@ -42,8 +42,9 @@ impl DdrRam {
         let clocks = CpuClocks::get();
         println!("Clocks: {:?}", clocks);
 
-        let ddr3x_clk_divisor = ((clocks.ddr - 1) / DDR_FREQ + 1).min(255) as u8;
+        let ddr3x_clk_divisor = ((DDR_FREQ - 1 + clocks.ddr) / DDR_FREQ).min(255) as u8;
         let ddr2x_clk_divisor = 3 * ddr3x_clk_divisor / 2;
+        println!("DDR 3x/2x clocks: {}/{}", clocks.ddr / u32::from(ddr3x_clk_divisor), clocks.ddr / u32::from(ddr2x_clk_divisor));
 
         slcr::RegisterBlock::unlocked(|slcr| {
             slcr.ddr_clk_ctrl.write(
@@ -64,6 +65,7 @@ impl DdrRam {
             .max(1).min(63) as u8;
         let divisor1 = (clocks.ddr / DCI_FREQ / u32::from(divisor0))
             .max(1).min(63) as u8;
+        println!("DDR DCI clock: {} Hz", clocks.ddr / u32::from(divisor0) / u32::from(divisor1));
 
         slcr::RegisterBlock::unlocked(|slcr| {
             // Step 1.
