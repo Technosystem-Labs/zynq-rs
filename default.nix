@@ -43,7 +43,7 @@ let
   zc706 = xbuildRustPackage {
     name = "zc706";
     src = ./.;
-    cargoSha256 = "1bhncnn35x9x64qrcsj3vhv6447f1fzv2r150x61z1k7lgqlvzdk";
+    cargoSha256 = "1k7b0bzkzhqggrmgzs7md7rrbid0b59a5l96ppr4rwxnh841vcdk";
     nativeBuildInputs = [
       gcc
     ];
