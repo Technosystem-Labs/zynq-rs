@@ -3,8 +3,6 @@ use vcell::VolatileCell;
 use crate::{register, register_bit, register_bits, regs::*};
 use super::MTU;
 
-use crate::cortex_a9::asm;
-
 #[derive(Debug)]
 pub enum Error {
     HrespNotOk,
@@ -79,8 +77,6 @@ impl<'a> DescList<'a> {
                 DescWord1::zeroed()
             );
         }
-        // Ensure descriptors get written before they are read.
-        asm::dmb();
 
         DescList {
             // Shorten the list of descriptors to the required number.
@@ -100,7 +96,6 @@ impl<'a> DescList<'a> {
         if entry.word0.read().used() {
             let word1 = entry.word1.read();
             let len = word1.frame_length_lsbs().into();
-            asm::dmb();
             let buffer = &mut self.buffers[self.next][0..len];
 
             self.next += 1;
@@ -128,9 +123,6 @@ pub struct PktRef<'a> {
 
 impl<'a> Drop for PktRef<'a> {
     fn drop(&mut self) {
-        // Ensure that any buffer reads have finished before we
-        // release the buffer to the hardware.
-        asm::dmb();
         self.entry.word0.modify(|_, w| w.used(false));
     }
 }
