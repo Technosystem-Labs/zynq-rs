@@ -169,10 +169,14 @@ impl DdrRam {
         self.regs.ddrc_ctrl.modify(|_, w| w
             .soft_rstb(false)
         );
+        #[cfg(feature = "target_zc706")]
+        let width = regs::DataBusWidth::Width32bit;
+        #[cfg(feature = "target_cora_z7_10")]
+        let width = regs::DataBusWidth::Width16bit;
         self.regs.ddrc_ctrl.modify(|_, w| w
             .soft_rstb(true)
             .powerdown_en(false)
-            .data_bus_width(regs::DataBusWidth::Width32bit)
+            .data_bus_width(width)
         );
 
         while self.status() == regs::ControllerStatus::Init {}
