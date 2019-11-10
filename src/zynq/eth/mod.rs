@@ -507,6 +507,12 @@ impl<'r> EthInner<'r> {
 
 
     fn check_link_change(&mut self, phy: &Phy) {
+        // As the PHY access takes some time, exit early if there was
+        // already a link. TODO: check once per second.
+        if self.link.is_some() {
+            return
+        }
+
         let link = phy.get_link(self);
 
         // Check link state transition
