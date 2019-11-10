@@ -23,5 +23,10 @@ vcell = "0.1"
 volatile-register = "0.2"
 bit_field = "0.10"
 compiler_builtins = { version = "~0.1", default-features = false, features = ["mem", "no-lang-items"]}
-smoltcp = { version = "0.5", default-features = false, features = ["proto-ipv4", "socket-tcp"] }
 linked_list_allocator = { version = "0.6", default-features = false }
+
+[dependencies.smoltcp]
+git = "https://github.com/m-labs/smoltcp.git"
+rev = "8eb01aca364aefe5f823d68d552d62c76c9be4a3"
+features = ["ethernet", "proto-ipv4", "socket-tcp"]
+default-features = false
