@@ -186,7 +186,6 @@ impl DdrRam {
         self.regs.mode_sts_reg.read().operating_mode()
     }
 
-    // TODO: move into trait
     pub fn ptr<T>(&mut self) -> *mut T {
         0x0010_0000 as *mut _
     }

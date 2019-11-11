@@ -10,10 +10,7 @@
 #![allow(dead_code)]
 
 extern crate alloc;
-use alloc::{vec, vec::Vec, alloc::Layout};
-use core::alloc::GlobalAlloc;
-use core::ptr::NonNull;
-use core::cell::RefCell;
+use alloc::{vec, vec::Vec};
 use core::mem::transmute;
 use r0::zero_bss;
 use compiler_builtins as _;
@@ -21,12 +18,14 @@ use smoltcp::wire::{EthernetAddress, IpAddress, IpCidr};
 use smoltcp::iface::{NeighborCache, EthernetInterfaceBuilder};
 use smoltcp::time::Instant;
 use smoltcp::socket::SocketSet;
-use linked_list_allocator::Heap;
 
 mod regs;
 mod cortex_a9;
-mod stdio;
+mod abort;
+mod panic;
 mod zynq;
+mod stdio;
+mod ram;
 
 use crate::regs::{RegisterR, RegisterW};
 use crate::cortex_a9::{asm, regs::*, mmu};
@@ -97,11 +96,7 @@ fn main() {
     let mut ddr = zynq::ddr::DdrRam::new();
     println!("DDR: {:?}", ddr.status());
     ddr.memtest();
-
-    unsafe {
-        ALLOCATOR.0.borrow_mut()
-            .init(ddr.ptr::<u8>() as usize, ddr.size());
-    }
+    ram::init_alloc(&mut ddr);
 
     let eth = zynq::eth::Eth::default(HWADDR.clone());
     println!("Eth on");
@@ -181,52 +176,6 @@ fn main() {
         //     None => println!("eth tx shortage"),
         // }
     }
+
 }
 
-#[panic_handler]
-fn panic(info: &core::panic::PanicInfo) -> ! {
-    println!("\nPanic: {}", info);
-
-    zynq::slcr::RegisterBlock::unlocked(|slcr| slcr.soft_reset());
-    loop {}
-}
-
-#[global_allocator]
-static ALLOCATOR: HeapAlloc = HeapAlloc(RefCell::new(Heap::empty()));
-
-/// LockedHeap doesn't locking properly
-struct HeapAlloc(RefCell<Heap>);
-
-/// FIXME: unsound; lock properly
-unsafe impl Sync for HeapAlloc {}
-
-unsafe impl GlobalAlloc for HeapAlloc {
-    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        self.0.borrow_mut()
-            .allocate_first_fit(layout)
-            .ok()
-            .map_or(0 as *mut u8, |allocation| allocation.as_ptr())
-    }
-
-    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        self.0.borrow_mut()
-            .deallocate(NonNull::new_unchecked(ptr), layout)
-    }
-}
-
-#[alloc_error_handler]
-fn alloc_error(_: core::alloc::Layout) -> ! {
-    panic!("alloc_error")
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn PrefetchAbort() {
-    println!("PrefetchAbort");
-    loop {}
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn DataAbort() {
-    println!("DataAbort");
-    loop {}
-}
