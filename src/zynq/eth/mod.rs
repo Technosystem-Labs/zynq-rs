@@ -337,8 +337,17 @@ impl<'r, 'rx, 'tx: 'a, 'a> smoltcp::phy::Device<'a> for &mut Eth<'r, rx::DescLis
     type TxToken = tx::Token<'a, 'tx>;
 
     fn capabilities(&self) -> smoltcp::phy::DeviceCapabilities {
-        let mut caps = smoltcp::phy::DeviceCapabilities::default();
+        use smoltcp::phy::{DeviceCapabilities, ChecksumCapabilities, Checksum};
+
+        let mut checksum_caps = ChecksumCapabilities::default();
+        checksum_caps.ipv4 = Checksum::Both;
+        checksum_caps.tcp = Checksum::Both;
+        checksum_caps.udp = Checksum::Both;
+
+        let mut caps = DeviceCapabilities::default();
         caps.max_transmission_unit = MTU;
+        caps.checksum = checksum_caps;
+
         caps
     }
 
@@ -457,6 +466,8 @@ impl<'r> EthInner<'r> {
                 .copy_all(true)
                 // Remove 4-byte Frame CheckSum
                 .fcs_remove(true)
+                // RX checksum offload
+                .rx_chksum_offld_en(true)
                 // One of the slower speeds
                 .mdc_clk_div((mdc_clk_div >> 4).min(0b111) as u8)
         );
@@ -487,6 +498,7 @@ impl<'r> EthInner<'r> {
                 .rx_pktbuf_memsz_sel(0x3)
                 // 4 KB
                 .tx_pktbuf_memsz_sel(true)
+                // TX checksum offload
                 .csum_gen_offload_en(true)
                 // Little-endian
                 .ahb_endian_swp_mgmt_en(false)
