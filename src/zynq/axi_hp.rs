@@ -2,7 +2,7 @@
 
 use volatile_register::RW;
 
-use crate::{register, register_bit, register_bits, register_bits_typed};
+use crate::{register, register_bit, register_bits};
 
 pub unsafe fn axi_hp0() -> &'static RegisterBlock {
     &*(0xF8008000 as *const _)

@@ -1,6 +1,6 @@
-use volatile_register::{RO, WO, RW};
+use volatile_register::{RO, RW};
 
-use crate::{register, register_bit, register_bits, register_bits_typed};
+use crate::{register, register_bit, register_bits_typed};
 
 #[repr(u8)]
 pub enum DataBusWidth {
@@ -170,7 +170,8 @@ register_bit!(ddrc_ctrl, powerdown_en, 1);
 register_bits_typed!(ddrc_ctrl, data_bus_width, u8, DataBusWidth, 2, 3);
 // (ddrc_ctrl) ...
 
-/// Controller operation mode status
-register!(mode_sts_reg, ModeStsReg, RO, u32);
+// Controller operation mode status
+register!(mode_sts_reg,
+          ModeStsReg, RO, u32);
 register_bits_typed!(mode_sts_reg, operating_mode, u8, ControllerStatus, 0, 2);
 // (mode_sts_reg) ...
