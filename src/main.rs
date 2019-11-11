@@ -128,7 +128,7 @@ fn main() {
 
     let ethernet_addr = EthernetAddress(HWADDR);
     // IP stack
-    let local_addr = IpAddress::v4(10, 0, 0, 1);
+    let local_addr = IpAddress::v4(192, 168, 1, 28);
     let mut ip_addrs = [IpCidr::new(local_addr, 24)];
     let mut neighbor_storage = vec![None; 256];
     let neighbor_cache = NeighborCache::new(&mut neighbor_storage[..]);
