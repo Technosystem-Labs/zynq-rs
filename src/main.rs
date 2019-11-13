@@ -3,7 +3,6 @@
 #![feature(asm)]
 #![feature(global_asm)]
 #![feature(naked_functions)]
-#![feature(compiler_builtins_lib)]
 #![feature(never_type)]
 #![feature(alloc_error_handler)]
 // TODO: disallow unused/dead_code when code moves into a lib crate
