@@ -52,6 +52,10 @@ unsafe fn boot_core0() -> ! {
         .setup_flat_layout();
     mmu::with_mmu(mmu_table, || {
         mpcore.scu_control.start();
+        ACTLR.enable_smp();
+        // TODO: Barriers reqd when core1 is not yet starting?
+        asm::dmb();
+        asm::dsb();
 
         crate::main();
         panic!("return from main");
@@ -68,6 +72,11 @@ unsafe fn boot_core1() -> ! {
 
     let mmu_table = mmu::L1Table::get();
     mmu::with_mmu(mmu_table, || {
+        ACTLR.enable_smp();
+        // TODO: Barriers reqd when core1 is not yet starting?
+        asm::dmb();
+        asm::dsb();
+
         crate::main_core1();
         panic!("return from main_core1");
     });

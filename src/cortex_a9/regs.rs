@@ -1,5 +1,5 @@
 use crate::{register_bit, register_bits};
-use crate::regs::{RegisterR, RegisterW};
+use crate::regs::{RegisterR, RegisterW, RegisterRW};
 
 macro_rules! def_reg_r {
     ($name:tt, $type: ty, $asm_instr:tt) => {
@@ -114,6 +114,36 @@ register_bit!(sctlr,
 register_bit!(sctlr,
               /// Thumb Exception Enable
               te, 30);
+
+/// Auxiliary Control Register
+pub struct ACTLR;
+wrap_reg!(actlr);
+def_reg_r!(ACTLR, actlr::Read, "mrc p15, 0, $0, c1, c0, 1");
+def_reg_w!(ACTLR, actlr::Write, "mcr p15, 0, $0, c1, c0, 1");
+// SMP bit
+register_bit!(actlr, parity_on, 9);
+register_bit!(actlr, alloc_one_way, 8);
+register_bit!(actlr, excl, 7);
+register_bit!(actlr, smp, 6);
+register_bit!(actlr, write_full_line_of_zeros, 3);
+register_bit!(actlr, l1_prefetch_enable, 2);
+// Cache/TLB maintenance broadcast
+register_bit!(actlr, fw, 0);
+
+impl RegisterRW for ACTLR {
+    fn modify<F: FnOnce(Self::R, Self::W) -> Self::W>(&mut self, f: F) {
+        let r = self.read();
+        let w = actlr::Write { inner: r.inner };
+        let w = f(r, w);
+        self.write(w);
+    }
+}
+
+impl ACTLR {
+    pub fn enable_smp(&mut self) {
+        self.modify(|_, w| w.smp(true).fw(true));
+    }
+}
 
 /// Domain Access Control Register
 pub struct DACR;
