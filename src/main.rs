@@ -117,3 +117,6 @@ pub fn main() {
 
 }
 
+pub fn main_core1() {
+    loop {}
+}
