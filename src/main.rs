@@ -36,6 +36,10 @@ pub fn main() {
     ddr.memtest();
     ram::init_alloc(&mut ddr);
 
+    let core1_stack = vec![0; 2048];
+    println!("{} bytes stack for core1", core1_stack.len());
+    boot::start_core1(core1_stack);
+
     let eth = zynq::eth::Eth::default(HWADDR.clone());
     println!("Eth on");
 

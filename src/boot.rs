@@ -101,3 +101,14 @@ fn l1_cache_init() {
     //       way.
     dciall();
 }
+
+pub fn start_core1<T: AsMut<[u32]>>(mut stack: T) {
+    let stack = stack.as_mut();
+    let stack_start = &mut stack[stack.len() - 1];
+    unsafe {
+        CORE1_STACK = stack_start as *mut _ as u32;
+    }
+
+    // wake up core1
+    asm::sev();
+}
