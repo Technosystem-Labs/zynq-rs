@@ -10,6 +10,12 @@ pub fn wfe() {
     unsafe { asm!("wfe" :::: "volatile") }
 }
 
+/// Send Event
+#[inline]
+pub fn sev() {
+    unsafe { asm!("sev" :::: "volatile") }
+}
+
 /// Data Memory Barrier
 #[inline]
 pub fn dmb() {
