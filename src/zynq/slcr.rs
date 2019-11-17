@@ -129,7 +129,7 @@ pub struct RegisterBlock {
     pub ocm_rst_ctrl: RW<u32>,
     reserved4: [u32; 1],
     pub fpga_rst_ctrl: RW<u32>,
-    pub a9_cpu_rst_ctrl: RW<u32>,
+    pub a9_cpu_rst_ctrl: A9CpuRstCtrl,
     reserved5: [u32; 1],
     pub rs_awdt_ctrl: RW<u32>,
     reserved6: [u32; 2],
@@ -439,6 +439,13 @@ impl UartRstCtrl {
         );
     }
 }
+
+register!(a9_cpu_rst_ctrl, A9CpuRstCtrl, RW, u32);
+register_bit!(a9_cpu_rst_ctrl, peri_rst, 8);
+register_bit!(a9_cpu_rst_ctrl, a9_clkstop1, 5);
+register_bit!(a9_cpu_rst_ctrl, a9_clkstop0, 4);
+register_bit!(a9_cpu_rst_ctrl, a9_rst1, 1);
+register_bit!(a9_cpu_rst_ctrl, a9_rst0, 0);
 
 register!(pss_rst_ctrl, PssRstCtrl, RW, u32);
 register_bit!(pss_rst_ctrl, soft_rst, 1);

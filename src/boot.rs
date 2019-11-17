@@ -1,7 +1,8 @@
 use r0::zero_bss;
-use crate::regs::{RegisterR, RegisterW};
+use vcell::VolatileCell;
+use crate::regs::{RegisterR, RegisterW, RegisterRW};
 use crate::cortex_a9::{asm, regs::*, mmu};
-use crate::zynq::mpcore;
+use crate::zynq::{slcr, mpcore};
 
 extern "C" {
     static mut __bss_start: u32;
@@ -9,7 +10,7 @@ extern "C" {
     static mut __stack_start: u32;
 }
 
-static mut CORE1_STACK: u32 = 0;
+static mut CORE1_STACK: VolatileCell<u32> = VolatileCell::new(0);
 
 #[link_section = ".text.boot"]
 #[no_mangle]
@@ -23,15 +24,11 @@ pub unsafe extern "C" fn _boot_cores() -> ! {
             boot_core0();
         }
         1 => {
-            // Wait for a first `sev` so that `CORE1_STACK` is cleared
-            // by `zero_bss()` on core 0.
-            asm::wfe();
-
-            while CORE1_STACK == 0 {
+            while CORE1_STACK.get() == 0 {
                 asm::wfe();
             }
 
-            SP.write(CORE1_STACK);
+            SP.write(CORE1_STACK.get());
             boot_core1();
         }
         _ => unreachable!(),
@@ -102,13 +99,33 @@ fn l1_cache_init() {
     dciall();
 }
 
-pub fn start_core1<T: AsMut<[u32]>>(mut stack: T) {
-    let stack = stack.as_mut();
-    let stack_start = &mut stack[stack.len() - 1];
-    unsafe {
-        CORE1_STACK = stack_start as *mut _ as u32;
+pub struct Core1;
+
+impl Core1 {
+    pub fn stop() {
+        slcr::RegisterBlock::unlocked(|slcr| {
+            slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_rst1(true));
+            slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_clkstop1(true));
+            slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_rst1(false));
+        });
     }
 
-    // wake up core1
-    asm::sev();
+    pub fn start<T: AsMut<[u32]>>(mut stack: T) {
+        // reset and stop (safe to repeat)
+        Self::stop();
+
+        let stack = stack.as_mut();
+        let stack_start = &mut stack[stack.len() - 1];
+        unsafe {
+            CORE1_STACK.set(stack_start as *mut _ as u32);
+        }
+        // Ensure stack pointer has been written
+        asm::dmb();
+
+        // wake up core1
+        slcr::RegisterBlock::unlocked(|slcr| {
+            slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_rst1(false));
+            slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_clkstop1(false));
+        });
+    }
 }
