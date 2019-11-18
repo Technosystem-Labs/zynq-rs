@@ -1,7 +1,7 @@
 use r0::zero_bss;
 use vcell::VolatileCell;
 use crate::regs::{RegisterR, RegisterW, RegisterRW};
-use crate::cortex_a9::{asm, regs::*, mmu};
+use crate::cortex_a9::{asm, regs::*, cache, mmu};
 use crate::zynq::{slcr, mpcore};
 
 extern "C" {
@@ -10,6 +10,7 @@ extern "C" {
     static mut __stack_start: u32;
 }
 
+/// `0` means: wait for initialization by core0
 static mut CORE1_STACK: VolatileCell<u32> = VolatileCell::new(0);
 
 #[link_section = ".text.boot"]
@@ -99,10 +100,12 @@ fn l1_cache_init() {
     dciall();
 }
 
-pub struct Core1;
+pub struct Core1<S: AsMut<[u32]>> {
+    pub stack: S,
+}
 
-impl Core1 {
-    pub fn stop() {
+impl<S: AsMut<[u32]>> Core1<S> {
+    pub fn stop(&self) {
         slcr::RegisterBlock::unlocked(|slcr| {
             slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_rst1(true));
             slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_clkstop1(true));
@@ -110,22 +113,32 @@ impl Core1 {
         });
     }
 
-    pub fn start<T: AsMut<[u32]>>(mut stack: T) {
+    /// Reset and start core1
+    ///
+    /// The stack must not be in OCM because core1 still has to
+    /// initialize its MMU before it can access DDR.
+    pub fn start(stack: S) -> Self {
+        let mut core = Core1 { stack };
+        
         // reset and stop (safe to repeat)
-        Self::stop();
+        core.stop();
 
-        let stack = stack.as_mut();
+        let stack = core.stack.as_mut();
         let stack_start = &mut stack[stack.len() - 1];
         unsafe {
             CORE1_STACK.set(stack_start as *mut _ as u32);
         }
-        // Ensure stack pointer has been written
+        // Ensure stack pointer has been written to cache
         asm::dmb();
+        // Flush cache-line
+        cache::dccmvac(unsafe { &CORE1_STACK } as *const _ as u32);
 
         // wake up core1
         slcr::RegisterBlock::unlocked(|slcr| {
             slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_rst1(false));
             slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_clkstop1(false));
         });
+
+        core
     }
 }

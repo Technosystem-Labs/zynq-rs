@@ -71,6 +71,14 @@ pub fn dccimva(addr: usize) {
     }
 }
 
+/// clear cache line by virtual address to point of coherency (DCCMVAC)
+#[inline]
+pub fn dccmvac(addr: u32) {
+    unsafe {
+        asm!("mcr p15, 0, $0, c7, c10, 1" :: "r" (addr) :: "volatile");
+    }
+}
+
 /// The DCCIVMA (data cache clear and invalidate) applied to the
 /// region of memory occupied by the argument. This does not modify
 /// the argument, but due to the invalidate part (only ever needed if
