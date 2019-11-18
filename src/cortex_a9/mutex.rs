@@ -1,21 +1,13 @@
 use core::ops::{Deref, DerefMut};
-use core::sync::atomic::{AtomicBool, Ordering};
+use core::sync::atomic::{AtomicU32, Ordering};
 use core::cell::UnsafeCell;
 use super::asm::*;
 
-#[inline]
-fn wait_for_update() {
-    wfe();
-}
-
-#[inline]
-fn signal_update() {
-    dsb();
-    sev();
-}
+const LOCKED: u32 = 1;
+const UNLOCKED: u32 = 0;
 
 pub struct Mutex<T> {
-    locked: AtomicBool,
+    locked: AtomicU32,
     inner: UnsafeCell<T>,
 }
 
@@ -25,27 +17,21 @@ unsafe impl<T: Send> Send for Mutex<T> {}
 impl<T> Mutex<T> {
     pub const fn new(inner: T) -> Self {
         Mutex{
-            locked: AtomicBool::new(false),
+            locked: AtomicU32::new(UNLOCKED),
             inner: UnsafeCell::new(inner),
         }
     }
     
     pub fn lock(&self) -> MutexGuard<T> {
-        while self.locked.compare_and_swap(false, true, Ordering::Acquire) {
-            while self.locked.load(Ordering::Relaxed) {
-                wait_for_update();
-            }
-        }
-
+        while self.locked.compare_and_swap(UNLOCKED, LOCKED, Ordering::Acquire) != UNLOCKED {}
         dmb();
-
         MutexGuard { mutex: self }
     }
 
     fn unlock(&self) {
         dmb();
-        self.locked.store(false, Ordering::Release);
-        signal_update();
+        self.locked.store(UNLOCKED, Ordering::Release);
+        dsb();
     }
 }
 
