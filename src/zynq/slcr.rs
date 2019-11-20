@@ -134,7 +134,7 @@ pub struct RegisterBlock {
     pub rs_awdt_ctrl: RW<u32>,
     reserved6: [u32; 2],
     pub reboot_status: RW<u32>,
-    pub boot_mode: RW<u32>,
+    pub boot_mode: BootMode,
     reserved7: [u32; 40],
     pub apu_ctrl: RW<u32>,
     pub wdt_clk_sel: RW<u32>,
@@ -446,6 +446,20 @@ register_bit!(a9_cpu_rst_ctrl, a9_clkstop1, 5);
 register_bit!(a9_cpu_rst_ctrl, a9_clkstop0, 4);
 register_bit!(a9_cpu_rst_ctrl, a9_rst1, 1);
 register_bit!(a9_cpu_rst_ctrl, a9_rst0, 0);
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[repr(u8)]
+pub enum BootModePins {
+    Jtag = 0b000,
+    Nor = 0b001,
+    Nand = 0b010,
+    QuadSpi = 0b100,
+    SdCard = 0b110,
+}
+
+register!(boot_mode, BootMode, RO, u32);
+register_bit!(boot_mode, pll_bypass, 4);
+register_bits_typed!(boot_mode, boot_mode_pins, u8, BootModePins, 0, 3);
 
 register!(pss_rst_ctrl, PssRstCtrl, RW, u32);
 register_bit!(pss_rst_ctrl, soft_rst, 1);
