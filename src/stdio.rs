@@ -1,19 +1,44 @@
+use core::ops::{Deref, DerefMut};
+use crate::cortex_a9::mutex::{Mutex, MutexGuard};
 use crate::zynq::uart::Uart;
 
 const UART_RATE: u32 = 115_200;
-static mut UART: Option<Uart> = None;
+static mut UART: Mutex<LazyUart> = Mutex::new(LazyUart::Uninitialized);
 
-// TODO: locking for SMP
 #[doc(hidden)]
-pub fn get_uart() -> &'static mut Uart {
-    unsafe {
-        match &mut UART {
-            None => {
+pub fn get_uart<'a>() -> MutexGuard<'a, LazyUart> {
+    unsafe { UART.lock() }
+}
+
+/// Initializes the UART on first use through `.deref_mut()` for debug
+/// output through the `print!` and `println!` macros.
+pub enum LazyUart {
+    Uninitialized,
+    Initialized(Uart),
+}
+
+impl Deref for LazyUart {
+    type Target = Uart;
+    fn deref(&self) -> &Uart {
+        match self {
+            LazyUart::Uninitialized =>
+                panic!("stdio not initialized!"),
+            LazyUart::Initialized(uart) =>
+                uart,
+        }
+    }
+}
+
+impl DerefMut for LazyUart {
+    fn deref_mut(&mut self) -> &mut Uart {
+        match self {
+            LazyUart::Uninitialized => {
                 let uart = Uart::serial(UART_RATE);
-                UART = Some(uart);
-                UART.as_mut().unwrap()
+                *self = LazyUart::Initialized(uart);
+                self
             }
-            Some(uart) => uart,
+            LazyUart::Initialized(uart) =>
+                uart,
         }
     }
 }
@@ -22,7 +47,7 @@ pub fn get_uart() -> &'static mut Uart {
 macro_rules! print {
     ($($arg:tt)*) => ({
         use core::fmt::Write;
-        let uart = crate::stdio::get_uart();
+        let mut uart = crate::stdio::get_uart();
         let _ = write!(uart, $($arg)*);
     })
 }
@@ -31,7 +56,7 @@ macro_rules! print {
 macro_rules! println {
     ($($arg:tt)*) => ({
         use core::fmt::Write;
-        let uart = crate::stdio::get_uart();
+        let mut uart = crate::stdio::get_uart();
         let _ = write!(uart, $($arg)*);
         let _ = write!(uart, "\r\n");
         while !uart.tx_fifo_empty() {}
