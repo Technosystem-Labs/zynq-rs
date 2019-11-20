@@ -84,7 +84,7 @@ pub struct RegisterBlock {
     pub gem0_clk_ctrl: GemClkCtrl,
     pub gem1_clk_ctrl: GemClkCtrl,
     pub smc_clk_ctrl: RW<u32>,
-    pub lqspi_clk_ctrl: RW<u32>,
+    pub lqspi_clk_ctrl: LqspiClkCtrl,
     pub sdio_clk_ctrl: RW<u32>,
     pub uart_clk_ctrl: UartClkCtrl,
     pub spi_clk_ctrl: RW<u32>,
@@ -124,7 +124,7 @@ pub struct RegisterBlock {
     pub i2c_rst_ctrl: RW<u32>,
     pub uart_rst_ctrl: UartRstCtrl,
     pub gpio_rst_ctrl: RW<u32>,
-    pub lqspi_rst_ctrl: RW<u32>,
+    pub lqspi_rst_ctrl: LqspiRstCtrl,
     pub smc_rst_ctrl: RW<u32>,
     pub ocm_rst_ctrl: RW<u32>,
     reserved4: [u32; 1],
@@ -439,6 +439,15 @@ impl UartRstCtrl {
         );
     }
 }
+
+register!(lqspi_clk_ctrl, LqspiClkCtrl, RW, u32);
+register_bit!(lqspi_clk_ctrl, clkact, 0);
+register_bits_typed!(lqspi_clk_ctrl, src_sel, u8, PllSource, 4, 5);
+register_bits!(lqspi_clk_ctrl, divisor, u8, 8, 13);
+
+register!(lqspi_rst_ctrl, LqspiRstCtrl, RW, u32);
+register_bit!(lqspi_rst_ctrl, ref_rst, 1);
+register_bit!(lqspi_rst_ctrl, cpu1x_rst, 0);
 
 register!(a9_cpu_rst_ctrl, A9CpuRstCtrl, RW, u32);
 register_bit!(a9_cpu_rst_ctrl, peri_rst, 8);
