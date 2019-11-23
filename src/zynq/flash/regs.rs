@@ -1,6 +1,6 @@
 use volatile_register::{RO, WO, RW};
 
-use crate::{register, register_bit, register_bits, register_bits_typed};
+use crate::{register, register_bit, register_bits};
 
 #[repr(C)]
 pub struct RegisterBlock {
@@ -24,7 +24,7 @@ pub struct RegisterBlock {
     pub txd2: WO<u32>,
     pub txd3: WO<u32>,
     pub _unused3: [RO<u32>; 5],
-    pub lqspi_cfg: RW<u32>,
+    pub lqspi_cfg: LqspiCfg,
     pub lqspi_sts: RW<u32>,
     pub _unused4: [RO<u32>; 21],
     pub mod_id: RW<u32>,
@@ -49,7 +49,7 @@ register_bit!(config,
               /// Clock phase
               clk_ph, 2);
 register_bits!(config,
-               /// divisor = 2 ** (1 + baud_rate_div)
+               /// divider = 2 ** (1 + baud_rate_div)
                baud_rate_div, u8, 3, 5);
 register_bits!(config,
                /// Must be set to 0b11
@@ -76,3 +76,14 @@ register_bit!(config,
 register_bit!(config,
               /// false: legacy SPI mode, true: Flash memory interface mode
               leg_flsh, 31);
+
+register!(lqspi_cfg, LqspiCfg, RW, u32);
+register_bits!(lqspi_cfg, inst_code, u8, 0, 7);
+register_bits!(lqspi_cfg, dummy_byte, u8, 8, 10);
+register_bits!(lqspi_cfg, mode_bits, u8, 16, 23);
+register_bit!(lqspi_cfg, mode_on, 24);
+register_bit!(lqspi_cfg, mode_en, 25);
+register_bit!(lqspi_cfg, u_page, 28);
+register_bit!(lqspi_cfg, sep_bus, 29);
+register_bit!(lqspi_cfg, two_mem, 30);
+register_bit!(lqspi_cfg, lq_mode, 31);

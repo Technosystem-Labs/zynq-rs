@@ -6,7 +6,11 @@ use super::clocks::CpuClocks;
 
 pub mod regs;
 
+const FLASH_BAUD_RATE: u32 = 50_000_000;
+
 /// Flash Interface Driver
+///
+/// For 2x Spansion S25FL128SAGMFIR01
 pub struct Flash {
     regs: &'static mut regs::RegisterBlock,
 }
@@ -19,7 +23,8 @@ impl Flash {
 
         let regs = regs::RegisterBlock::qspi();
         let mut flash = Flash { regs };
-        flash.configure();
+        flash.configure((FLASH_BAUD_RATE - 1 + clock) / FLASH_BAUD_RATE);
+        flash.setup_linear_addressing_mode();
         flash
     }
 
@@ -39,7 +44,46 @@ impl Flash {
     }
 
     fn setup_signals() {
-        // TODO
+        slcr::RegisterBlock::unlocked(|slcr| {
+            // 1. Configure MIO pin 1 for chip select 0 output.
+            slcr.mio_pin_01.write(
+                slcr::MioPin01::zeroed()
+                    .l0_sel(true)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
+            );
+
+            // Configure MIO pins 2 through 5 for I/O.
+            slcr.mio_pin_02.write(
+                slcr::MioPin02::zeroed()
+                    .l0_sel(true)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+            );
+            slcr.mio_pin_03.write(
+                slcr::MioPin03::zeroed()
+                    .l0_sel(true)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+            );
+            slcr.mio_pin_04.write(
+                slcr::MioPin04::zeroed()
+                    .l0_sel(true)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+            );
+            slcr.mio_pin_05.write(
+                slcr::MioPin05::zeroed()
+                    .l0_sel(true)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+            );
+
+            // 3. Configure MIO pin 6 for serial clock 0 output.
+            slcr.mio_pin_06.write(
+                slcr::MioPin06::zeroed()
+                    .l0_sel(true)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+            );
+
+            // TODO: optional 2nd chip setup
+        });
     }
 
     fn reset() {
@@ -55,13 +99,33 @@ impl Flash {
         });
     }
 
-    fn configure(&mut self) {
+    fn configure(&mut self, divider: u32) {
+        // for a baud_rate_div=1 LPBK_DLY_ADJ would be required
+        let mut baud_rate_div = 2u32;
+        while baud_rate_div < 7 && 2u32.pow(1 + baud_rate_div) < divider {
+            baud_rate_div += 1;
+        }
+
         self.regs.config.modify(|_, w| w
-            .baud_rate_div(4 /* TODO */)
+            .baud_rate_div(baud_rate_div as u8)
             .mode_sel(true)
             .leg_flsh(true)
             .endian(false)
             .fifo_width(0b11)
         );
+    }
+
+    fn setup_linear_addressing_mode(&mut self) {
+        self.regs.lqspi_cfg.modify(|_, w| w
+            .inst_code(0x3)
+            .u_page(false)
+            .sep_bus(false)
+            .two_mem(false)
+            .lq_mode(true)
+        );
+    }
+
+    pub fn ptr<T>(&mut self) -> *mut T {
+        0xFC00_0000 as *mut _
     }
 }
