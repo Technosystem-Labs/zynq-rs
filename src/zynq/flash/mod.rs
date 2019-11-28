@@ -85,7 +85,53 @@ impl Flash<()> {
                     .io_type(slcr::IoBufferType::Lvcmos18)
             );
 
-            // TODO: optional 2nd chip setup
+            // Option: Add Second Device Chip Select
+            // 4. Configure MIO pin 0 for chip select 1 output.
+            slcr.mio_pin_00.write(
+                slcr::MioPin00::zeroed()
+                    .l0_sel(true)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
+            );
+
+            // Option: Add Second Serial Clock
+            // 5. Configure MIO pin 9 for serial clock 1 output.
+            slcr.mio_pin_09.write(
+                slcr::MioPin09::zeroed()
+                    .l0_sel(true)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+            );
+
+            // Option: Add 4-bit Data
+            // 6. Configure MIO pins 10 through 13 for I/O.
+            slcr.mio_pin_10.write(
+                slcr::MioPin10::zeroed()
+                    .l0_sel(true)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+            );
+            slcr.mio_pin_11.write(
+                slcr::MioPin11::zeroed()
+                    .l0_sel(true)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+            );
+            slcr.mio_pin_12.write(
+                slcr::MioPin12::zeroed()
+                    .l0_sel(true)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+            );
+            slcr.mio_pin_13.write(
+                slcr::MioPin13::zeroed()
+                    .l0_sel(true)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+            );
+
+            // Option: Add Feedback Output Clock
+            // 7. Configure MIO pin 8 for feedback clock.
+            slcr.mio_pin_08.write(
+                slcr::MioPin08::zeroed()
+                    .l0_sel(true)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+            );
         });
     }
 
