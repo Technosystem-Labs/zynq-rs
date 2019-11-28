@@ -1,5 +1,6 @@
 //! Quad-SPI Flash Controller
 
+use core::marker::PhantomData;
 use crate::regs::{RegisterW, RegisterRW};
 use super::slcr;
 use super::clocks::CpuClocks;
@@ -8,23 +9,25 @@ pub mod regs;
 
 const FLASH_BAUD_RATE: u32 = 50_000_000;
 
+pub struct LinearAddressing;
+
 /// Flash Interface Driver
 ///
 /// For 2x Spansion S25FL128SAGMFIR01
-pub struct Flash {
+pub struct Flash<MODE> {
     regs: &'static mut regs::RegisterBlock,
+    _mode: PhantomData<MODE>,
 }
 
-impl Flash {
+impl Flash<()> {
     pub fn new(clock: u32) -> Self {
         Self::enable_clocks(clock);
         Self::setup_signals();
         Self::reset();
 
         let regs = regs::RegisterBlock::qspi();
-        let mut flash = Flash { regs };
+        let mut flash = Flash { regs, _mode: PhantomData };
         flash.configure((FLASH_BAUD_RATE - 1 + clock) / FLASH_BAUD_RATE);
-        flash.setup_linear_addressing_mode();
         flash
     }
 
@@ -106,25 +109,40 @@ impl Flash {
             baud_rate_div += 1;
         }
 
-        self.regs.config.modify(|_, w| w
+        self.regs.config.write(regs::Config::zeroed()
             .baud_rate_div(baud_rate_div as u8)
             .mode_sel(true)
             .leg_flsh(true)
-            .endian(false)
             .fifo_width(0b11)
         );
     }
 
-    fn setup_linear_addressing_mode(&mut self) {
-        self.regs.lqspi_cfg.modify(|_, w| w
+    pub fn linear_addressing_mode(self) -> Flash<LinearAddressing> {
+        // Set manual start enable to auto mode.
+        // Assert the chip select.
+        self.regs.config.modify(|_, w| w
+            .man_start_en(false)
+            .pcs(false)
+        );
+
+        self.regs.lqspi_cfg.write(regs::LqspiCfg::zeroed()
             .inst_code(0x3)
             .u_page(false)
             .sep_bus(false)
             .two_mem(false)
             .lq_mode(true)
         );
-    }
 
+        self.regs.enable.modify(|_, w| w.spi_en(true));
+
+        Flash {
+            regs: self.regs,
+            _mode: PhantomData,
+        }
+    }
+}
+
+impl Flash<LinearAddressing> {
     pub fn ptr<T>(&mut self) -> *mut T {
         0xFC00_0000 as *mut _
     }

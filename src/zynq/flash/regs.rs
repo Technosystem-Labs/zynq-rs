@@ -9,7 +9,7 @@ pub struct RegisterBlock {
     pub intr_en: RW<u32>,
     pub intr_dis: RW<u32>,
     pub intr_mask: RO<u32>,
-    pub enable: RW<u32>,
+    pub enable: Enable,
     pub delay: RW<u32>,
     pub txd0: WO<u32>,
     pub rx_data: RO<u32>,
@@ -76,6 +76,9 @@ register_bit!(config,
 register_bit!(config,
               /// false: legacy SPI mode, true: Flash memory interface mode
               leg_flsh, 31);
+
+register!(enable, Enable, RW, u32);
+register_bit!(enable, spi_en, 0);
 
 register!(lqspi_cfg, LqspiCfg, RW, u32);
 register_bits!(lqspi_cfg, inst_code, u8, 0, 7);
