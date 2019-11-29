@@ -172,10 +172,14 @@ impl Flash<()> {
         );
 
         self.regs.lqspi_cfg.write(regs::LqspiCfg::zeroed()
-            .inst_code(0x3)
-            .u_page(false)
-            .sep_bus(false)
-            .two_mem(false)
+            // Quad I/O Fast Read
+            .inst_code(0xEB)
+            .mode_bits(0xFF)
+            .dummy_byte(0x2)
+            .mode_en(true)
+            // 2 devices
+            .two_mem(true)
+            // Linear Addressing Mode
             .lq_mode(true)
         );
 
