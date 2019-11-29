@@ -19,6 +19,15 @@ pub struct Flash<MODE> {
     _mode: PhantomData<MODE>,
 }
 
+impl<MODE> Flash<MODE> {
+    fn transition<TO>(self) -> Flash<TO> {
+        Flash {
+            regs: self.regs,
+            _mode: PhantomData,
+        }
+    }
+}
+
 impl Flash<()> {
     pub fn new(clock: u32) -> Self {
         Self::enable_clocks(clock);
@@ -185,15 +194,25 @@ impl Flash<()> {
 
         self.regs.enable.modify(|_, w| w.spi_en(true));
 
-        Flash {
-            regs: self.regs,
-            _mode: PhantomData,
-        }
+        self.transition()
     }
 }
 
 impl Flash<LinearAddressing> {
+    /// Stop linear addressing mode
+    pub fn stop(self) -> Flash<()> {
+        self.regs.enable.modify(|_, w| w.spi_en(false));
+        // De-assert chip select.
+        self.regs.config.modify(|_, w| w.pcs(true));
+
+        self.transition()
+    }
+
     pub fn ptr<T>(&mut self) -> *mut T {
         0xFC00_0000 as *mut _
+    }
+
+    pub fn size(&self) -> usize {
+        32 * 1024 * 1024
     }
 }
