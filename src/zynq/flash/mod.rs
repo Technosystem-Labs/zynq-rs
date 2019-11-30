@@ -1,15 +1,17 @@
 //! Quad-SPI Flash Controller
 
 use core::marker::PhantomData;
-use crate::regs::{RegisterW, RegisterRW};
+use crate::regs::{RegisterR, RegisterW, RegisterRW};
 use super::slcr;
 use super::clocks::CpuClocks;
 
 pub mod regs;
 
 const FLASH_BAUD_RATE: u32 = 50_000_000;
+const SINGLE_CAPACITY: u32 = 16 * 1024 * 1024;
 
 pub struct LinearAddressing;
+pub struct Manual;
 
 /// Flash Interface Driver
 ///
@@ -196,6 +198,29 @@ impl Flash<()> {
 
         self.transition()
     }
+
+    pub fn manual_mode(self, chip_index: usize) -> Flash<Manual> {
+        self.regs.config.modify(|_, w| w
+            .man_start_en(true)
+            .manual_cs(true)
+        );
+
+        self.regs.lqspi_cfg.write(regs::LqspiCfg::zeroed()
+            .mode_bits(0xFF)
+            .dummy_byte(0x2)
+            .mode_en(true)
+            // 2 devices
+            .two_mem(true)
+            .u_page(chip_index != 0)
+        );
+
+        self.regs.config.modify(|_, w| w
+            .pcs(false)
+        );
+        self.regs.enable.modify(|_, w| w.spi_en(true));
+
+        self.transition()
+    }
 }
 
 impl Flash<LinearAddressing> {
@@ -213,6 +238,53 @@ impl Flash<LinearAddressing> {
     }
 
     pub fn size(&self) -> usize {
-        32 * 1024 * 1024
+        2 * (SINGLE_CAPACITY as usize)
+    }
+}
+
+impl Flash<Manual> {
+    pub fn stop(self) -> Flash<()> {
+        self.regs.enable.modify(|_, w| w.spi_en(false));
+        // De-assert chip select.
+        self.regs.config.modify(|_, w| w.pcs(true));
+
+        self.transition()
+    }
+
+    pub fn read(&mut self, offset: u32, dest: &mut [u8]) {
+        self.regs.config.modify(|_, w| w.man_start_com(true));
+        
+        // Quad I/O Read
+        let instr = 0xEB;
+        unsafe {
+            self.regs.txd0.write(
+                instr |
+                (offset << 8)
+            );
+        }
+
+        while self.regs.intr_status.read().tx_fifo_not_full() {
+            unsafe {
+                self.regs.txd0.write(0);
+            }
+            let rx = self.regs.rx_data.read();
+        }
+
+        for d in dest {
+            while !self.regs.intr_status.read().rx_fifo_not_empty() {}
+
+            // TODO: drops data?
+            let rx = self.regs.rx_data.read();
+            *d = rx as u8;
+
+            // Output dummy byte to generate clock for further RX
+            unsafe {
+                self.regs.txd1.write(0);
+            }
+        }
+    }
+
+    fn wait_tx_not_full(&self) {
+        while self.regs.intr_status.read().tx_fifo_full() {}
     }
 }

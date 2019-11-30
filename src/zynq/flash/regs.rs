@@ -5,7 +5,7 @@ use crate::{register, register_bit, register_bits};
 #[repr(C)]
 pub struct RegisterBlock {
     pub config: Config,
-    pub intr_status: RW<u32>,
+    pub intr_status: IntrStatus,
     pub intr_en: RW<u32>,
     pub intr_dis: RW<u32>,
     pub intr_mask: RO<u32>,
@@ -15,7 +15,7 @@ pub struct RegisterBlock {
     pub rx_data: RO<u32>,
     pub slave_idle_count: RW<u32>,
     pub tx_thres: RW<u32>,
-    pub rx_thes: RW<u32>,
+    pub rx_thres: RW<u32>,
     pub gpio: RW<u32>,
     pub _unused1: RO<u32>,
     pub lpbk_dly_adj: RW<u32>,
@@ -76,6 +76,14 @@ register_bit!(config,
 register_bit!(config,
               /// false: legacy SPI mode, true: Flash memory interface mode
               leg_flsh, 31);
+
+register!(intr_status, IntrStatus, RW, u32);
+register_bit!(intr_status, rx_overflow, 0);
+register_bit!(intr_status, tx_fifo_not_full, 2);
+register_bit!(intr_status, tx_fifo_full, 3);
+register_bit!(intr_status, rx_fifo_not_empty, 4);
+register_bit!(intr_status, rx_fifo_full, 5);
+register_bit!(intr_status, tx_fifo_underflow, 6);
 
 register!(enable, Enable, RW, u32);
 register_bit!(enable, spi_en, 0);
