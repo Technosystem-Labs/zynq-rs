@@ -160,6 +160,9 @@ impl Flash<()> {
     }
 
     fn configure(&mut self, divider: u32) {
+        self.disable_interrupts();
+        self.clear_rx_fifo();
+
         // for a baud_rate_div=1 LPBK_DLY_ADJ would be required
         let mut baud_rate_div = 2u32;
         while baud_rate_div < 7 && 2u32.pow(1 + baud_rate_div) < divider {
@@ -170,8 +173,33 @@ impl Flash<()> {
             .baud_rate_div(baud_rate_div as u8)
             .mode_sel(true)
             .leg_flsh(true)
+            // 32 bits TX FIFO width
             .fifo_width(0b11)
         );
+
+        // Initialize RX/TX pipes thresholds
+        unsafe {
+            self.regs.rx_thres.write(32);
+            self.regs.tx_thres.write(1);
+        }
+    }
+
+    fn disable_interrupts(&mut self) {
+        self.regs.intr_dis.write(
+            regs::IntrDis::zeroed()
+                .rx_overflow(true)
+                .tx_fifo_not_full(true)
+                .tx_fifo_full(true)
+                .rx_fifo_not_empty(true)
+                .rx_fifo_full(true)
+                .tx_fifo_underflow(true)
+        );
+    }
+
+    fn clear_rx_fifo(&self) {
+        while self.regs.intr_status.read().rx_fifo_not_empty() {
+            let _ = self.regs.rx_data.read();
+        }
     }
 
     pub fn linear_addressing_mode(self) -> Flash<LinearAddressing> {

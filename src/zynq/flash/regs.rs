@@ -6,8 +6,8 @@ use crate::{register, register_bit, register_bits};
 pub struct RegisterBlock {
     pub config: Config,
     pub intr_status: IntrStatus,
-    pub intr_en: RW<u32>,
-    pub intr_dis: RW<u32>,
+    pub intr_en: IntrEn,
+    pub intr_dis: IntrDis,
     pub intr_mask: RO<u32>,
     pub enable: Enable,
     pub delay: RW<u32>,
@@ -84,6 +84,22 @@ register_bit!(intr_status, tx_fifo_full, 3);
 register_bit!(intr_status, rx_fifo_not_empty, 4);
 register_bit!(intr_status, rx_fifo_full, 5);
 register_bit!(intr_status, tx_fifo_underflow, 6);
+
+register!(intr_en, IntrEn, WO, u32);
+register_bit!(intr_en, rx_overflow, 0);
+register_bit!(intr_en, tx_fifo_not_full, 2);
+register_bit!(intr_en, tx_fifo_full, 3);
+register_bit!(intr_en, rx_fifo_not_empty, 4);
+register_bit!(intr_en, rx_fifo_full, 5);
+register_bit!(intr_en, tx_fifo_underflow, 6);
+
+register!(intr_dis, IntrDis, WO, u32);
+register_bit!(intr_dis, rx_overflow, 0);
+register_bit!(intr_dis, tx_fifo_not_full, 2);
+register_bit!(intr_dis, tx_fifo_full, 3);
+register_bit!(intr_dis, rx_fifo_not_empty, 4);
+register_bit!(intr_dis, rx_fifo_full, 5);
+register_bit!(intr_dis, tx_fifo_underflow, 6);
 
 register!(enable, Enable, RW, u32);
 register_bit!(enable, spi_en, 0);
