@@ -5,7 +5,8 @@ use crate::regs::{RegisterR, RegisterW, RegisterRW};
 use super::slcr;
 use super::clocks::CpuClocks;
 
-pub mod regs;
+mod regs;
+mod instr;
 
 const FLASH_BAUD_RATE: u32 = 50_000_000;
 const SINGLE_CAPACITY: u32 = 16 * 1024 * 1024;
@@ -27,6 +28,44 @@ impl<MODE> Flash<MODE> {
             regs: self.regs,
             _mode: PhantomData,
         }
+    }
+
+    fn disable_interrupts(&mut self) {
+        self.regs.intr_dis.write(
+            regs::IntrDis::zeroed()
+                .rx_overflow(true)
+                .tx_fifo_not_full(true)
+                .tx_fifo_full(true)
+                .rx_fifo_not_empty(true)
+                .rx_fifo_full(true)
+                .tx_fifo_underflow(true)
+        );
+    }
+
+    fn enable_interrupts(&mut self) {
+        self.regs.intr_en.write(
+            regs::IntrEn::zeroed()
+                .rx_overflow(true)
+                .tx_fifo_not_full(true)
+                .tx_fifo_full(true)
+                .rx_fifo_not_empty(true)
+                .rx_fifo_full(true)
+                .tx_fifo_underflow(true)
+        );
+    }
+
+    fn clear_rx_fifo(&self) {
+        while self.regs.intr_status.read().rx_fifo_not_empty() {
+            let _ = self.regs.rx_data.read();
+        }
+    }
+
+    fn clear_interrupt_status(&mut self) {
+        self.regs.intr_status.write(
+            regs::IntrStatus::zeroed()
+                .rx_overflow(true)
+                .tx_fifo_underflow(true)
+        );
     }
 }
 
@@ -160,8 +199,16 @@ impl Flash<()> {
     }
 
     fn configure(&mut self, divider: u32) {
+        // Disable
+        self.regs.enable.write(
+            regs::Enable::zeroed()
+        );
         self.disable_interrupts();
+        self.regs.lqspi_cfg.write(
+            regs::LqspiCfg::zeroed()
+        );
         self.clear_rx_fifo();
+        self.clear_interrupt_status();
 
         // for a baud_rate_div=1 LPBK_DLY_ADJ would be required
         let mut baud_rate_div = 2u32;
@@ -173,6 +220,7 @@ impl Flash<()> {
             .baud_rate_div(baud_rate_div as u8)
             .mode_sel(true)
             .leg_flsh(true)
+            .holdb_dr(true)
             // 32 bits TX FIFO width
             .fifo_width(0b11)
         );
@@ -184,30 +232,13 @@ impl Flash<()> {
         }
     }
 
-    fn disable_interrupts(&mut self) {
-        self.regs.intr_dis.write(
-            regs::IntrDis::zeroed()
-                .rx_overflow(true)
-                .tx_fifo_not_full(true)
-                .tx_fifo_full(true)
-                .rx_fifo_not_empty(true)
-                .rx_fifo_full(true)
-                .tx_fifo_underflow(true)
-        );
-    }
-
-    fn clear_rx_fifo(&self) {
-        while self.regs.intr_status.read().rx_fifo_not_empty() {
-            let _ = self.regs.rx_data.read();
-        }
-    }
-
     pub fn linear_addressing_mode(self) -> Flash<LinearAddressing> {
         // Set manual start enable to auto mode.
         // Assert the chip select.
         self.regs.config.modify(|_, w| w
             .man_start_en(false)
             .pcs(false)
+            .manual_cs(false)
         );
 
         self.regs.lqspi_cfg.write(regs::LqspiCfg::zeroed()
@@ -218,11 +249,15 @@ impl Flash<()> {
             .mode_en(true)
             // 2 devices
             .two_mem(true)
+            .u_page(false)
             // Linear Addressing Mode
             .lq_mode(true)
         );
 
-        self.regs.enable.modify(|_, w| w.spi_en(true));
+        self.regs.enable.write(
+            regs::Enable::zeroed()
+                .spi_en(true)
+        );
 
         self.transition()
     }
@@ -240,13 +275,14 @@ impl Flash<()> {
             // 2 devices
             .two_mem(true)
             .u_page(chip_index != 0)
+            // Manual I/O mode
+            .lq_mode(false)
         );
 
-        self.regs.config.modify(|_, w| w
-            .pcs(false)
+        self.regs.enable.write(
+            regs::Enable::zeroed()
+                .spi_en(true)
         );
-        self.regs.enable.modify(|_, w| w.spi_en(true));
-
         self.transition()
     }
 }
@@ -272,17 +308,21 @@ impl Flash<LinearAddressing> {
 
 impl Flash<Manual> {
     pub fn stop(self) -> Flash<()> {
-        self.regs.enable.modify(|_, w| w.spi_en(false));
-        // De-assert chip select.
-        self.regs.config.modify(|_, w| w.pcs(true));
-
         self.transition()
     }
 
+    pub fn rdcr(&mut self) -> u8 {
+        self.transfer(instr::RdCr)
+    }
+
+    pub fn transfer<I: instr::Instruction>(&mut self, input: I) -> I::Result {
+        let mut t = Transfer::new(&mut self.regs, I::inst_code(), input.args());
+        (&mut t).into()
+    }
+
     pub fn read(&mut self, offset: u32, dest: &mut [u8]) {
-        self.regs.config.modify(|_, w| w.man_start_com(true));
-        
-        // Quad I/O Read
+
+        // Quad Read
         let instr = 0xEB;
         unsafe {
             self.regs.txd0.write(
@@ -290,29 +330,118 @@ impl Flash<Manual> {
                 (offset << 8)
             );
         }
-
-        while self.regs.intr_status.read().tx_fifo_not_full() {
+        let mut n = 0;
+        while !self.regs.intr_status.read().tx_fifo_full() {
             unsafe {
                 self.regs.txd0.write(0);
             }
-            let rx = self.regs.rx_data.read();
+            n += 1;
         }
 
-        for d in dest {
+        self.regs.config.modify(|_, w| w
+            .pcs(false)
+            .man_start_com(true)
+        );
+
+        let mut offset = 0;
+        while offset < dest.len() {
             while !self.regs.intr_status.read().rx_fifo_not_empty() {}
 
             // TODO: drops data?
             let rx = self.regs.rx_data.read();
-            *d = rx as u8;
+            if offset < dest.len() {
+                dest[offset] = rx as u8;
+            }
+            offset += 1;
+            if offset < dest.len() {
+                dest[offset] = (rx >> 8) as u8;
+            }
+            offset += 1;
+            if offset < dest.len() {
+                dest[offset] = (rx >> 16) as u8;
+            }
+            offset += 1;
+            if offset < dest.len() {
+                dest[offset] = (rx << 24) as u8;
+            }
+            offset += 1;
 
             // Output dummy byte to generate clock for further RX
             unsafe {
-                self.regs.txd1.write(0);
+                self.regs.txd0.write(0);
             }
         }
+        self.regs.config.modify(|_, w| w
+            .pcs(true)
+            .man_start_com(false)
+        );
+    }
+}
+
+pub struct Transfer<'r, Args: Iterator<Item = u32>> {
+    regs: &'r mut regs::RegisterBlock,
+    args: Args,
+}
+
+impl<'r, Args: Iterator<Item = u32>> Transfer<'r, Args> {
+    pub fn new(regs: &'r mut regs::RegisterBlock, inst_code: u8, mut args: Args) -> Self
+    where
+        Args: Iterator<Item = u32>,
+    {
+        unsafe {
+            regs.txd1.write(inst_code.into());
+        }
+        while !regs.intr_status.read().tx_fifo_full() {
+            let arg = args.next().unwrap_or(0);
+            unsafe {
+                regs.txd0.write(arg);
+            }
+        }
+
+        regs.config.modify(|_, w| w
+                           .pcs(false)
+                           .man_start_com(true)
+        );
+        Transfer { regs, args }
     }
 
-    fn wait_tx_not_full(&self) {
-        while self.regs.intr_status.read().tx_fifo_full() {}
+    pub fn recv(&mut self) -> u32 {
+        while !self.regs.intr_status.read().rx_fifo_not_empty() {}
+        let rx = self.regs.rx_data.read();
+
+        let arg = self.args.next().unwrap_or(0);
+        unsafe {
+            self.regs.txd0.write(arg);
+        }
+
+        rx
+    }
+}
+
+impl<'r, Args: Iterator<Item = u32>> Drop for Transfer<'r, Args> {
+    fn drop(&mut self) {
+        self.regs.config.modify(|_, w| w
+            .pcs(true)
+            .man_start_com(false)
+        );
+    }
+}
+
+
+impl<'t, Args: Iterator<Item = u32>> From<&'t mut Transfer<'_, Args>> for u32 {
+    fn from(t: &mut Transfer<'_, Args>) -> u32 {
+        t.recv()
+    }
+}
+
+impl<Args: Iterator<Item = u32>> From<&mut Transfer<'_, Args>> for u8 {
+    fn from(t: &mut Transfer<'_, Args>) -> u8 {
+        u32::from(t) as u8
+    }
+}
+
+impl<Args: Iterator<Item = u32>> From<&mut Transfer<'_, Args>> for u16 {
+    fn from(t: &mut Transfer<'_, Args>) -> u16 {
+        u32::from(t) as u16
     }
 }
