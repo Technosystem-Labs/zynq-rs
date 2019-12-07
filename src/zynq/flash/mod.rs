@@ -12,6 +12,11 @@ pub use bytes::{BytesTransferExt, BytesTransfer};
 const FLASH_BAUD_RATE: u32 = 50_000_000;
 const SINGLE_CAPACITY: u32 = 16 * 1024 * 1024;
 
+///Instruction: Read Configure Register
+const INST_RDCR: u8 = 0x3f;
+/// Instruction Read Identification
+const INST_RDID: u8 = 0x9F;
+
 pub struct LinearAddressing;
 pub struct Manual;
 
@@ -275,15 +280,12 @@ impl Flash<()> {
             .mode_en(true)
             // 2 devices
             .two_mem(true)
+            // .sep_bus(true)
             .u_page(chip_index != 0)
             // Manual I/O mode
             .lq_mode(false)
         );
 
-        self.regs.enable.write(
-            regs::Enable::zeroed()
-                .spi_en(true)
-        );
         self.transition()
     }
 }
@@ -312,14 +314,16 @@ impl Flash<Manual> {
         self.transition()
     }
 
+    /// Read Configuration Register
     pub fn rdcr(&mut self) -> u8 {
-        self.transfer(0x35, core::iter::empty())
+        self.transfer(INST_RDCR, core::iter::empty())
             .bytes_transfer().skip(1)
             .next().unwrap() as u8
     }
 
+    /// Read Identifiaction
     pub fn rdid(&mut self) -> core::iter::Skip<BytesTransfer<Transfer<core::iter::Empty<u32>>>> {
-        self.transfer(0x9f, core::iter::empty())
+        self.transfer(INST_RDID, core::iter::empty())
             .bytes_transfer().skip(1)
     }
 
@@ -334,8 +338,8 @@ impl Flash<Manual> {
 
         // TODO:
         let args = Some(0u32);
-        // Quad Read
-        self.transfer(0xEB, args.into_iter())
+        // Read
+        self.transfer(0x03, args.into_iter())
             .bytes_transfer().skip(1).take(len)
     }
 }
@@ -350,6 +354,11 @@ impl<'a, Args: Iterator<Item = u32>> Transfer<'a, Args> {
     where
         Args: Iterator<Item = u32>,
     {
+        flash.regs.config.modify(|_, w| w.pcs(false));
+        flash.regs.enable.write(
+            regs::Enable::zeroed()
+                .spi_en(true)
+        );
         while flash.regs.intr_status.read().rx_fifo_not_empty() {
             flash.regs.rx_data.read();
         }
@@ -364,10 +373,7 @@ impl<'a, Args: Iterator<Item = u32>> Transfer<'a, Args> {
             }
         }
 
-        flash.regs.config.modify(|_, w| w
-                           .pcs(false)
-                           .man_start_com(true)
-        );
+        flash.regs.config.modify(|_, w| w.man_start_com(true));
         Transfer {
             flash,
             args,
@@ -377,9 +383,19 @@ impl<'a, Args: Iterator<Item = u32>> Transfer<'a, Args> {
 
 impl<'a, Args: Iterator<Item = u32>> Drop for Transfer<'a, Args> {
     fn drop(&mut self) {
+        // Discard remaining rx_data
+        while self.flash.regs.intr_status.read().rx_fifo_not_empty() {
+            self.flash.regs.rx_data.read();
+        }
+
+        // Stop
+        self.flash.regs.enable.write(
+            regs::Enable::zeroed()
+                .spi_en(false)
+        );
         self.flash.regs.config.modify(|_, w| w
-            .pcs(false)
-            .man_start_com(true)
+            .pcs(true)
+            .man_start_com(false)
         );
     }
 }
