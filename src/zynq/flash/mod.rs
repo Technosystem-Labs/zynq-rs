@@ -366,6 +366,10 @@ impl<'a, Args: Iterator<Item = u32>> Transfer<'a, Args> {
         unsafe {
             flash.regs.txd1.write(inst_code.into());
         }
+        flash.regs.config.modify(|_, w| w.man_start_com(true));
+        // Flush after `txd1` access
+        while !flash.regs.intr_status.read().tx_fifo_not_full() {}
+
         while !flash.regs.intr_status.read().tx_fifo_full() {
             let arg = args.next().unwrap_or(0);
             unsafe {
