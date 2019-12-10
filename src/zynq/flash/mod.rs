@@ -272,6 +272,7 @@ impl Flash<()> {
         self.regs.config.modify(|_, w| w
             .man_start_en(true)
             .manual_cs(true)
+            .endian(true)
         );
 
         self.regs.lqspi_cfg.write(regs::LqspiCfg::zeroed()

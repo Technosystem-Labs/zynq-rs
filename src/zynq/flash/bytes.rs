@@ -10,7 +10,7 @@ impl<I: Iterator<Item = u32>> BytesTransferExt for I {
     fn bytes_transfer(self) -> BytesTransfer<Self> {
         BytesTransfer {
             iter: self,
-            shift: 32,
+            shift: 0,
             word: 0,
         }
     }
@@ -26,15 +26,15 @@ impl<I: Iterator<Item = u32> + Sized> Iterator for BytesTransfer<I> {
     type Item = u8;
 
     fn next(&mut self) -> Option<u8> {
-        if self.shift < 24 {
-            self.shift += 8;
+        if self.shift > 0 {
+            self.shift -= 8;
             Some((self.word >> self.shift) as u8)
         } else {
-            self.shift = 0;
             self.iter.next()
-                .map(|word| {
+                .and_then(|word| {
+                    self.shift = 32;
                     self.word = word;
-                    word as u8
+                    self.next()
                 })
         }
     }
