@@ -29,13 +29,41 @@ mod ram;
 const HWADDR: [u8; 6] = [0, 0x23, 0xde, 0xea, 0xbe, 0xef];
 
 pub fn main() {
-    println!("Main.");
+    println!("\nzc706 main");
+
+    let mut flash = zynq::flash::Flash::new(200_000_000).linear_addressing_mode();
+    let flash_ram: &[u8] = unsafe { core::slice::from_raw_parts(flash.ptr(), flash.size()) };
+    for i in 0..=1 {
+        print!("Flash {}:", i);
+        for b in &flash_ram[(i * 16 * 1024 * 1024)..][..128] {
+            print!(" {:02X}", *b);
+        }
+        println!("");
+    }
+    let mut flash = flash.stop();
 
     let mut ddr = zynq::ddr::DdrRam::new();
     println!("DDR: {:?}", ddr.status());
     ddr.memtest();
     ram::init_alloc(&mut ddr);
 
+    for i in 0..=1 {
+        let mut flash_io = flash.manual_mode(i);
+        print!("Flash {} ID:", i);
+        for b in flash_io.rdid() {
+            print!(" {:02X}", b);
+        }
+        println!("");
+        print!("Flash {} I/O:", i);
+        for o in 0..4 {
+            for b in flash_io.read(32 * o, 32) {
+                print!(" {:02X}", b);
+            }
+        }
+        println!("");
+        flash = flash_io.stop();
+    }
+    
     let core1_stack = vec![0; 2048];
     println!("{} bytes stack for core1", core1_stack.len());
     boot::Core1::start(core1_stack);

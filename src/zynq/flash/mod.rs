@@ -281,7 +281,7 @@ impl Flash<()> {
             .mode_en(true)
             // 2 devices
             .two_mem(true)
-            // .sep_bus(true)
+            .sep_bus(true)
             .u_page(chip_index != 0)
             // Manual I/O mode
             .lq_mode(false)
@@ -317,41 +317,45 @@ impl Flash<Manual> {
 
     /// Read Configuration Register
     pub fn rdcr(&mut self) -> u8 {
-        self.transfer(INST_RDCR, core::iter::empty())
+        let args = Some((INST_RDCR as u32) << 24);
+        self.transfer(args.into_iter(), 4)
             .bytes_transfer().skip(1)
             .next().unwrap() as u8
     }
 
     /// Read Identifiaction
-    pub fn rdid(&mut self) -> core::iter::Skip<BytesTransfer<Transfer<core::iter::Empty<u32>>>> {
-        self.transfer(INST_RDID, core::iter::empty())
+    pub fn rdid(&mut self) -> core::iter::Skip<BytesTransfer<Transfer<core::option::IntoIter<u32>>>> {
+        let args = Some((INST_RDID as u32) << 24);
+        self.transfer(args.into_iter(), 0x44)
             .bytes_transfer().skip(1)
     }
 
-    pub fn transfer<'s: 't, 't, Args>(&'s mut self, inst_code: u8, args: Args) -> Transfer<'t, Args>
+    /// Read flash data
+    pub fn read(&mut self, offset: u32, len: usize) -> core::iter::Take<core::iter::Skip<BytesTransfer<Transfer<core::option::IntoIter<u32>>>>> {
+        // INST_READ
+        let args = Some((0x03 << 24) | (offset as u32));
+        self.transfer(args.into_iter(), len + 6)
+            .bytes_transfer().skip(6).take(len)
+    }
+
+    pub fn transfer<'s: 't, 't, Args>(&'s mut self, args: Args, len: usize) -> Transfer<'t, Args>
     where
         Args: Iterator<Item = u32>,
     {
-        Transfer::new(self, inst_code, args)
-    }
-
-    pub fn read(&mut self, offset: u32, len: usize) -> core::iter::Take<core::iter::Skip<BytesTransfer<Transfer<core::option::IntoIter<u32>>>>> {
-
-        // TODO:
-        let args = Some(0u32);
-        // Read
-        self.transfer(0x03, args.into_iter())
-            .bytes_transfer().skip(1).take(len)
+        Transfer::new(self, args, len)
     }
 }
 
 pub struct Transfer<'a, Args: Iterator<Item = u32>> {
     flash: &'a mut Flash<Manual>,
     args: Args,
+    sent: usize,
+    received: usize,
+    len: usize,
 }
 
 impl<'a, Args: Iterator<Item = u32>> Transfer<'a, Args> {
-    pub fn new(flash: &'a mut Flash<Manual>, inst_code: u8, mut args: Args) -> Self
+    pub fn new(flash: &'a mut Flash<Manual>, args: Args, len: usize) -> Self
     where
         Args: Iterator<Item = u32>,
     {
@@ -360,37 +364,45 @@ impl<'a, Args: Iterator<Item = u32>> Transfer<'a, Args> {
             regs::Enable::zeroed()
                 .spi_en(true)
         );
-        while flash.regs.intr_status.read().rx_fifo_not_empty() {
-            flash.regs.rx_data.read();
-        }
 
-        unsafe {
-            flash.regs.txd1.write(inst_code.into());
-        }
-        flash.regs.config.modify(|_, w| w.man_start_com(true));
-        // Flush after `txd1` access
-        while !flash.regs.intr_status.read().tx_fifo_not_full() {}
-
-        while !flash.regs.intr_status.read().tx_fifo_full() {
-            let arg = args.next().unwrap_or(0);
-            unsafe {
-                flash.regs.txd0.write(arg);
-            }
-        }
-
-        flash.regs.config.modify(|_, w| w.man_start_com(true));
-        Transfer {
+        let mut xfer = Transfer {
             flash,
             args,
+            sent: 0,
+            received: 0,
+            len,
+        };
+        xfer.fill_tx_fifo();
+        xfer.flash.regs.config.modify(|_, w| w.man_start_com(true));
+        xfer
+    }
+
+    fn fill_tx_fifo(&mut self) {
+        while self.sent < self.len && !self.flash.regs.intr_status.read().tx_fifo_full() {
+            let arg = self.args.next().unwrap_or(0);
+            unsafe {
+                self.flash.regs.txd0.write(arg);
+            }
+            self.sent += 4;
         }
+    }
+
+    fn can_read(&mut self) -> bool {
+        self.flash.regs.intr_status.read().rx_fifo_not_empty()
+    }
+
+    fn read(&mut self) -> u32 {
+        let rx = self.flash.regs.rx_data.read();
+        self.received += 4;
+        rx
     }
 }
 
 impl<'a, Args: Iterator<Item = u32>> Drop for Transfer<'a, Args> {
     fn drop(&mut self) {
         // Discard remaining rx_data
-        while self.flash.regs.intr_status.read().rx_fifo_not_empty() {
-            self.flash.regs.rx_data.read();
+        while self.can_read() {
+            self.read();
         }
 
         // Stop
@@ -409,14 +421,13 @@ impl<'a, Args: Iterator<Item = u32>> Iterator for Transfer<'a, Args> {
     type Item = u32;
 
     fn next<'s>(&'s mut self) -> Option<u32> {
-        while !self.flash.regs.intr_status.read().rx_fifo_not_empty() {}
-        let rx = self.flash.regs.rx_data.read();
-
-        let arg = self.args.next().unwrap_or(0);
-        unsafe {
-            self.flash.regs.txd0.write(arg);
+        if self.received >= self.len {
+            return None;
         }
 
-        Some(rx)
+        self.fill_tx_fifo();
+
+        while !self.can_read() {}
+        Some(self.read())
     }
 }
