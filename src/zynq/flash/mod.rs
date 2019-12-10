@@ -233,7 +233,7 @@ impl Flash<()> {
 
         // Initialize RX/TX pipes thresholds
         unsafe {
-            self.regs.rx_thres.write(32);
+            self.regs.rx_thres.write(1);
             self.regs.tx_thres.write(1);
         }
     }
