@@ -12,9 +12,9 @@ pub use bytes::{BytesTransferExt, BytesTransfer};
 const FLASH_BAUD_RATE: u32 = 50_000_000;
 const SINGLE_CAPACITY: u32 = 16 * 1024 * 1024;
 
-///Instruction: Read Configure Register
-const INST_RDCR: u8 = 0x3f;
-/// Instruction Read Identification
+/// Instruction: Read Configure Register
+const INST_RDCR: u8 = 0x35;
+/// Instruction: Read Identification
 const INST_RDID: u8 = 0x9F;
 
 pub struct LinearAddressing;
