@@ -17,6 +17,32 @@ const INST_RDCR: u8 = 0x35;
 /// Instruction: Read Identification
 const INST_RDID: u8 = 0x9F;
 
+#[derive(Clone)]
+pub enum SpiWord {
+    W8(u8),
+    W16(u16),
+    W24(u32),
+    W32(u32),
+}
+
+impl From<u8> for SpiWord {
+    fn from(x: u8) -> Self {
+        SpiWord::W8(x)
+    }
+}
+
+impl From<u16> for SpiWord {
+    fn from(x: u16) -> Self {
+        SpiWord::W16(x)
+    }
+}
+
+impl From<u32> for SpiWord {
+    fn from(x: u32) -> Self {
+        SpiWord::W32(x)
+    }
+}
+
 /// Memory-mapped mode
 pub struct LinearAddressing;
 /// Manual I/O mode
@@ -74,6 +100,10 @@ impl<MODE> Flash<MODE> {
                 .rx_overflow(true)
                 .tx_fifo_underflow(true)
         );
+    }
+
+    fn wait_tx_fifo_flush(&mut self) {
+        while !self.regs.intr_status.read().tx_fifo_not_full() {}
     }
 }
 
@@ -326,29 +356,31 @@ impl Flash<Manual> {
     }
 
     /// Read Identifiaction
-    pub fn rdid(&mut self) -> core::iter::Skip<BytesTransfer<Transfer<core::option::IntoIter<u32>>>> {
+    pub fn rdid(&mut self) -> core::iter::Skip<BytesTransfer<Transfer<core::option::IntoIter<u32>, u32>>> {
         let args = Some((INST_RDID as u32) << 24);
         self.transfer(args.into_iter(), 0x44)
             .bytes_transfer().skip(1)
     }
 
     /// Read flash data
-    pub fn read(&mut self, offset: u32, len: usize) -> core::iter::Take<core::iter::Skip<BytesTransfer<Transfer<core::option::IntoIter<u32>>>>> {
-        // INST_READ
-        let args = Some((0x03 << 24) | (offset as u32));
+    pub fn read(&mut self, offset: u32, len: usize
+    ) -> core::iter::Take<core::iter::Skip<BytesTransfer<Transfer<core::option::IntoIter<u32>, u32>>>>
+    {
+        let args = Some(((INST_READ as u32) << 24) | (offset as u32));
         self.transfer(args.into_iter(), len + 6)
             .bytes_transfer().skip(6).take(len)
     }
 
-    pub fn transfer<'s: 't, 't, Args>(&'s mut self, args: Args, len: usize) -> Transfer<'t, Args>
+    pub fn transfer<'s: 't, 't, Args, W>(&'s mut self, args: Args, len: usize) -> Transfer<'t, Args, W>
     where
-        Args: Iterator<Item = u32>,
+        Args: Iterator<Item = W>,
+        W: Into<SpiWord>,
     {
         Transfer::new(self, args, len)
     }
 }
 
-pub struct Transfer<'a, Args: Iterator<Item = u32>> {
+pub struct Transfer<'a, Args: Iterator<Item = W>, W: Into<SpiWord>> {
     flash: &'a mut Flash<Manual>,
     args: Args,
     sent: usize,
@@ -356,11 +388,8 @@ pub struct Transfer<'a, Args: Iterator<Item = u32>> {
     len: usize,
 }
 
-impl<'a, Args: Iterator<Item = u32>> Transfer<'a, Args> {
-    pub fn new(flash: &'a mut Flash<Manual>, args: Args, len: usize) -> Self
-    where
-        Args: Iterator<Item = u32>,
-    {
+impl<'a, Args: Iterator<Item = W>, W: Into<SpiWord>> Transfer<'a, Args, W> {
+    pub fn new(flash: &'a mut Flash<Manual>, args: Args, len: usize) -> Self {
         flash.regs.config.modify(|_, w| w.pcs(false));
         flash.regs.enable.write(
             regs::Enable::zeroed()
@@ -381,11 +410,52 @@ impl<'a, Args: Iterator<Item = u32>> Transfer<'a, Args> {
 
     fn fill_tx_fifo(&mut self) {
         while self.sent < self.len && !self.flash.regs.intr_status.read().tx_fifo_full() {
-            let arg = self.args.next().unwrap_or(0);
-            unsafe {
-                self.flash.regs.txd0.write(arg);
+            let arg = self.args.next()
+                .map(|n| n.into())
+                .unwrap_or(SpiWord::W32(0));
+            match arg {
+                SpiWord::W32(w) => {
+                    // println!("txd0 {:08X}", w);
+                    unsafe {
+                        self.flash.regs.txd0.write(w);
+                    }
+                    self.sent += 4;
+                }
+                // Only txd0 can be used without flushing
+                _ => {
+                    if !self.flash.regs.intr_status.read().tx_fifo_not_full() {
+                        // Flush if neccessary
+                        self.flash.regs.config.modify(|_, w| w.man_start_com(true));
+                        self.flash.wait_tx_fifo_flush();
+                    }
+
+                    match arg {
+                        SpiWord::W8(w) => {
+                            // println!("txd1 {:02X}", w);
+                            unsafe {
+                                self.flash.regs.txd1.write(w.into());
+                            }
+                            self.sent += 1;
+                        }
+                        SpiWord::W16(w) => {
+                            unsafe {
+                                self.flash.regs.txd2.write(w.into());
+                            }
+                            self.sent += 2;
+                        }
+                        SpiWord::W24(w) => {
+                            unsafe {
+                                self.flash.regs.txd3.write(w);
+                            }
+                            self.sent += 3;
+                        }
+                        SpiWord::W32(_) => unreachable!(),
+                    }
+
+                    self.flash.regs.config.modify(|_, w| w.man_start_com(true));
+                    self.flash.wait_tx_fifo_flush();
+                }
             }
-            self.sent += 4;
         }
     }
 
@@ -400,7 +470,7 @@ impl<'a, Args: Iterator<Item = u32>> Transfer<'a, Args> {
     }
 }
 
-impl<'a, Args: Iterator<Item = u32>> Drop for Transfer<'a, Args> {
+impl<'a, Args: Iterator<Item = W>, W: Into<SpiWord>> Drop for Transfer<'a, Args, W> {
     fn drop(&mut self) {
         // Discard remaining rx_data
         while self.can_read() {
@@ -419,7 +489,7 @@ impl<'a, Args: Iterator<Item = u32>> Drop for Transfer<'a, Args> {
     }
 }
 
-impl<'a, Args: Iterator<Item = u32>> Iterator for Transfer<'a, Args> {
+impl<'a, Args: Iterator<Item = W>, W: Into<SpiWord>> Iterator for Transfer<'a, Args, W> {
     type Item = u32;
 
     fn next<'s>(&'s mut self) -> Option<u32> {
