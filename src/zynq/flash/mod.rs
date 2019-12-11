@@ -17,7 +17,9 @@ const INST_RDCR: u8 = 0x35;
 /// Instruction: Read Identification
 const INST_RDID: u8 = 0x9F;
 
+/// Memory-mapped mode
 pub struct LinearAddressing;
+/// Manual I/O mode
 pub struct Manual;
 
 /// Flash Interface Driver

@@ -79,9 +79,13 @@ register_bit!(config,
 
 register!(intr_status, IntrStatus, RW, u32);
 register_bit!(intr_status, rx_overflow, 0);
-register_bit!(intr_status, tx_fifo_not_full, 2);
+register_bit!(intr_status,
+              /// < tx_thres
+              tx_fifo_not_full, 2);
 register_bit!(intr_status, tx_fifo_full, 3);
-register_bit!(intr_status, rx_fifo_not_empty, 4);
+register_bit!(intr_status,
+              /// >= rx_thres
+              rx_fifo_not_empty, 4);
 register_bit!(intr_status, rx_fifo_full, 5);
 register_bit!(intr_status, tx_fifo_underflow, 6);
 
