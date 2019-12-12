@@ -14,6 +14,8 @@ const SINGLE_CAPACITY: u32 = 16 * 1024 * 1024;
 
 /// Instruction: Read Configure Register
 const INST_RDCR: u8 = 0x35;
+/// Instruction: Read Status Register-1
+const INST_RDSR1: u8 = 0x05;
 /// Instruction: Read Identification
 const INST_RDID: u8 = 0x9F;
 
@@ -353,6 +355,14 @@ impl Flash<Manual> {
         self.transfer(args.into_iter(), 4)
             .bytes_transfer().skip(1)
             .next().unwrap() as u8
+    }
+
+    /// Read Status Register-1
+    pub fn rdsr1(&mut self) -> u8 {
+        let args = Some(INST_RDSR1 as u8);
+        self.transfer(args.into_iter(), 2)
+            .bytes_transfer().skip(1)
+            .next().unwrap()
     }
 
     /// Read Identifiaction
