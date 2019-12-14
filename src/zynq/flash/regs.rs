@@ -16,7 +16,7 @@ pub struct RegisterBlock {
     pub slave_idle_count: RW<u32>,
     pub tx_thres: RW<u32>,
     pub rx_thres: RW<u32>,
-    pub gpio: RW<u32>,
+    pub gpio: QspiGpio,
     pub _unused1: RO<u32>,
     pub lpbk_dly_adj: RW<u32>,
     pub _unused2: [RO<u32>; 17],
@@ -107,6 +107,12 @@ register_bit!(intr_dis, tx_fifo_underflow, 6);
 
 register!(enable, Enable, RW, u32);
 register_bit!(enable, spi_en, 0);
+
+// named to avoid confusion with normal gpio
+register!(qspi_gpio, QspiGpio, RW, u32);
+register_bit!(qspi_gpio,
+              /// Write protect pin (inverted)
+              wp_n, 0);
 
 register!(lqspi_cfg, LqspiCfg, RW, u32);
 register_bits!(lqspi_cfg, inst_code, u8, 0, 7);

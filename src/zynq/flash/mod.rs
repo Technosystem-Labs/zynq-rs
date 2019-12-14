@@ -16,6 +16,11 @@ const SINGLE_CAPACITY: u32 = 16 * 1024 * 1024;
 
 /// Instruction: Read Identification
 const INST_RDID: u8 = 0x9F;
+const INST_READ: u8 = 0x03;
+/// Instruction: Write Disable
+const INST_WRDI: u8 = 0x04;
+/// Instruction: Write Enable
+const INST_WREN: u8 = 0x06;
 
 #[derive(Clone)]
 pub enum SpiWord {
@@ -368,6 +373,24 @@ impl Flash<Manual> {
         let args = Some(((INST_READ as u32) << 24) | (offset as u32));
         self.transfer(args.into_iter(), len + 6)
             .bytes_transfer().skip(6).take(len)
+    }
+
+    pub fn write_enabled<F: Fn(&mut Self) -> R, R>(&mut self, f: F) -> R {
+        // Write Enable
+        let args = Some(INST_WREN);
+        self.transfer(args.into_iter(), 1);
+        self.regs.gpio.modify(|_, w| w.wp_n(true));
+        while !self.read_reg::<SR1>().wel() {}
+
+        let result = f(self);
+
+        // Write Disable
+        let args = Some(INST_WRDI);
+        self.transfer(args.into_iter(), 1);
+        self.regs.gpio.modify(|_, w| w.wp_n(false));
+        while self.read_reg::<SR1>().wel() {}
+
+        result
     }
 
     pub fn transfer<'s: 't, 't, Args, W>(&'s mut self, args: Args, len: usize) -> Transfer<'t, Args, W>
