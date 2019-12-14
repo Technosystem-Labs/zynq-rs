@@ -12,7 +12,10 @@ mod spi_flash_register;
 use spi_flash_register::*;
 
 const FLASH_BAUD_RATE: u32 = 50_000_000;
-const SINGLE_CAPACITY: u32 = 16 * 1024 * 1024;
+/// 16 MB
+pub const SINGLE_CAPACITY: u32 = 0x1000000;
+pub const SECTOR_SIZE: u32 = 0x10000;
+pub const PAGE_SIZE: u32 = 0x100;
 
 /// Instruction: Read Identification
 const INST_RDID: u8 = 0x9F;
