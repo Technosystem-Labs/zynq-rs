@@ -8,14 +8,12 @@ use super::clocks::CpuClocks;
 mod regs;
 mod bytes;
 pub use bytes::{BytesTransferExt, BytesTransfer};
+mod spi_flash_register;
+use spi_flash_register::*;
 
 const FLASH_BAUD_RATE: u32 = 50_000_000;
 const SINGLE_CAPACITY: u32 = 16 * 1024 * 1024;
 
-/// Instruction: Read Configure Register
-const INST_RDCR: u8 = 0x35;
-/// Instruction: Read Status Register-1
-const INST_RDSR1: u8 = 0x05;
 /// Instruction: Read Identification
 const INST_RDID: u8 = 0x9F;
 
@@ -349,23 +347,14 @@ impl Flash<Manual> {
         self.transition()
     }
 
-    /// Read Configuration Register
-    pub fn rdcr(&mut self) -> u8 {
-        let args = Some((INST_RDCR as u32) << 24);
-        self.transfer(args.into_iter(), 4)
-            .bytes_transfer().skip(1)
-            .next().unwrap() as u8
+    pub fn read_reg<R: SpiFlashRegister>(&mut self) -> R {
+        let args = Some(R::inst_code());
+        let transfer = self.transfer(args.into_iter(), R::transfer_len())
+            .bytes_transfer().skip(1);
+        R::new(transfer)
     }
 
-    /// Read Status Register-1
-    pub fn rdsr1(&mut self) -> u8 {
-        let args = Some(INST_RDSR1 as u8);
-        self.transfer(args.into_iter(), 2)
-            .bytes_transfer().skip(1)
-            .next().unwrap()
-    }
-
-    /// Read Identifiaction
+    /// Read Identification
     pub fn rdid(&mut self) -> core::iter::Skip<BytesTransfer<Transfer<core::option::IntoIter<u32>, u32>>> {
         let args = Some((INST_RDID as u32) << 24);
         self.transfer(args.into_iter(), 0x44)
