@@ -443,19 +443,19 @@ impl<'a, Args: Iterator<Item = W>, W: Into<SpiWord>> Transfer<'a, Args, W> {
                         SpiWord::W8(w) => {
                             // println!("txd1 {:02X}", w);
                             unsafe {
-                                self.flash.regs.txd1.write(w.into());
+                                self.flash.regs.txd1.write(u32::from(w) << 24);
                             }
                             self.sent += 1;
                         }
                         SpiWord::W16(w) => {
                             unsafe {
-                                self.flash.regs.txd2.write(w.into());
+                                self.flash.regs.txd2.write(u32::from(w) << 16);
                             }
                             self.sent += 2;
                         }
                         SpiWord::W24(w) => {
                             unsafe {
-                                self.flash.regs.txd3.write(w);
+                                self.flash.regs.txd3.write(w << 8);
                             }
                             self.sent += 3;
                         }
