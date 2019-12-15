@@ -2,8 +2,7 @@ use bit_field::BitField;
 
 pub trait SpiFlashRegister {
     fn inst_code() -> u8;
-    fn transfer_len() -> usize;
-    fn new<I: Iterator<Item=u8>>(src: I) -> Self;
+    fn new(src: u8) -> Self;
 }
 
 macro_rules! u8_register {
@@ -18,14 +17,16 @@ macro_rules! u8_register {
                 $inst_code
             }
 
-            fn transfer_len() -> usize {
-                2
-            }
-
-            fn new<I: Iterator<Item=u8>>(mut src: I) -> Self {
+            fn new(src: u8) -> Self {
                 $name {
-                    inner: src.next().unwrap(),
+                    inner: src,
                 }
+            }
+        }
+
+        impl $name {
+            pub fn is_zeroed(&self) -> bool {
+                self.inner == 0
             }
         }
     };

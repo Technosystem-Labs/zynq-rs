@@ -359,9 +359,40 @@ impl Flash<Manual> {
 
     pub fn read_reg<R: SpiFlashRegister>(&mut self) -> R {
         let args = Some(R::inst_code());
-        let transfer = self.transfer(args.into_iter(), R::transfer_len())
-            .bytes_transfer().skip(1);
-        R::new(transfer)
+        let transfer = self.transfer(args.into_iter(), 2)
+            .bytes_transfer();
+        R::new(transfer.skip(1).next().unwrap())
+    }
+
+    pub fn read_reg_until<R, F, A>(&mut self, f: F) -> A
+    where
+        R: SpiFlashRegister,
+        F: Fn(R) -> Option<A>,
+    {
+        let mut result = None;
+        while result.is_none() {
+            let args = Some(R::inst_code());
+            for b in self.transfer(args.into_iter(), 32)
+                .bytes_transfer().skip(1) {
+                    result = f(R::new(b));
+                    
+                    if result.is_none() {
+                        break;
+                    }
+                }
+        }
+        result.unwrap()
+    }
+
+    /// Status Register-1 remains `0x00` immediately after invoking a command.
+    fn wait_while_sr1_zeroed(&mut self) -> SR1 {
+        self.read_reg_until::<SR1, _, SR1>(|sr1|
+            if sr1.is_zeroed() {
+                None
+            } else {
+                Some(sr1)
+            }
+        )
     }
 
     /// Read Identification
@@ -385,7 +416,10 @@ impl Flash<Manual> {
         let args = Some(INST_WREN);
         self.transfer(args.into_iter(), 1);
         self.regs.gpio.modify(|_, w| w.wp_n(true));
-        while !self.read_reg::<SR1>().wel() {}
+        let sr1 = self.wait_while_sr1_zeroed();
+        if !sr1.wel() {
+            panic!("Cannot write-enable flash");
+        }
 
         let result = f(self);
 
