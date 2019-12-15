@@ -6,8 +6,9 @@ pub trait SpiFlashRegister {
 }
 
 macro_rules! u8_register {
-    ($name: ident, $inst_code: expr) => {
+    ($name: ident, $doc: tt, $inst_code: expr) => {
         #[derive(Clone)]
+        #[doc=$doc]
         pub struct $name {
             pub inner: u8,
         }
@@ -32,8 +33,8 @@ macro_rules! u8_register {
     };
 }
 
-u8_register!(CR, 0x35);
-u8_register!(SR1, 0x05);
+u8_register!(CR, "Configuration Register", 0x35);
+u8_register!(SR1, "Status Register-1", 0x05);
 impl SR1 {
     /// Write In Progress
     pub fn wip(&self) -> bool {
@@ -56,4 +57,5 @@ impl SR1 {
     }
 }
 
-u8_register!(SR2, 0x07);
+u8_register!(SR2, "Status Register-2", 0x07);
+u8_register!(BA, "Bank Address Register", 0xB9);
