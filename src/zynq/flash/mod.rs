@@ -1,5 +1,6 @@
 //! Quad-SPI Flash Controller
 
+use crate::{print, println};
 use core::marker::PhantomData;
 use crate::regs::{RegisterR, RegisterW, RegisterRW};
 use super::slcr;
@@ -26,6 +27,12 @@ const INST_READ: u8 = 0x03;
 const INST_WRDI: u8 = 0x04;
 /// Instruction: Write Enable
 const INST_WREN: u8 = 0x06;
+/// Instruction: Program page
+const INST_PP: u8 = 02;
+/// Instruction: Sector Erase
+const INST_SE: u8 = 0xD8;
+/// Instruction: Erase 4K Block
+const INST_BE_4K: u8 = 0x20;
 
 #[derive(Clone)]
 pub enum SpiWord {
@@ -409,6 +416,54 @@ impl Flash<Manual> {
         let args = Some(((INST_READ as u32) << 24) | (offset as u32));
         self.transfer(args.into_iter(), len + 6)
             .bytes_transfer().skip(6).take(len)
+    }
+
+    pub fn erase(&mut self, offset: u32) {
+        let args = Some(((INST_BE_4K as u32) << 24) | (offset as u32));
+        self.transfer(args.into_iter(), 4);
+
+        let sr1 = self.wait_while_sr1_zeroed();
+
+        if sr1.e_err() {
+            println!("E_ERR");
+        } else if sr1.p_err() {
+            println!("P_ERR");
+        } else if sr1.wip() {
+            print!("Erase in progress");
+            while self.read_reg::<SR1>().wip() {
+                print!(".");
+            }
+            println!("");
+        } else {
+            println!("erased? sr1={:02X}", sr1.inner);
+        }
+    }
+
+    pub fn program<I: Iterator<Item=u32>>(&mut self, offset: u32, data: I) {
+        {
+            let len = 4 + 4 * data.size_hint().0;
+            let args = Some(SpiWord::W32(((INST_PP as u32) << 24) | (offset as u32)))
+                .into_iter()
+                .chain(data.map(SpiWord::W32));
+            self.transfer(args, len);
+        }
+
+        // let sr1 = self.wait_while_sr1_zeroed();
+        let sr1 = self.read_reg::<SR1>();
+
+        if sr1.e_err() {
+            println!("E_ERR");
+        } else if sr1.p_err() {
+            println!("P_ERR");
+        } else if sr1.wip() {
+            println!("Program in progress");
+            while self.read_reg::<SR1>().wip() {
+                print!(".");
+            }
+            println!("");
+        } else {
+            println!("programmed? sr1={:02X}", sr1.inner);
+        }
     }
 
     pub fn write_enabled<F: Fn(&mut Self) -> R, R>(&mut self, f: F) -> R {
