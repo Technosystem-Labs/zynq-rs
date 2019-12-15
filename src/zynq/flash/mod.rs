@@ -482,7 +482,6 @@ impl Flash<Manual> {
         let args = Some(INST_WRDI);
         self.transfer(args.into_iter(), 1);
         self.regs.gpio.modify(|_, w| w.wp_n(false));
-        while self.read_reg::<SR1>().wel() {}
 
         result
     }
