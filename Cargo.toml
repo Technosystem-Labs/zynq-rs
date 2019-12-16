@@ -11,6 +11,8 @@ lto = false
 [profile.release]
 panic = "abort"
 debug = true
+lto = true  # Link-Time Optimization
+opt-level = 'z'  # Optimize for size.
 
 [features]
 target_zc706 = []
