@@ -5,6 +5,7 @@
 #![feature(naked_functions)]
 #![feature(never_type)]
 #![feature(alloc_error_handler)]
+#![feature(panic_info_message)]
 // TODO: disallow unused/dead_code when code moves into a lib crate
 #![allow(dead_code)]
 
