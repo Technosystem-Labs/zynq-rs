@@ -124,7 +124,7 @@ impl L1Table {
             tex: 0b101,
             domain: 0b1111,
             exec: true,
-            cacheable: false,
+            cacheable: true,
             bufferable: true,
         });
         /* (DDR cacheable) */
