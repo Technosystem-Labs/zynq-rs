@@ -1,8 +1,5 @@
-[package]
-name = "zc706"
-version = "0.0.0"
-authors = ["Astro <astro@spaceboyz.net>"]
-edition = "2018"
+[workspace]
+members = ["libregister", "libcortex_a9", "libboard_zynq", "libboard_zc706"]
 
 [profile.dev]
 panic = "abort"
@@ -13,21 +10,3 @@ panic = "abort"
 debug = true
 lto = true  # Link-Time Optimization
 opt-level = 'z'  # Optimize for size.
-
-[features]
-target_zc706 = []
-target_cora_z7_10 = []
-default = ["target_zc706"]
-
-[dependencies]
-r0 = "0.2"
-vcell = "0.1"
-volatile-register = "0.2"
-bit_field = "0.10"
-linked_list_allocator = { version = "0.6", default-features = false }
-
-[dependencies.smoltcp]
-git = "https://github.com/m-labs/smoltcp.git"
-rev = "8eb01aca364aefe5f823d68d552d62c76c9be4a3"
-features = ["ethernet", "proto-ipv4", "socket-tcp"]
-default-features = false

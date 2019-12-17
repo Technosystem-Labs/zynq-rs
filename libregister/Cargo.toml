@@ -1,0 +1,10 @@
+[package]
+name = "libregister"
+version = "0.0.0"
+authors = ["Astro <astro@spaceboyz.net>"]
+edition = "2018"
+
+[dependencies]
+vcell = "0.1"
+volatile-register = "0.2"
+bit_field = "0.10"
