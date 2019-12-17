@@ -494,3 +494,13 @@ impl Flash<Manual> {
         Transfer::new(self, args, len)
     }
 
+    pub fn dump(&mut self, label: &'_ str, inst_code: u8) {
+        print!("{}:", label);
+
+        let args = Some(u32::from(inst_code) << 24);
+        for b in self.transfer(args.into_iter(), 32).bytes_transfer() {
+            print!(" {:02X}", b);
+        }
+        println!("");
+    }
+}
