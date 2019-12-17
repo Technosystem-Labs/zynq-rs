@@ -1,33 +1,25 @@
 #![no_std]
 #![no_main]
-#![feature(naked_functions)]
-#![feature(alloc_error_handler)]
-#![feature(panic_info_message)]
-// TODO: disallow unused/dead_code when code moves into a lib crate
-#![allow(dead_code)]
 
-extern crate alloc;
-
-use alloc::{vec, vec::Vec};
 use core::mem::transmute;
-use smoltcp::wire::{EthernetAddress, IpAddress, IpCidr};
-use smoltcp::iface::{NeighborCache, EthernetInterfaceBuilder};
-use smoltcp::time::Instant;
-use smoltcp::socket::SocketSet;
-use smoltcp::socket::{TcpSocket, TcpSocketBuffer};
-use libboard_zynq::{print, println, self as zynq};
-
-mod boot;
-mod abort;
-mod panic;
-mod ram;
 use libcortex_a9::mutex::Mutex;
+use libboard_zynq::{print, println, self as zynq};
+use libboard_zc706::{
+    ram, alloc::{vec, vec::Vec},
+    boot,
+    smoltcp::wire::{EthernetAddress, IpAddress, IpCidr},
+    smoltcp::iface::{NeighborCache, EthernetInterfaceBuilder},
+    smoltcp::time::Instant,
+    smoltcp::socket::SocketSet,
+    smoltcp::socket::{TcpSocket, TcpSocketBuffer},
+};
 
 const HWADDR: [u8; 6] = [0, 0x23, 0xde, 0xea, 0xbe, 0xef];
 
 static mut STACK_CORE1: [u32; 512] = [0; 512];
 
-pub fn main() {
+#[no_mangle]
+pub fn main_core0() {
     // zynq::clocks::CpuClocks::enable_io(1_250_000_000);
     println!("\nzc706 main");
     {
@@ -202,6 +194,7 @@ pub fn main() {
 static SHARED: Mutex<u32> = Mutex::new(0);
 static DONE: Mutex<bool> = Mutex::new(false);
 
+#[no_mangle]
 pub fn main_core1() {
     println!("Hello from core1!");
     for _ in 0..0x1000000 {

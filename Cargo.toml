@@ -1,5 +1,9 @@
 [workspace]
-members = ["libregister", "libcortex_a9", "libboard_zynq", "libboard_zc706"]
+members = [
+  "libregister", "libcortex_a9",
+  "libboard_zynq", "libboard_zc706",
+  "experiments",
+]
 
 [profile.dev]
 panic = "abort"

@@ -10,6 +10,8 @@ extern "C" {
     static mut __bss_start: u32;
     static mut __bss_end: u32;
     static mut __stack_start: u32;
+    fn main_core0();
+    fn main_core1();
 }
 
 /// `0` means: wait for initialization by core0
@@ -57,7 +59,7 @@ unsafe fn boot_core0() -> ! {
         asm::dmb();
         asm::dsb();
 
-        crate::main();
+        main_core0();
         panic!("return from main");
     });
 }
@@ -77,7 +79,7 @@ unsafe fn boot_core1() -> ! {
         asm::dmb();
         asm::dsb();
 
-        crate::main_core1();
+        main_core1();
         panic!("return from main_core1");
     });
 }
