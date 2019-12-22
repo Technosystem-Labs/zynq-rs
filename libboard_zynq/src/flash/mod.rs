@@ -443,8 +443,7 @@ impl Flash<Manual> {
     pub fn program<I: Iterator<Item=u32>>(&mut self, offset: u32, data: I) {
         {
             let len = 4 + 4 * data.size_hint().0;
-            let args = Some(SpiWord::W32(((INST_PP as u32) << 24) | (offset as u32)))
-                .into_iter()
+            let args = Some(SpiWord::W32(((INST_PP as u32) << 24) | (offset as u32))).into_iter()
                 .chain(data.map(SpiWord::W32));
             self.transfer(args, len);
         }
