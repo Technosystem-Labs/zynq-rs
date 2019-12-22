@@ -120,6 +120,7 @@ impl<MODE> Flash<MODE> {
     }
 
     fn wait_tx_fifo_flush(&mut self) {
+        self.regs.config.modify(|_, w| w.man_start_com(true));
         while !self.regs.intr_status.read().tx_fifo_not_full() {}
     }
 }

@@ -47,7 +47,6 @@ impl<'a, Args: Iterator<Item = W>, W: Into<SpiWord>> Transfer<'a, Args, W> {
                 _ => {
                     if !self.flash.regs.intr_status.read().tx_fifo_not_full() {
                         // Flush if necessary
-                        self.flash.regs.config.modify(|_, w| w.man_start_com(true));
                         self.flash.wait_tx_fifo_flush();
                     }
 
@@ -74,7 +73,6 @@ impl<'a, Args: Iterator<Item = W>, W: Into<SpiWord>> Transfer<'a, Args, W> {
                         SpiWord::W32(_) => unreachable!(),
                     }
 
-                    self.flash.regs.config.modify(|_, w| w.man_start_com(true));
                     self.flash.wait_tx_fifo_flush();
                 }
             }
