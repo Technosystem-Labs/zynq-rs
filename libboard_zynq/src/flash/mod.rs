@@ -28,7 +28,7 @@ const INST_WRDI: u8 = 0x04;
 /// Instruction: Write Enable
 const INST_WREN: u8 = 0x06;
 /// Instruction: Program page
-const INST_PP: u8 = 02;
+const INST_PP: u8 = 0x02;
 /// Instruction: Sector Erase
 const INST_SE: u8 = 0xD8;
 /// Instruction: Erase 4K Block
