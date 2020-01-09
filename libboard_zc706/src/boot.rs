@@ -109,10 +109,13 @@ pub struct Core1<S: AsMut<[u32]>> {
 }
 
 impl<S: AsMut<[u32]>> Core1<S> {
-    pub fn stop(&self) {
+    pub fn reset(&self) {
+        unsafe {
+            CORE1_STACK.set(0);
+        }
+
         slcr::RegisterBlock::unlocked(|slcr| {
             slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_rst1(true));
-            slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_clkstop1(true));
             slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_rst1(false));
         });
     }
@@ -125,7 +128,11 @@ impl<S: AsMut<[u32]>> Core1<S> {
         let mut core = Core1 { stack };
         
         // reset and stop (safe to repeat)
-        core.stop();
+        slcr::RegisterBlock::unlocked(|slcr| {
+            slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_rst1(true));
+            slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_clkstop1(true));
+            slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_rst1(false));
+        });
 
         let stack = core.stack.as_mut();
         let stack_start = &mut stack[stack.len() - 1];

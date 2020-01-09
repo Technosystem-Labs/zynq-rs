@@ -96,7 +96,7 @@ pub fn main_core0() {
     let x = { *SHARED.lock() };
     println!("done shared: {:08X}", x);
 
-    core1.stop();
+    core1.reset();
 
     libcortex_a9::asm::dsb();
     print!("Core1 stack [{:08X}..{:08X}]:", &core1.stack[0] as *const _ as u32, &core1.stack[core1.stack.len() - 1] as *const _ as u32);
