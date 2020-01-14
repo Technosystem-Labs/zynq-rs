@@ -51,3 +51,43 @@ nix-shell --command "cargo xbuild --release --no-default-features --features=tar
 cd openocd
 openocd -f cora-z7-10.cfg
 ```
+
+### Development Process
+
+Clone this repo onto your development/build machine and the raspberry pi that controls the Xilinx 7000 board
+
+On the dev machine, the below script builds zc706 and secure copies it to the target pi (in your pi $HOME directory)
+```shell
+cd ~/zc706
+./build.sh $your_user/ssh_id
+```
+
+On the pi, we need an information rich environment that includes a relatively reliable `gdb` experience (that includes `ctrl-p` and `ctrl-n` command history that persists across `cgdb` executions), run:
+```shell
+ssh pi4
+cd zc706
+./tmux.sh
+```
+
+Time to run your code with:
+```shell
+zynq-connect
+zynq-restart
+c
+```
+or, for a more succinct experience, (identical to above)
+```shell
+dc
+dr
+c
+```
+
+After every build on your dev machine, simply run:
+```shell
+dr
+c
+```
+Sometimes you might need to type `load` after `dr`.
+
+Note, to exit `picocom` hit `ctrl-a x`
+
