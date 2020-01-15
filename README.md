@@ -52,6 +52,12 @@ cd openocd
 openocd -f cora-z7-10.cfg
 ```
 
+### Loading a bitstream into volatile memory
+
+```shell
+  openocd -f zc706.cfg -c "pld load 0 blinker_migen.bit; exit"
+```
+
 ### Development Process
 
 Clone this repo onto your development/build machine and the raspberry pi that controls the Xilinx 7000 board
@@ -88,6 +94,4 @@ dr
 c
 ```
 Sometimes you might need to type `load` after `dr`.
-
-Note, to exit `picocom` hit `ctrl-a x`
 
