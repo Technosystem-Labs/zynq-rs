@@ -1,13 +1,12 @@
 #! /usr/bin/env nix-shell
-#! nix-shell -i bash -p gdb openocd cgdb picocom tmux
+#! nix-shell -i bash -p gdb openocd cgdb tmux
 SESSION=$USER
 
 tmux -2 new-session -d -s $SESSION
 tmux new-window -t $SESSION:1 -n 'ZC706'
 tmux split-window -h
 tmux select-pane -t 0
-tmux send-keys "picocom --b 115200 /dev/ttyUSB1" C-m
-#tmux send-keys "cat /dev/ttyUSB1" C-m
+tmux send-keys "stty 115200 < /dev/ttyUSB1 && cat /dev/ttyUSB1" C-m
 tmux select-pane -t 1
 tmux send-keys "sleep 10 && cgdb zc706.elf -x openocd/gdb-zynq-commands" C-m
 tmux split-window -v
@@ -22,4 +21,3 @@ tmux select-pane -t $SESSION:.-
 
 # Attach to session
 tmux -2 attach-session -t $SESSION
-
