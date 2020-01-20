@@ -3,6 +3,7 @@
 pub mod slcr;
 pub mod clocks;
 pub mod uart;
+pub mod devc;
 pub mod stdio;
 pub mod eth;
 pub mod axi_hp;
