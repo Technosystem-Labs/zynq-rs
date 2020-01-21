@@ -1,5 +1,6 @@
 [package]
 name = "zc706-experiments"
+description = "Developing bare-metal Rust on Zynq"
 version = "0.0.0"
 authors = ["Astro <astro@spaceboyz.net>"]
 edition = "2018"
