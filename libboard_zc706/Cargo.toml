@@ -5,10 +5,8 @@ authors = ["Astro <astro@spaceboyz.net>"]
 edition = "2018"
 
 [features]
-# TODO: propagate to libboard_zynq
-target_zc706 = []
-target_cora_z7_10 = []
-default = ["target_zc706"]
+target_zc706 = ["libboard_zynq/target_zc706"]
+target_cora_z7_10 = ["libboard_zynq/target_cora_z7_10"]
 
 [dependencies]
 r0 = "0.2"

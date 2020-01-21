@@ -7,7 +7,6 @@ edition = "2018"
 [features]
 target_zc706 = []
 target_cora_z7_10 = []
-default = ["target_zc706"]
 
 [dependencies]
 r0 = "0.2"
