@@ -330,8 +330,10 @@ register_bit!(arm_clk_ctrl, cpu_1xclkact, 27);
 register_bit!(arm_clk_ctrl, cpu_2xclkact, 26);
 register_bit!(arm_clk_ctrl, cpu_3or2xclkact, 25);
 register_bit!(arm_clk_ctrl, cpu_6or4xclkact, 24);
-register_bits!(arm_clk_ctrl, divisor, u8, 8, 13);
-register_bits_typed!(arm_clk_ctrl, srcsel, u8, ArmPllSource, 8, 13);
+register_bits!(arm_clk_ctrl,
+               /// should be divisible by 2 (see TRM: 25.2 CPU Clock)
+               divisor, u8, 8, 13);
+register_bits_typed!(arm_clk_ctrl, srcsel, u8, ArmPllSource, 4, 5);
 
 register!(ddr_clk_ctrl, DdrClkCtrl, RW, u32);
 register_bit!(ddr_clk_ctrl, ddr_3xclkact, 0);
