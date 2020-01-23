@@ -3,7 +3,7 @@
 
 use core::mem::transmute;
 use libcortex_a9::mutex::Mutex;
-use libboard_zynq::{print, println, self as zynq};
+use libboard_zynq::{print, println, self as zynq, clocks::Clocks, clocks::source::{ClockSource, ArmPll, IoPll}};
 use libboard_zc706::{
     ram, alloc::{vec, vec::Vec},
     boot,
@@ -26,6 +26,20 @@ pub fn main_core0() {
         use libregister::RegisterR;
         println!("Boot mode: {:?}", zynq::slcr::RegisterBlock::new().boot_mode.read().boot_mode_pins());
     }
+
+    #[cfg(feature = "target_zc706")]
+    const CPU_FREQ: u32 = 800_000_000;
+    #[cfg(feature = "target_cora_z7_10")]
+    const CPU_FREQ: u32 = 650_000_000;
+
+    println!("Setup clock sources...");
+    ArmPll::setup(2 * CPU_FREQ);
+    Clocks::set_cpu_freq(CPU_FREQ);
+    IoPll::setup(700_000_000);
+    libboard_zynq::stdio::drop_uart();
+    println!("PLLs set up");
+    let clocks = zynq::clocks::Clocks::get();
+    println!("CPU Clocks: {}/{}/{}/{}", clocks.cpu_6x4x(), clocks.cpu_3x2x(), clocks.cpu_2x(), clocks.cpu_1x());
 
     let mut flash = zynq::flash::Flash::new(200_000_000).linear_addressing_mode();
     let flash_ram: &[u8] = unsafe { core::slice::from_raw_parts(flash.ptr(), flash.size()) };

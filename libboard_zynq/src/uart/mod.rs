@@ -2,7 +2,7 @@ use core::fmt;
 
 use libregister::*;
 use super::slcr;
-use super::clocks::CpuClocks;
+use super::clocks::Clocks;
 
 mod regs;
 mod baud_rate_gen;
@@ -110,7 +110,7 @@ impl Uart {
         self.disable_rx();
         self.disable_tx();
 
-        let clocks = CpuClocks::get();
+        let clocks = Clocks::get();
         baud_rate_gen::configure(self.regs, clocks.uart_ref_clk(), baudrate);
 
         // Enable controller
