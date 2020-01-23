@@ -10,6 +10,10 @@ pub fn get_uart<'a>() -> MutexGuard<'a, LazyUart> {
     unsafe { UART.lock() }
 }
 
+pub fn drop_uart() {
+    unsafe { UART = Mutex::new(LazyUart::Uninitialized); }
+}
+
 /// Initializes the UART on first use through `.deref_mut()` for debug
 /// output through the `print!` and `println!` macros.
 pub enum LazyUart {
