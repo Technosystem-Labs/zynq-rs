@@ -4,7 +4,7 @@ use crate::{print, println};
 use core::marker::PhantomData;
 use libregister::{RegisterR, RegisterW, RegisterRW};
 use super::slcr;
-use super::clocks::CpuClocks;
+use super::clocks::source::{IoPll, ClockSource};
 
 mod regs;
 mod bytes;
@@ -137,8 +137,9 @@ impl Flash<()> {
         flash
     }
 
+    /// typical: `200_000_000` Hz
     fn enable_clocks(clock: u32) {
-        let io_pll = CpuClocks::get().io;
+        let io_pll = IoPll::freq();
         let divisor = ((clock - 1 + io_pll) / clock)
             .max(1).min(63) as u8;
 

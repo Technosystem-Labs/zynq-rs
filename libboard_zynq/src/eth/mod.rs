@@ -1,7 +1,7 @@
 use libregister::*;
 use crate::println;
 use super::slcr;
-use super::clocks::CpuClocks;
+use super::clocks::Clocks;
 
 pub mod phy;
 use phy::{Phy, PhyAccess};
@@ -194,7 +194,7 @@ impl<'r> Eth<'r, (), ()> {
 
 impl<'r, RX, TX> Eth<'r, RX, TX> {
     pub fn setup_gem0_clock(tx_clock: u32) {
-        let io_pll = CpuClocks::get().io;
+        let io_pll = Clocks::get().io;
         let d0 = ((tx_clock - 1 + io_pll) / tx_clock).max(1).min(63);
         let d1 = (io_pll / tx_clock / d0).max(1).min(63);
 
@@ -218,7 +218,7 @@ impl<'r, RX, TX> Eth<'r, RX, TX> {
     }
 
     pub fn setup_gem1_clock(tx_clock: u32) {
-        let io_pll = CpuClocks::get().io;
+        let io_pll = Clocks::get().io;
         let d0 = ((tx_clock - 1 + io_pll) / tx_clock).max(1).min(63);
         let d1 = (io_pll / tx_clock / d0).max(1).min(63);
 
@@ -452,7 +452,7 @@ impl<'r> EthInner<'r> {
     }
 
     fn configure(&mut self, macaddr: [u8; 6]) {
-        let clocks = CpuClocks::get();
+        let clocks = Clocks::get();
         let mdc_clk_div = (clocks.cpu_1x() / MAX_MDC) + 1;
 
         self.regs.net_cfg.write(

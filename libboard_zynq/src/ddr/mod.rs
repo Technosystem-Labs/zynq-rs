@@ -1,7 +1,7 @@
 use libregister::{RegisterR, RegisterW, RegisterRW};
 use crate::{print, println};
 use super::slcr;
-use super::clocks::CpuClocks;
+use super::clocks::{Clocks, source::{DdrPll, ClockSource}};
 
 mod regs;
 
@@ -11,7 +11,7 @@ const DDR_FREQ: u32 = 666_666_666;
 
 #[cfg(feature = "target_cora_z7_10")]
 /// Micron MT41K256M16HA-125: 800 MHz DDR3L, max supported 533 MHz
-const DDR_FREQ: u32 = 533_333_333;
+const DDR_FREQ: u32 = 525_000_000;
 
 /// MT41K256M16HA-125
 const DCI_FREQ: u32 = 10_000_000;
@@ -34,16 +34,14 @@ impl DdrRam {
 
     /// Zynq-7000 AP SoC Technical Reference Manual:
     /// 10.6.1 DDR Clock Initialization
-    fn clock_setup() -> CpuClocks {
-        let clocks = CpuClocks::get();
-        if clocks.ddr == 0 {
-            CpuClocks::enable_ddr(clocks.arm);
-        }
-        let clocks = CpuClocks::get();
+    fn clock_setup() -> Clocks {
+        DdrPll::setup(2 * DDR_FREQ);
+
+        let clocks = Clocks::get();
         println!("Clocks: {:?}", clocks);
 
-        let ddr3x_clk_divisor = ((DDR_FREQ - 1 + clocks.ddr) / DDR_FREQ).min(255) as u8;
-        let ddr2x_clk_divisor = 3 * ddr3x_clk_divisor / 2;
+        let ddr3x_clk_divisor = 2;
+        let ddr2x_clk_divisor = 3;
         println!("DDR 3x/2x clocks: {}/{}", clocks.ddr / u32::from(ddr3x_clk_divisor), clocks.ddr / u32::from(ddr2x_clk_divisor));
 
         slcr::RegisterBlock::unlocked(|slcr| {
@@ -60,7 +58,7 @@ impl DdrRam {
 
     /// Zynq-7000 AP SoC Technical Reference Manual:
     /// 10.6.2 DDR IOB Impedance Calibration
-    fn calibrate_iob_impedance(clocks: &CpuClocks) {
+    fn calibrate_iob_impedance(clocks: &Clocks) {
         let divisor0 = ((DCI_FREQ - 1 + clocks.ddr) / DCI_FREQ)
             .max(1).min(63) as u8;
         let divisor1 = (clocks.ddr / DCI_FREQ / u32::from(divisor0))
