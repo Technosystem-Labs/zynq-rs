@@ -4,6 +4,8 @@
 nix-shell --command "cargo xbuild --release"
 ```
 
+Currently the ELF output is placed at `target/armv7-none-eabihf/release/zc706-experiments`
+
 # Debug
 
 ## Using the Xilinx toolchain
@@ -47,7 +49,7 @@ openocd -f zc706.cfg
 ### Running on the Cora Z7-10
 
 ```shell
-nix-shell --command "cargo xbuild --release --no-default-features --features=target_cora_z7_10"
+nix-shell --command "cd experiments && cargo xbuild --release --no-default-features --features=target_cora_z7_10"
 cd openocd
 openocd -f cora-z7-10.cfg
 ```
