@@ -8,8 +8,7 @@ end
 
 def zynq-restart
   mon xilinx_ps7_init
-  #mon load_image zc706.elf 0x00000000 elf
-  load zc706.elf
+  load
 end
 
 # easily typed shortcuts
