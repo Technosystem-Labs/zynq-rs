@@ -7,9 +7,9 @@ let
   pkgs = import <nixpkgs> { overlays = [ mozillaOverlay ]; };
   rustcSrc = pkgs.fetchgit {
     url = https://github.com/rust-lang/rust.git;
-    # master of 2019-11-09
-    rev = "ac162c6abe34cdf965afc0389f6cefa79653c63b";
-    sha256 = "06c5gws1mrpr69z1gzs358zf7hcsg6ky8n4ha0vv2s9d9w93x1kj";
+    # master of 2020-01-25
+    rev = "c2d141df59703393c0c683abc259f9a8c3be041a";
+    sha256 = "0v23ia4sp436yjksbq5m5vdarj481w2z8q3px51kidabdd2282yr";
     fetchSubmodules = true;
   };
   targets = [];
