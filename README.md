@@ -4,7 +4,7 @@
 nix-shell --command "cargo xbuild --release"
 ```
 
-Currently the ELF output is placed at `target/armv7-none-eabihf/release/zc706-experiments`
+Currently the ELF output is placed at `target/armv7-none-eabihf/release/experiments`
 
 # Debug
 

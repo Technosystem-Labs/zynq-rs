@@ -24,7 +24,7 @@ let
     cargo = rust;
   });
   gcc = pkgs.pkgsCross.armv7l-hf-multiplatform.buildPackages.gcc;
-  xbuildRustPackage = attrs:
+  xbuildRustPackage = { cargoFeatures, crateSubdir, ... } @ attrs:
     let
       buildPkg = rustPlatform.buildRustPackage attrs;
     in
@@ -32,23 +32,32 @@ let
       nativeBuildInputs =
         nativeBuildInputs ++ [ pkgs.cargo-xbuild ];
       buildPhase = ''
-        cargo xbuild --release --frozen
+        set -x
+        pushd ${crateSubdir}
+        cargo xbuild --release --frozen \
+          --no-default-features \
+          --features=${cargoFeatures}
+        popd
       '';
       XARGO_RUST_SRC = "${rustcSrc}/src";
       installPhase = ''
         mkdir $out
+        ls -la target/armv7-none-eabihf/release/
         cp target/armv7-none-eabihf/release/${name} $out/${name}.elf
       '';
     });
-  zc706 = xbuildRustPackage {
-    name = "zc706";
+  xbuildCrate = crate: features: xbuildRustPackage rec {
+    name = "${crate}";
     src = ./.;
-    cargoSha256 = "15icqy72dck82czpsqz41yjsdar17vpi15v22j6z0zxhzf517rf7";
-    nativeBuildInputs = [
-      gcc
-    ];
+    crateSubdir = crate;
+    cargoSha256 = "1wvj585vylbjlab7cxbkr4f60km5y7s8knxxvcixmqywdldnh7g2";
+    cargoFeatures = features;
     doCheck = false;
   };
 in {
-  inherit pkgs rustPlatform rustcSrc zc706 gcc;
+  inherit pkgs rustPlatform rustcSrc gcc;
+  zc706 = {
+    zc706-experiments = xbuildCrate "experiments" "target_zc706";
+    cora-experiments = xbuildCrate "experiments" "target_cora_z7_10";
+  };
 }
