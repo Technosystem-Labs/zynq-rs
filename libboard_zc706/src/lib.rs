@@ -5,6 +5,7 @@
 #![feature(panic_info_message)]
 
 pub extern crate alloc;
+pub extern crate compiler_builtins;
 
 pub mod boot;
 mod abort;

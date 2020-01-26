@@ -1,5 +1,5 @@
 [package]
-name = "zc706-experiments"
+name = "experiments"
 description = "Developing bare-metal Rust on Zynq"
 version = "0.0.0"
 authors = ["Astro <astro@spaceboyz.net>"]
