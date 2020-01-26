@@ -32,7 +32,6 @@ let
       nativeBuildInputs =
         nativeBuildInputs ++ [ pkgs.cargo-xbuild ];
       buildPhase = ''
-        set -x
         pushd ${crateSubdir}
         cargo xbuild --release --frozen \
           --no-default-features \
@@ -46,7 +45,7 @@ let
         cp target/armv7-none-eabihf/release/${name} $out/${name}.elf
       '';
     });
-  xbuildCrate = crate: features: xbuildRustPackage rec {
+  xbuildCrate = name: crate: features: xbuildRustPackage rec {
     name = "${crate}";
     src = ./.;
     crateSubdir = crate;
@@ -57,7 +56,7 @@ let
 in {
   inherit pkgs rustPlatform rustcSrc gcc;
   zc706 = {
-    zc706-experiments = xbuildCrate "experiments" "target_zc706";
-    cora-experiments = xbuildCrate "experiments" "target_cora_z7_10";
+    experiments-zc706 = xbuildCrate "experiments-zc706" "experiments" "target_zc706";
+    experiments-cora = xbuildCrate "experiments-cora" "experiments" "target_cora_z7_10";
   };
 }
