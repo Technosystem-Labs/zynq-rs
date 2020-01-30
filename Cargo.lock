@@ -24,23 +24,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "experiments"
 version = "0.0.0"
 dependencies = [
- "libboard_zc706 0.0.0",
  "libboard_zynq 0.0.0",
  "libcortex_a9 0.0.0",
  "libregister 0.0.0",
- "smoltcp 0.5.0 (git+https://github.com/m-labs/smoltcp.git?rev=8eb01aca364aefe5f823d68d552d62c76c9be4a3)",
-]
-
-[[package]]
-name = "libboard_zc706"
-version = "0.0.0"
-dependencies = [
- "compiler_builtins 0.1.24 (registry+https://github.com/rust-lang/crates.io-index)",
- "libboard_zynq 0.0.0",
- "libcortex_a9 0.0.0",
- "libregister 0.0.0",
- "linked_list_allocator 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "r0 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libsupport_zynq 0.0.0",
  "smoltcp 0.5.0 (git+https://github.com/m-labs/smoltcp.git?rev=8eb01aca364aefe5f823d68d552d62c76c9be4a3)",
 ]
 
@@ -77,6 +64,19 @@ dependencies = [
  "bit_field 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "vcell 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "volatile-register 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "libsupport_zynq"
+version = "0.0.0"
+dependencies = [
+ "compiler_builtins 0.1.24 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libboard_zynq 0.0.0",
+ "libcortex_a9 0.0.0",
+ "libregister 0.0.0",
+ "linked_list_allocator 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "r0 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "smoltcp 0.5.0 (git+https://github.com/m-labs/smoltcp.git?rev=8eb01aca364aefe5f823d68d552d62c76c9be4a3)",
 ]
 
 [[package]]

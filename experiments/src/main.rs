@@ -4,7 +4,7 @@
 use core::mem::transmute;
 use libcortex_a9::mutex::Mutex;
 use libboard_zynq::{print, println, self as zynq, clocks::Clocks, clocks::source::{ClockSource, ArmPll, IoPll}};
-use libboard_zc706::{
+use libsupport_zynq::{
     ram, alloc::{vec, vec::Vec},
     boot,
     smoltcp::wire::{EthernetAddress, IpAddress, IpCidr},

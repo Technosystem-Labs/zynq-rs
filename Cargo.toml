@@ -1,7 +1,7 @@
 [workspace]
 members = [
   "libregister", "libcortex_a9",
-  "libboard_zynq", "libboard_zc706",
+  "libboard_zynq", "libsupport_zynq",
   "experiments",
 ]
 
