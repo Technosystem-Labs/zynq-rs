@@ -1,5 +1,3 @@
-use core::fmt;
-
 use libregister::*;
 mod regs;
 

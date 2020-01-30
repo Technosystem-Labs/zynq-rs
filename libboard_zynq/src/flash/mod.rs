@@ -29,8 +29,6 @@ const INST_WRDI: u8 = 0x04;
 const INST_WREN: u8 = 0x06;
 /// Instruction: Program page
 const INST_PP: u8 = 0x02;
-/// Instruction: Sector Erase
-const INST_SE: u8 = 0xD8;
 /// Instruction: Erase 4K Block
 const INST_BE_4K: u8 = 0x20;
 
@@ -84,18 +82,6 @@ impl<MODE> Flash<MODE> {
     fn disable_interrupts(&mut self) {
         self.regs.intr_dis.write(
             regs::IntrDis::zeroed()
-                .rx_overflow(true)
-                .tx_fifo_not_full(true)
-                .tx_fifo_full(true)
-                .rx_fifo_not_empty(true)
-                .rx_fifo_full(true)
-                .tx_fifo_underflow(true)
-        );
-    }
-
-    fn enable_interrupts(&mut self) {
-        self.regs.intr_en.write(
-            regs::IntrEn::zeroed()
                 .rx_overflow(true)
                 .tx_fifo_not_full(true)
                 .tx_fifo_full(true)

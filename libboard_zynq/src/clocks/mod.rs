@@ -1,4 +1,4 @@
-use libregister::{RegisterR, RegisterW, RegisterRW};
+use libregister::{RegisterR, RegisterRW};
 use super::slcr;
 pub use slcr::ArmPllSource;
 
