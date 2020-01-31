@@ -21,17 +21,9 @@ MEMORY
 
 SECTIONS
 {
-    .exceptions ORIGIN(OCM) :
+    .text :
     {
         KEEP(*(.text.exceptions));
-    } > OCM
-
-    .__fill (NOLOAD) : {
-          . = ORIGIN(OCM) + 0x8000;
-    } > OCM
-
-    .text (ORIGIN(OCM) + 0x8000) :
-    {
         *(.text.boot);
         *(.text .text.*);
     } > OCM
