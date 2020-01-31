@@ -55,6 +55,7 @@ macro_rules! register_r {
         impl libregister::RegisterR for $struct_name {
             type R = $mod_name::Read;
 
+            #[inline]
             fn read(&self) -> Self::R {
                 let inner = self.inner.read();
                 $mod_name::Read { inner }
@@ -69,10 +70,12 @@ macro_rules! register_w {
         impl libregister::RegisterW for $struct_name {
             type W = $mod_name::Write;
 
+            #[inline]
             fn zeroed() -> $mod_name::Write {
                 $mod_name::Write { inner: 0 }
             }
 
+            #[inline]
             fn write(&mut self, w: Self::W) {
                 unsafe {
                     self.inner.write(w.inner);
@@ -86,6 +89,7 @@ macro_rules! register_w {
 macro_rules! register_rw {
     ($mod_name: ident, $struct_name: ident) => (
         impl libregister::RegisterRW for $struct_name {
+            #[inline]
             fn modify<F: FnOnce(Self::R, Self::W) -> Self::W>(&mut self, f: F) {
                 unsafe {
                     self.inner.modify(|inner| {
@@ -105,6 +109,7 @@ macro_rules! register_vcell {
         impl libregister::RegisterR for $struct_name {
             type R = $mod_name::Read;
 
+            #[inline]
             fn read(&self) -> Self::R {
                 let inner = self.inner.get();
                 $mod_name::Read { inner }
@@ -113,15 +118,18 @@ macro_rules! register_vcell {
         impl libregister::RegisterW for $struct_name {
             type W = $mod_name::Write;
 
+            #[inline]
             fn zeroed() -> $mod_name::Write {
                 $mod_name::Write { inner: 0 }
             }
 
+            #[inline]
             fn write(&mut self, w: Self::W) {
                 self.inner.set(w.inner);
             }
         }
         impl libregister::RegisterRW for $struct_name {
+            #[inline]
             fn modify<F: FnOnce(Self::R, Self::W) -> Self::W>(&mut self, f: F) {
                 let r = self.read();
                 let w = $mod_name::Write { inner: r.inner };
@@ -169,6 +177,7 @@ macro_rules! register_bit {
         $(#[$outer])*
         impl $mod_name::Read {
             #[allow(unused)]
+            #[inline]
             pub fn $name(&self) -> bool {
                 use bit_field::BitField;
 
@@ -179,6 +188,7 @@ macro_rules! register_bit {
         $(#[$outer])*
         impl $mod_name::Write {
             #[allow(unused)]
+            #[inline]
             pub fn $name(mut self, value: bool) -> Self {
                 use bit_field::BitField;
 
@@ -195,6 +205,7 @@ macro_rules! register_bits {
     ($mod_name: ident, $(#[$outer:meta])* $name: ident, $type: ty, $bit_begin: expr, $bit_end: expr) => (
         impl $mod_name::Read {
             #[allow(unused)]
+            #[inline]
             $(#[$outer])*
             pub fn $name(&self) -> $type {
                 use bit_field::BitField;
@@ -207,6 +218,7 @@ macro_rules! register_bits {
         $(#[$outer])*
         impl $mod_name::Write {
             #[allow(unused)]
+            #[inline]
             pub fn $name(mut self, value: $type) -> Self {
                 use bit_field::BitField;
 
@@ -226,6 +238,7 @@ macro_rules! register_bits_typed {
     ($mod_name: ident, $(#[$outer:meta])* $name: ident, $bit_type: ty, $type: ty, $bit_begin: expr, $bit_end: expr) => (
         impl $mod_name::Read {
             #[allow(unused)]
+            #[inline]
             $(#[$outer])*
             pub fn $name(&self) -> $type {
                 use bit_field::BitField;
@@ -237,6 +250,7 @@ macro_rules! register_bits_typed {
 
         impl $mod_name::Write {
             #[allow(unused)]
+            #[inline]
             $(#[$outer])*
             pub fn $name(mut self, value: $type) -> Self {
                 use bit_field::BitField;
@@ -254,6 +268,7 @@ macro_rules! register_at {
     ($name: ident, $addr: expr, $ctor: ident) => (
         impl $name {
             #[allow(unused)]
+            #[inline]
             pub fn $ctor() -> &'static mut Self {
                 let addr = $addr as *mut Self;
                 unsafe { &mut *addr }
