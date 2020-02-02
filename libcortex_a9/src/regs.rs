@@ -8,7 +8,7 @@ macro_rules! def_reg_r {
         impl RegisterR for $name {
             type R = $type;
 
-            #[inline(always)]
+            #[inline]
             fn read(&self) -> Self::R {
                 let mut value: u32;
                 unsafe { asm!($asm_instr : "=r" (value) ::: "volatile") }
@@ -23,12 +23,13 @@ macro_rules! def_reg_w {
         impl RegisterW for $name {
             type W = $type;
 
-            #[inline(always)]
+            #[inline]
             fn write(&mut self, value: Self::W) {
                 let value: u32 = value.into();
                 unsafe { asm!($asm_instr :: "r" (value) :: "volatile") }
             }
 
+            #[inline]
             fn zeroed() -> Self::W {
                 0u32.into()
             }
@@ -43,6 +44,7 @@ macro_rules! wrap_reg {
                 pub inner: u32,
             }
             impl From<u32> for Read {
+                #[inline]
                 fn from(value: u32) -> Self {
                     Read { inner: value }
                 }
@@ -52,11 +54,13 @@ macro_rules! wrap_reg {
                 pub inner: u32,
             }
             impl From<u32> for Write {
+                #[inline]
                 fn from(value: u32) -> Self {
                     Write { inner: value }
                 }
             }
             impl Into<u32> for Write {
+                #[inline]
                 fn into(self) -> u32 {
                     self.inner
                 }
@@ -133,6 +137,7 @@ register_bit!(actlr, l1_prefetch_enable, 2);
 register_bit!(actlr, fw, 0);
 
 impl RegisterRW for ACTLR {
+    #[inline]
     fn modify<F: FnOnce(Self::R, Self::W) -> Self::W>(&mut self, f: F) {
         let r = self.read();
         let w = actlr::Write { inner: r.inner };
