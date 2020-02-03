@@ -93,11 +93,101 @@ pub struct RegisterBlock {
     pub pcell_id_1: PCellId1,
     pub pcell_id_2: PCellId2,
     pub pcell_id_3: PCellId3,
-
 }
 
 register_at!(RegisterBlock, 0xF8004000, dmac0_ns);
 register_at!(RegisterBlock, 0xF8003000, dmac0_s);
+
+impl RegisterBlock {
+    pub fn channel_regs(&mut self, channel: usize) -> Option<ChannelRegisters>
+    {
+        match channel {
+            0 => Some(ChannelRegisters {
+                ftc: &mut self.ftc[0],
+                cs: &mut self.cs0,
+                cpc: &mut self.cpc0,
+                sa: &mut self.sa0,
+                da: &mut self.da0,
+                cc: &mut self.cc0,
+                lc: [&mut self.lc0_0, &mut self.lc0_1],
+            }),
+            1 => Some(ChannelRegisters {
+                ftc: &mut self.ftc[1],
+                cs: &mut self.cs1,
+                cpc: &mut self.cpc1,
+                sa: &mut self.sa1,
+                da: &mut self.da1,
+                cc: &mut self.cc1,
+                lc: [&mut self.lc1_0, &mut self.lc1_1],
+            }),
+            2 => Some(ChannelRegisters {
+                ftc: &mut self.ftc[2],
+                cs: &mut self.cs2,
+                cpc: &mut self.cpc2,
+                sa: &mut self.sa2,
+                da: &mut self.da2,
+                cc: &mut self.cc2,
+                lc: [&mut self.lc2_0, &mut self.lc2_1],
+            }),
+            3 => Some(ChannelRegisters {
+                ftc: &mut self.ftc[3],
+                cs: &mut self.cs3,
+                cpc: &mut self.cpc3,
+                sa: &mut self.sa3,
+                da: &mut self.da3,
+                cc: &mut self.cc3,
+                lc: [&mut self.lc3_0, &mut self.lc3_1],
+            }),
+            4 => Some(ChannelRegisters {
+                ftc: &mut self.ftc[4],
+                cs: &mut self.cs4,
+                cpc: &mut self.cpc4,
+                sa: &mut self.sa4,
+                da: &mut self.da4,
+                cc: &mut self.cc4,
+                lc: [&mut self.lc4_0, &mut self.lc4_1],
+            }),
+            5 => Some(ChannelRegisters {
+                ftc: &mut self.ftc[5],
+                cs: &mut self.cs5,
+                cpc: &mut self.cpc5,
+                sa: &mut self.sa5,
+                da: &mut self.da5,
+                cc: &mut self.cc5,
+                lc: [&mut self.lc5_0, &mut self.lc5_1],
+            }),
+            6 => Some(ChannelRegisters {
+                ftc: &mut self.ftc[6],
+                cs: &mut self.cs6,
+                cpc: &mut self.cpc6,
+                sa: &mut self.sa6,
+                da: &mut self.da6,
+                cc: &mut self.cc6,
+                lc: [&mut self.lc6_0, &mut self.lc6_1],
+            }),
+            7 => Some(ChannelRegisters {
+                ftc: &mut self.ftc[7],
+                cs: &mut self.cs7,
+                cpc: &mut self.cpc7,
+                sa: &mut self.sa7,
+                da: &mut self.da7,
+                cc: &mut self.cc7,
+                lc: [&mut self.lc7_0, &mut self.lc7_1],
+            }),
+            _ => None,
+        }
+    }
+}
+
+pub struct ChannelRegisters<'a> {
+    ftc: &'a mut Ftc,
+    cs: &'a mut Cs,
+    cpc: &'a mut Cpc,
+    sa: &'a mut Sa,
+    da: &'a mut Da,
+    cc: &'a mut Cc,
+    lc: [&'a mut Lc; 2],
+}
 
 #[allow(unused)]
 #[repr(u8)]
