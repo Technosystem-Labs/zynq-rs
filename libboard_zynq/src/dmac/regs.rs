@@ -17,70 +17,63 @@ pub struct RegisterBlock {
     pub fsm: Fsm,
     pub fsc: Fsc,
     pub ftm: Ftm,
-    pub ftc0: Ftc0,
-    pub xdmaps_ftcn_offset_1: XDmaPsFtcnOffset1,
-    pub xdmaps_ftcn_offset_2: XDmaPsFtcnOffset2,
-    pub xdmaps_ftcn_offset_3: XDmaPsFtcnOffset3,
-    pub xdmaps_ftcn_offset_4: XDmaPsFtcnOffset4,
-    pub xdmaps_ftcn_offset_5: XDmaPsFtcnOffset5,
-    pub xdmaps_ftcn_offset_6: XDmaPsFtcnOffset6,
-    pub xdmaps_ftcn_offset_7: XDmaPsFtcnOffset7,
-    pub cs0: Cs0,
-    pub cpc0: Cpc0,
-    pub xdmaps_csn_offset_1:  XDmaPsCSnOffset1,
-    pub xdmaps_cpcn_offset_1: XDmaPsCPCnOffset1,
-    pub xdmaps_csn_offset_2:  XDmaPsCSnOffset2,
-    pub xdmaps_cpcn_offset_2: XDmaPsCPCnOffset2,
-    pub xdmaps_csn_offset_3:  XDmaPsCSnOffset3,
-    pub xdmaps_cpcn_offset_3: XDmaPsCPCnOffset3,
-    pub xdmaps_csn_offset_4:  XDmaPsCSnOffset4,
-    pub xdmaps_cpcn_offset_4: XDmaPsCPCnOffset4,
-    pub xdmaps_csn_offset_5:  XDmaPsCSnOffset5,
-    pub xdmaps_cpcn_offset_5: XDmaPsCPCnOffset5,
-    pub xdmaps_csn_offset_6:  XDmaPsCSnOffset6,
-    pub xdmaps_cpcn_offset_6: XDmaPsCPCnOffset6,
-    pub xdmaps_csn_offset_7:  XDmaPsCSnOffset7,
-    pub xdmaps_cpcn_offset_7: XDmaPsCPCnOffset7,
-    pub sa_0: Sa0,
-    pub da_0: Da0,
-    pub cc_0: Cc0,
-    pub lc0_0: Lc00,
-    pub lc1_0: Lc10,
-    pub xdmaps_sa_n_offset_1:  XDmaPsSaNOffset1,
-    pub xdmaps_da_n_offset_1:  XDmaPsDaNOffset1,
-    pub xdmaps_cc_n_offset_1:  XDmaPsCcNOffset1,
-    pub xdmaps_lc0_n_offset_1: XDmaPsLc0NOffset1,
-    pub xdmaps_lc1_n_offset_1: XDmaPsLc1NOffset1,
-    pub xdmaps_sa_n_offset_2:  XDmaPsSaNOffset2,
-    pub xdmaps_da_n_offset_2:  XDmaPsDaNOffset2,
-    pub xdmaps_cc_n_offset_2:  XDmaPsCcNOffset2,
-    pub xdmaps_lc0_n_offset_2: XDmaPsLc0NOffset2,
-    pub xdmaps_lc1_n_offset_2: XDmaPsLc1NOffset2,
-    pub xdmaps_sa_n_offset_3:  XDmaPsSaNOffset3,
-    pub xdmaps_da_n_offset_3:  XDmaPsDaNOffset3,
-    pub xdmaps_cc_n_offset_3:  XDmaPsCcNOffset3,
-    pub xdmaps_lc0_n_offset_3: XDmaPsLc0NOffset3,
-    pub xdmaps_lc1_n_offset_3: XDmaPsLc1NOffset3,
-    pub xdmaps_sa_n_offset_4:  XDmaPsSaNOffset4,
-    pub xdmaps_da_n_offset_4:  XDmaPsDaNOffset4,
-    pub xdmaps_cc_n_offset_4:  XDmaPsCcNOffset4,
-    pub xdmaps_lc0_n_offset_4: XDmaPsLc0NOffset4,
-    pub xdmaps_lc1_n_offset_4: XDmaPsLc1NOffset4,
-    pub xdmaps_sa_n_offset_5:  XDmaPsSaNOffset5,
-    pub xdmaps_da_n_offset_5:  XDmaPsDaNOffset5,
-    pub xdmaps_cc_n_offset_5:  XDmaPsCcNOffset5,
-    pub xdmaps_lc0_n_offset_5: XDmaPsLc0NOffset5,
-    pub xdmaps_lc1_n_offset_5: XDmaPsLc1NOffset5,
-    pub xdmaps_sa_n_offset_6:  XDmaPsSaNOffset6,
-    pub xdmaps_da_n_offset_6:  XDmaPsDaNOffset6,
-    pub xdmaps_cc_n_offset_6:  XDmaPsCcNOffset6,
-    pub xdmaps_lc0_n_offset_6: XDmaPsLc0NOffset6,
-    pub xdmaps_lc1_n_offset_6: XDmaPsLc1NOffset6,
-    pub xdmaps_sa_n_offset_7:  XDmaPsSaNOffset7,
-    pub xdmaps_da_n_offset_7:  XDmaPsDaNOffset7,
-    pub xdmaps_cc_n_offset_7:  XDmaPsCcNOffset7,
-    pub xdmaps_lc0_n_offset_7: XDmaPsLc0NOffset7,
-    pub xdmaps_lc1_n_offset_7: XDmaPsLc1NOffset7,
+    pub ftc: [Ftc; 8],
+    pub cs0: Cs,
+    pub cpc0: Cpc,
+    pub cs1: Cs,
+    pub cpc1: Cpc,
+    pub cs2: Cs,
+    pub cpc2: Cpc,
+    pub cs3: Cs,
+    pub cpc3: Cpc,
+    pub cs4: Cs,
+    pub cpc4: Cpc,
+    pub cs5: Cs,
+    pub cpc5: Cpc,
+    pub cs6: Cs,
+    pub cpc6: Cpc,
+    pub cs7: Cs,
+    pub cpc7: Cpc,
+    pub sa0: Sa,
+    pub da0: Da,
+    pub cc0: Cc,
+    pub lc0_0: Lc,
+    pub lc0_1: Lc,
+    pub sa1: Sa,
+    pub da1: Da,
+    pub cc1: Cc,
+    pub lc1_0: Lc,
+    pub lc1_1: Lc,
+    pub sa2: Sa,
+    pub da2: Da,
+    pub cc2: Cc,
+    pub lc2_0: Lc,
+    pub lc2_1: Lc,
+    pub sa3: Sa,
+    pub da3: Da,
+    pub cc3: Cc,
+    pub lc3_0: Lc,
+    pub lc3_1: Lc,
+    pub sa4: Sa,
+    pub da4: Da,
+    pub cc4: Cc,
+    pub lc4_0: Lc,
+    pub lc4_1: Lc,
+    pub sa5: Sa,
+    pub da5: Da,
+    pub cc5: Cc,
+    pub lc5_0: Lc,
+    pub lc5_1: Lc,
+    pub sa6: Sa,
+    pub da6: Da,
+    pub cc6: Cc,
+    pub lc6_0: Lc,
+    pub lc6_1: Lc,
+    pub sa7: Sa,
+    pub da7: Da,
+    pub cc7: Cc,
+    pub lc7_0: Lc,
+    pub lc7_1: Lc,
     pub dbgstatus: DbgStatus,
     pub dbgcmd: DbgCmd,
     pub dbginst0: DbgInst0,
@@ -182,397 +175,51 @@ register_bit!(ftm, dmago_err, 4);
 register_bit!(ftm, operand_invalid, 1);
 register_bit!(ftm, undef_instr, 0);
 
-register!(ftc0, Ftc0, RW, u32);
-register_bit!(ftc0, lockup_err, 31);
-register_bit!(ftc0, dbg_instr, 30);
-register_bit!(ftc0, data_read_err, 18);
-register_bit!(ftc0, data_write_err, 17);
-register_bit!(ftc0, instr_fetch_err, 16);
-register_bit!(ftc0, st_data_unavailable, 13);
-register_bit!(ftc0, mfifo_err, 12);
-register_bit!(ftc0, ch_rdwr_err, 7);
-register_bit!(ftc0, ch_periph_err, 6);
-register_bit!(ftc0, ch_evnt_err, 5);
-register_bit!(ftc0, operand_invalid, 1);
-register_bit!(ftc0, undef_instr, 0);
+register!(ftc, Ftc, RW, u32);
+register_bit!(ftc, lockup_err, 31);
+register_bit!(ftc, dbg_instr, 30);
+register_bit!(ftc, data_read_err, 18);
+register_bit!(ftc, data_write_err, 17);
+register_bit!(ftc, instr_fetch_err, 16);
+register_bit!(ftc, st_data_unavailable, 13);
+register_bit!(ftc, mfifo_err, 12);
+register_bit!(ftc, ch_rdwr_err, 7);
+register_bit!(ftc, ch_periph_err, 6);
+register_bit!(ftc, ch_evnt_err, 5);
+register_bit!(ftc, operand_invalid, 1);
+register_bit!(ftc, undef_instr, 0);
 
-register!(xdmaps_ftcn_offset_1, XDmaPsFtcnOffset1, RW, u32);
-register_bit!(xdmaps_ftcn_offset_1, lockup_err, 31);
-register_bit!(xdmaps_ftcn_offset_1, dbg_instr, 30);
-register_bit!(xdmaps_ftcn_offset_1, data_read_err, 18);
-register_bit!(xdmaps_ftcn_offset_1, data_write_err, 17);
-register_bit!(xdmaps_ftcn_offset_1, instr_fetch_err, 16);
-register_bit!(xdmaps_ftcn_offset_1, st_data_unavailable, 13);
-register_bit!(xdmaps_ftcn_offset_1, mfifo_err, 12);
-register_bit!(xdmaps_ftcn_offset_1, ch_rdwr_err, 7);
-register_bit!(xdmaps_ftcn_offset_1, ch_periph_err, 6);
-register_bit!(xdmaps_ftcn_offset_1, ch_evnt_err, 5);
-register_bit!(xdmaps_ftcn_offset_1, operand_invalid, 1);
-register_bit!(xdmaps_ftcn_offset_1, undef_instr, 0);
+register!(cs, Cs, RW, u32);
+register_bit!(cs, cns, 21);
+register_bit!(cs, dmawfp_periph, 15);
+register_bit!(cs, dmawfp_b_ns, 14);
+register_bits!(cs, wakeup_num, u8, 4, 8);
+register_bits!(cs, channel_status, u8, 0, 3);
 
-register!(xdmaps_ftcn_offset_2, XDmaPsFtcnOffset2, RW, u32);
-register_bit!(xdmaps_ftcn_offset_2, lockup_err, 31);
-register_bit!(xdmaps_ftcn_offset_2, dbg_instr, 30);
-register_bit!(xdmaps_ftcn_offset_2, data_read_err, 18);
-register_bit!(xdmaps_ftcn_offset_2, data_write_err, 17);
-register_bit!(xdmaps_ftcn_offset_2, instr_fetch_err, 16);
-register_bit!(xdmaps_ftcn_offset_2, st_data_unavailable, 13);
-register_bit!(xdmaps_ftcn_offset_2, mfifo_err, 12);
-register_bit!(xdmaps_ftcn_offset_2, ch_rdwr_err, 7);
-register_bit!(xdmaps_ftcn_offset_2, ch_periph_err, 6);
-register_bit!(xdmaps_ftcn_offset_2, ch_evnt_err, 5);
-register_bit!(xdmaps_ftcn_offset_2, operand_invalid, 1);
-register_bit!(xdmaps_ftcn_offset_2, undef_instr, 0);
+register!(cpc, Cpc, RW, u32);
+register_bits!(cpc, pc_chnl, u8, 0, 31);
 
-register!(xdmaps_ftcn_offset_3, XDmaPsFtcnOffset3, RW, u32);
-register_bit!(xdmaps_ftcn_offset_3, lockup_err, 31);
-register_bit!(xdmaps_ftcn_offset_3, dbg_instr, 30);
-register_bit!(xdmaps_ftcn_offset_3, data_read_err, 18);
-register_bit!(xdmaps_ftcn_offset_3, data_write_err, 17);
-register_bit!(xdmaps_ftcn_offset_3, instr_fetch_err, 16);
-register_bit!(xdmaps_ftcn_offset_3, st_data_unavailable, 13);
-register_bit!(xdmaps_ftcn_offset_3, mfifo_err, 12);
-register_bit!(xdmaps_ftcn_offset_3, ch_rdwr_err, 7);
-register_bit!(xdmaps_ftcn_offset_3, ch_periph_err, 6);
-register_bit!(xdmaps_ftcn_offset_3, ch_evnt_err, 5);
-register_bit!(xdmaps_ftcn_offset_3, operand_invalid, 1);
-register_bit!(xdmaps_ftcn_offset_3, undef_instr, 0);
+register!(sa, Sa, RW, u32);
+register_bits!(sa, src_addr, u8, 0, 31);
 
-register!(xdmaps_ftcn_offset_4, XDmaPsFtcnOffset4, RW, u32);
-register_bit!(xdmaps_ftcn_offset_4, lockup_err, 31);
-register_bit!(xdmaps_ftcn_offset_4, dbg_instr, 30);
-register_bit!(xdmaps_ftcn_offset_4, data_read_err, 18);
-register_bit!(xdmaps_ftcn_offset_4, data_write_err, 17);
-register_bit!(xdmaps_ftcn_offset_4, instr_fetch_err, 16);
-register_bit!(xdmaps_ftcn_offset_4, st_data_unavailable, 13);
-register_bit!(xdmaps_ftcn_offset_4, mfifo_err, 12);
-register_bit!(xdmaps_ftcn_offset_4, ch_rdwr_err, 7);
-register_bit!(xdmaps_ftcn_offset_4, ch_periph_err, 6);
-register_bit!(xdmaps_ftcn_offset_4, ch_evnt_err, 5);
-register_bit!(xdmaps_ftcn_offset_4, operand_invalid, 1);
-register_bit!(xdmaps_ftcn_offset_4, undef_instr, 0);
+register!(da, Da, RW, u32);
+register_bits!(da, dest_addr, u8, 0, 31);
 
-register!(xdmaps_ftcn_offset_5, XDmaPsFtcnOffset5, RW, u32);
-register_bit!(xdmaps_ftcn_offset_5, lockup_err, 31);
-register_bit!(xdmaps_ftcn_offset_5, dbg_instr, 30);
-register_bit!(xdmaps_ftcn_offset_5, data_read_err, 18);
-register_bit!(xdmaps_ftcn_offset_5, data_write_err, 17);
-register_bit!(xdmaps_ftcn_offset_5, instr_fetch_err, 16);
-register_bit!(xdmaps_ftcn_offset_5, st_data_unavailable, 13);
-register_bit!(xdmaps_ftcn_offset_5, mfifo_err, 12);
-register_bit!(xdmaps_ftcn_offset_5, ch_rdwr_err, 7);
-register_bit!(xdmaps_ftcn_offset_5, ch_periph_err, 6);
-register_bit!(xdmaps_ftcn_offset_5, ch_evnt_err, 5);
-register_bit!(xdmaps_ftcn_offset_5, operand_invalid, 1);
-register_bit!(xdmaps_ftcn_offset_5, undef_instr, 0);
+register!(cc, Cc, RW, u32);
+register_bits!(cc, endian_swap_size, u8, 28, 30);
+register_bits!(cc, dst_cache_ctrl, u8, 25, 27);
+register_bits!(cc, dst_prot_ctrl, u8, 22, 24);
+register_bits!(cc, dst_burst_len, u8, 18, 21);
+register_bits!(cc, dst_burst_size, u8, 15, 17);
+register_bit!(cc, dst_inc, 14);
+register_bits!(cc, src_cache_ctrl, u8, 11, 13);
+register_bits!(cc, src_prot_ctrl, u8, 8, 10);
+register_bits!(cc, src_burst_len, u8, 4, 7);
+register_bits!(cc, src_burst_size, u8, 1, 3);
+register_bit!(cc, src_inc, 0);
 
-register!(xdmaps_ftcn_offset_6, XDmaPsFtcnOffset6, RW, u32);
-register_bit!(xdmaps_ftcn_offset_6, lockup_err, 31);
-register_bit!(xdmaps_ftcn_offset_6, dbg_instr, 30);
-register_bit!(xdmaps_ftcn_offset_6, data_read_err, 18);
-register_bit!(xdmaps_ftcn_offset_6, data_write_err, 17);
-register_bit!(xdmaps_ftcn_offset_6, instr_fetch_err, 16);
-register_bit!(xdmaps_ftcn_offset_6, st_data_unavailable, 13);
-register_bit!(xdmaps_ftcn_offset_6, mfifo_err, 12);
-register_bit!(xdmaps_ftcn_offset_6, ch_rdwr_err, 7);
-register_bit!(xdmaps_ftcn_offset_6, ch_periph_err, 6);
-register_bit!(xdmaps_ftcn_offset_6, ch_evnt_err, 5);
-register_bit!(xdmaps_ftcn_offset_6, operand_invalid, 1);
-register_bit!(xdmaps_ftcn_offset_6, undef_instr, 0);
-
-register!(xdmaps_ftcn_offset_7, XDmaPsFtcnOffset7, RW, u32);
-register_bit!(xdmaps_ftcn_offset_7, lockup_err, 31);
-register_bit!(xdmaps_ftcn_offset_7, dbg_instr, 30);
-register_bit!(xdmaps_ftcn_offset_7, data_read_err, 18);
-register_bit!(xdmaps_ftcn_offset_7, data_write_err, 17);
-register_bit!(xdmaps_ftcn_offset_7, instr_fetch_err, 16);
-register_bit!(xdmaps_ftcn_offset_7, st_data_unavailable, 13);
-register_bit!(xdmaps_ftcn_offset_7, mfifo_err, 12);
-register_bit!(xdmaps_ftcn_offset_7, ch_rdwr_err, 7);
-register_bit!(xdmaps_ftcn_offset_7, ch_periph_err, 6);
-register_bit!(xdmaps_ftcn_offset_7, ch_evnt_err, 5);
-register_bit!(xdmaps_ftcn_offset_7, operand_invalid, 1);
-register_bit!(xdmaps_ftcn_offset_7, undef_instr, 0);
-
-register!(cs0, Cs0, RW, u32);
-register_bit!(cs0, cns, 21);
-register_bit!(cs0, dmawfp_periph, 15);
-register_bit!(cs0, dmawfp_b_ns, 14);
-register_bits!(cs0, wakeup_num, u8, 4, 8);
-register_bits!(cs0, channel_status, u8, 0, 3);
-
-register!(cpc0, Cpc0, RW, u32);
-register_bits!(cpc0, pc_chnl, u8, 0, 31);
-
-register!(xdmaps_csn_offset_1, XDmaPsCSnOffset1, RW, u32);
-register_bit!(xdmaps_csn_offset_1, cns, 21);
-register_bit!(xdmaps_csn_offset_1, dmawfp_periph, 15);
-register_bit!(xdmaps_csn_offset_1, dmawfp_b_ns, 14);
-register_bits!(xdmaps_csn_offset_1, wakeup_num, u8, 4, 8);
-register_bits!(xdmaps_csn_offset_1, channel_status, u8, 0, 3);
-
-register!(xdmaps_cpcn_offset_1, XDmaPsCPCnOffset1, RW, u32);
-register_bits!(xdmaps_cpcn_offset_1, pc_chnl, u8, 0, 31);
-
-register!(xdmaps_csn_offset_2, XDmaPsCSnOffset2, RW, u32);
-register_bit!(xdmaps_csn_offset_2, cns, 21);
-register_bit!(xdmaps_csn_offset_2, dmawfp_periph, 15);
-register_bit!(xdmaps_csn_offset_2, dmawfp_b_ns, 14);
-register_bits!(xdmaps_csn_offset_2, wakeup_num, u8, 4, 8);
-register_bits!(xdmaps_csn_offset_2, channel_status, u8, 0, 3);
-
-register!(xdmaps_cpcn_offset_2, XDmaPsCPCnOffset2, RW, u32);
-register_bits!(xdmaps_cpcn_offset_2, pc_chnl, u8, 0, 31);
-
-register!(xdmaps_csn_offset_3, XDmaPsCSnOffset3, RW, u32);
-register_bit!(xdmaps_csn_offset_3, cns, 21);
-register_bit!(xdmaps_csn_offset_3, dmawfp_periph, 15);
-register_bit!(xdmaps_csn_offset_3, dmawfp_b_ns, 14);
-register_bits!(xdmaps_csn_offset_3, wakeup_num, u8, 4, 8);
-register_bits!(xdmaps_csn_offset_3, channel_status, u8, 0, 3);
-
-register!(xdmaps_cpcn_offset_3, XDmaPsCPCnOffset3, RW, u32);
-register_bits!(xdmaps_cpcn_offset_3, pc_chnl, u8, 0, 31);
-
-register!(xdmaps_csn_offset_4, XDmaPsCSnOffset4, RW, u32);
-register_bit!(xdmaps_csn_offset_4, cns, 21);
-register_bit!(xdmaps_csn_offset_4, dmawfp_periph, 15);
-register_bit!(xdmaps_csn_offset_4, dmawfp_b_ns, 14);
-register_bits!(xdmaps_csn_offset_4, wakeup_num, u8, 4, 8);
-register_bits!(xdmaps_csn_offset_4, channel_status, u8, 0, 3);
-
-register!(xdmaps_cpcn_offset_4, XDmaPsCPCnOffset4, RW, u32);
-register_bits!(xdmaps_cpcn_offset_4, pc_chnl, u8, 0, 31);
-
-register!(xdmaps_csn_offset_5, XDmaPsCSnOffset5, RW, u32);
-register_bit!(xdmaps_csn_offset_5, cns, 21);
-register_bit!(xdmaps_csn_offset_5, dmawfp_periph, 15);
-register_bit!(xdmaps_csn_offset_5, dmawfp_b_ns, 14);
-register_bits!(xdmaps_csn_offset_5, wakeup_num, u8, 4, 8);
-register_bits!(xdmaps_csn_offset_5, channel_status, u8, 0, 3);
-
-register!(xdmaps_cpcn_offset_5, XDmaPsCPCnOffset5, RW, u32);
-register_bits!(xdmaps_cpcn_offset_5, pc_chnl, u8, 0, 31);
-
-register!(xdmaps_csn_offset_6, XDmaPsCSnOffset6, RW, u32);
-register_bit!(xdmaps_csn_offset_6, cns, 21);
-register_bit!(xdmaps_csn_offset_6, dmawfp_periph, 15);
-register_bit!(xdmaps_csn_offset_6, dmawfp_b_ns, 14);
-register_bits!(xdmaps_csn_offset_6, wakeup_num, u8, 4, 8);
-register_bits!(xdmaps_csn_offset_6, channel_status, u8, 0, 3);
-
-register!(xdmaps_cpcn_offset_6, XDmaPsCPCnOffset6, RW, u32);
-register_bits!(xdmaps_cpcn_offset_6, pc_chnl, u8, 0, 31);
-
-register!(xdmaps_csn_offset_7, XDmaPsCSnOffset7, RW, u32);
-register_bit!(xdmaps_csn_offset_7, cns, 21);
-register_bit!(xdmaps_csn_offset_7, dmawfp_periph, 15);
-register_bit!(xdmaps_csn_offset_7, dmawfp_b_ns, 14);
-register_bits!(xdmaps_csn_offset_7, wakeup_num, u8, 4, 8);
-register_bits!(xdmaps_csn_offset_7, channel_status, u8, 0, 3);
-
-register!(xdmaps_cpcn_offset_7, XDmaPsCPCnOffset7, RW, u32);
-register_bits!(xdmaps_cpcn_offset_7, pc_chnl, u8, 0, 31);
-
-register!(sa_0, Sa0, RW, u32);
-register_bits!(sa_0, src_addr, u8, 0, 31);
-
-register!(da_0, Da0, RW, u32);
-register_bits!(da_0, dest_addr, u8, 0, 31);
-
-register!(cc_0, Cc0, RW, u32);
-register_bits!(cc_0, endian_swap_size, u8, 28, 30);
-register_bits!(cc_0, dst_cache_ctrl, u8, 25, 27);
-register_bits!(cc_0, dst_prot_ctrl, u8, 22, 24);
-register_bits!(cc_0, dst_burst_len, u8, 18, 21);
-register_bits!(cc_0, dst_burst_size, u8, 15, 17);
-register_bit!(cc_0, dst_inc, 14);
-register_bits!(cc_0, src_cache_ctrl, u8, 11, 13);
-register_bits!(cc_0, src_prot_ctrl, u8, 8, 10);
-register_bits!(cc_0, src_burst_len, u8, 4, 7);
-register_bits!(cc_0, src_burst_size, u8, 1, 3);
-register_bit!(cc_0, src_inc, 0);
-
-register!(lc0_0, Lc00, RW, u32);
-register_bits!(lc0_0, loop_counter_iteration, u8, 0, 7);
-
-register!(lc1_0, Lc10, RW, u32);
-register_bits!(lc1_0, loop_counter_iteration, u8, 0, 7);
-
-register!(xdmaps_sa_n_offset_1, XDmaPsSaNOffset1, RW, u32);
-register_bits!(xdmaps_sa_n_offset_1, src_addr, u8, 0, 31);
-
-register!(xdmaps_da_n_offset_1, XDmaPsDaNOffset1, RW, u32);
-register_bits!(xdmaps_da_n_offset_1, dest_addr, u8, 0, 31);
-
-register!(xdmaps_cc_n_offset_1, XDmaPsCcNOffset1, RW, u32);
-register_bits!(xdmaps_cc_n_offset_1, endian_swap_size, u8, 28, 30);
-register_bits!(xdmaps_cc_n_offset_1, dst_cache_ctrl, u8, 25, 27);
-register_bits!(xdmaps_cc_n_offset_1, dst_prot_ctrl, u8, 22, 24);
-register_bits!(xdmaps_cc_n_offset_1, dst_burst_len, u8, 18, 21);
-register_bits!(xdmaps_cc_n_offset_1, dst_burst_size, u8, 15, 17);
-register_bit!(xdmaps_cc_n_offset_1,  dst_inc, 14);
-register_bits!(xdmaps_cc_n_offset_1, src_cache_ctrl, u8, 11, 13);
-register_bits!(xdmaps_cc_n_offset_1, src_prot_ctrl, u8, 8, 10);
-register_bits!(xdmaps_cc_n_offset_1, src_burst_len, u8, 4, 7);
-register_bits!(xdmaps_cc_n_offset_1, src_burst_size, u8, 1, 3);
-register_bit!(xdmaps_cc_n_offset_1,  src_inc, 0);
-
-register!(xdmaps_lc0_n_offset_1, XDmaPsLc0NOffset1, RW, u32);
-register_bits!(xdmaps_lc0_n_offset_1, loop_counter_iteration, u8, 0, 7);
-
-register!(xdmaps_lc1_n_offset_1, XDmaPsLc1NOffset1, RW, u32);
-register_bits!(xdmaps_lc1_n_offset_1, loop_counter_iteration, u8, 0, 7);
-
-register!(xdmaps_sa_n_offset_2, XDmaPsSaNOffset2, RW, u32);
-register_bits!(xdmaps_sa_n_offset_2, src_addr, u8, 0, 31);
-
-register!(xdmaps_da_n_offset_2, XDmaPsDaNOffset2, RW, u32);
-register_bits!(xdmaps_da_n_offset_2, dest_addr, u8, 0, 31);
-
-register!(xdmaps_cc_n_offset_2, XDmaPsCcNOffset2, RW, u32);
-register_bits!(xdmaps_cc_n_offset_2, endian_swap_size, u8, 28, 30);
-register_bits!(xdmaps_cc_n_offset_2, dst_cache_ctrl, u8, 25, 27);
-register_bits!(xdmaps_cc_n_offset_2, dst_prot_ctrl, u8, 22, 24);
-register_bits!(xdmaps_cc_n_offset_2, dst_burst_len, u8, 18, 21);
-register_bits!(xdmaps_cc_n_offset_2, dst_burst_size, u8, 15, 17);
-register_bit!(xdmaps_cc_n_offset_2,  dst_inc, 14);
-register_bits!(xdmaps_cc_n_offset_2, src_cache_ctrl, u8, 11, 13);
-register_bits!(xdmaps_cc_n_offset_2, src_prot_ctrl, u8, 8, 10);
-register_bits!(xdmaps_cc_n_offset_2, src_burst_len, u8, 4, 7);
-register_bits!(xdmaps_cc_n_offset_2, src_burst_size, u8, 1, 3);
-register_bit!(xdmaps_cc_n_offset_2,  src_inc, 0);
-
-register!(xdmaps_lc0_n_offset_2, XDmaPsLc0NOffset2, RW, u32);
-register_bits!(xdmaps_lc0_n_offset_2, loop_counter_iteration, u8, 0, 7);
-
-register!(xdmaps_lc1_n_offset_2, XDmaPsLc1NOffset2, RW, u32);
-register_bits!(xdmaps_lc1_n_offset_2, loop_counter_iteration, u8, 0, 7);
-
-register!(xdmaps_sa_n_offset_3, XDmaPsSaNOffset3, RW, u32);
-register_bits!(xdmaps_sa_n_offset_3, src_addr, u8, 0, 31);
-
-register!(xdmaps_da_n_offset_3, XDmaPsDaNOffset3, RW, u32);
-register_bits!(xdmaps_da_n_offset_3, dest_addr, u8, 0, 31);
-
-register!(xdmaps_cc_n_offset_3, XDmaPsCcNOffset3, RW, u32);
-register_bits!(xdmaps_cc_n_offset_3, endian_swap_size, u8, 28, 30);
-register_bits!(xdmaps_cc_n_offset_3, dst_cache_ctrl, u8, 25, 27);
-register_bits!(xdmaps_cc_n_offset_3, dst_prot_ctrl, u8, 22, 24);
-register_bits!(xdmaps_cc_n_offset_3, dst_burst_len, u8, 18, 21);
-register_bits!(xdmaps_cc_n_offset_3, dst_burst_size, u8, 15, 17);
-register_bit!(xdmaps_cc_n_offset_3,  dst_inc, 14);
-register_bits!(xdmaps_cc_n_offset_3, src_cache_ctrl, u8, 11, 13);
-register_bits!(xdmaps_cc_n_offset_3, src_prot_ctrl, u8, 8, 10);
-register_bits!(xdmaps_cc_n_offset_3, src_burst_len, u8, 4, 7);
-register_bits!(xdmaps_cc_n_offset_3, src_burst_size, u8, 1, 3);
-register_bit!(xdmaps_cc_n_offset_3,  src_inc, 0);
-
-register!(xdmaps_lc0_n_offset_3, XDmaPsLc0NOffset3, RW, u32);
-register_bits!(xdmaps_lc0_n_offset_3, loop_counter_iteration, u8, 0, 7);
-
-register!(xdmaps_lc1_n_offset_3, XDmaPsLc1NOffset3, RW, u32);
-register_bits!(xdmaps_lc1_n_offset_3, loop_counter_iteration, u8, 0, 7);
-
-register!(xdmaps_sa_n_offset_4, XDmaPsSaNOffset4, RW, u32);
-register_bits!(xdmaps_sa_n_offset_4, src_addr, u8, 0, 31);
-
-register!(xdmaps_da_n_offset_4, XDmaPsDaNOffset4, RW, u32);
-register_bits!(xdmaps_da_n_offset_4, dest_addr, u8, 0, 31);
-
-register!(xdmaps_cc_n_offset_4, XDmaPsCcNOffset4, RW, u32);
-register_bits!(xdmaps_cc_n_offset_4, endian_swap_size, u8, 28, 30);
-register_bits!(xdmaps_cc_n_offset_4, dst_cache_ctrl, u8, 25, 27);
-register_bits!(xdmaps_cc_n_offset_4, dst_prot_ctrl, u8, 22, 24);
-register_bits!(xdmaps_cc_n_offset_4, dst_burst_len, u8, 18, 21);
-register_bits!(xdmaps_cc_n_offset_4, dst_burst_size, u8, 15, 17);
-register_bit!(xdmaps_cc_n_offset_4,  dst_inc, 14);
-register_bits!(xdmaps_cc_n_offset_4, src_cache_ctrl, u8, 11, 13);
-register_bits!(xdmaps_cc_n_offset_4, src_prot_ctrl, u8, 8, 10);
-register_bits!(xdmaps_cc_n_offset_4, src_burst_len, u8, 4, 7);
-register_bits!(xdmaps_cc_n_offset_4, src_burst_size, u8, 1, 3);
-register_bit!(xdmaps_cc_n_offset_4,  src_inc, 0);
-
-register!(xdmaps_lc0_n_offset_4, XDmaPsLc0NOffset4, RW, u32);
-register_bits!(xdmaps_lc0_n_offset_4, loop_counter_iteration, u8, 0, 7);
-
-register!(xdmaps_lc1_n_offset_4, XDmaPsLc1NOffset4, RW, u32);
-register_bits!(xdmaps_lc1_n_offset_4, loop_counter_iteration, u8, 0, 7);
-
-register!(xdmaps_sa_n_offset_5, XDmaPsSaNOffset5, RW, u32);
-register_bits!(xdmaps_sa_n_offset_5, src_addr, u8, 0, 31);
-
-register!(xdmaps_da_n_offset_5, XDmaPsDaNOffset5, RW, u32);
-register_bits!(xdmaps_da_n_offset_5, dest_addr, u8, 0, 31);
-
-register!(xdmaps_cc_n_offset_5, XDmaPsCcNOffset5, RW, u32);
-register_bits!(xdmaps_cc_n_offset_5, endian_swap_size, u8, 28, 30);
-register_bits!(xdmaps_cc_n_offset_5, dst_cache_ctrl, u8, 25, 27);
-register_bits!(xdmaps_cc_n_offset_5, dst_prot_ctrl, u8, 22, 24);
-register_bits!(xdmaps_cc_n_offset_5, dst_burst_len, u8, 18, 21);
-register_bits!(xdmaps_cc_n_offset_5, dst_burst_size, u8, 15, 17);
-register_bit!(xdmaps_cc_n_offset_5,  dst_inc, 14);
-register_bits!(xdmaps_cc_n_offset_5, src_cache_ctrl, u8, 11, 13);
-register_bits!(xdmaps_cc_n_offset_5, src_prot_ctrl, u8, 8, 10);
-register_bits!(xdmaps_cc_n_offset_5, src_burst_len, u8, 4, 7);
-register_bits!(xdmaps_cc_n_offset_5, src_burst_size, u8, 1, 3);
-register_bit!(xdmaps_cc_n_offset_5,  src_inc, 0);
-
-register!(xdmaps_lc0_n_offset_5, XDmaPsLc0NOffset5, RW, u32);
-register_bits!(xdmaps_lc0_n_offset_5, loop_counter_iteration, u8, 0, 7);
-
-register!(xdmaps_lc1_n_offset_5, XDmaPsLc1NOffset5, RW, u32);
-register_bits!(xdmaps_lc1_n_offset_5, loop_counter_iteration, u8, 0, 7);
-
-register!(xdmaps_sa_n_offset_6, XDmaPsSaNOffset6, RW, u32);
-register_bits!(xdmaps_sa_n_offset_6, src_addr, u8, 0, 31);
-
-register!(xdmaps_da_n_offset_6, XDmaPsDaNOffset6, RW, u32);
-register_bits!(xdmaps_da_n_offset_6, dest_addr, u8, 0, 31);
-
-register!(xdmaps_cc_n_offset_6, XDmaPsCcNOffset6, RW, u32);
-register_bits!(xdmaps_cc_n_offset_6, endian_swap_size, u8, 28, 30);
-register_bits!(xdmaps_cc_n_offset_6, dst_cache_ctrl, u8, 25, 27);
-register_bits!(xdmaps_cc_n_offset_6, dst_prot_ctrl, u8, 22, 24);
-register_bits!(xdmaps_cc_n_offset_6, dst_burst_len, u8, 18, 21);
-register_bits!(xdmaps_cc_n_offset_6, dst_burst_size, u8, 15, 17);
-register_bit!(xdmaps_cc_n_offset_6,  dst_inc, 14);
-register_bits!(xdmaps_cc_n_offset_6, src_cache_ctrl, u8, 11, 13);
-register_bits!(xdmaps_cc_n_offset_6, src_prot_ctrl, u8, 8, 10);
-register_bits!(xdmaps_cc_n_offset_6, src_burst_len, u8, 4, 7);
-register_bits!(xdmaps_cc_n_offset_6, src_burst_size, u8, 1, 3);
-register_bit!(xdmaps_cc_n_offset_6,  src_inc, 0);
-
-register!(xdmaps_lc0_n_offset_6, XDmaPsLc0NOffset6, RW, u32);
-register_bits!(xdmaps_lc0_n_offset_6, loop_counter_iteration, u8, 0, 7);
-
-register!(xdmaps_lc1_n_offset_6, XDmaPsLc1NOffset6, RW, u32);
-register_bits!(xdmaps_lc1_n_offset_6, loop_counter_iteration, u8, 0, 7);
-
-register!(xdmaps_sa_n_offset_7, XDmaPsSaNOffset7, RW, u32);
-register_bits!(xdmaps_sa_n_offset_7, src_addr, u8, 0, 31);
-
-register!(xdmaps_da_n_offset_7, XDmaPsDaNOffset7, RW, u32);
-register_bits!(xdmaps_da_n_offset_7, dest_addr, u8, 0, 31);
-
-register!(xdmaps_cc_n_offset_7, XDmaPsCcNOffset7, RW, u32);
-register_bits!(xdmaps_cc_n_offset_7, endian_swap_size, u8, 28, 30);
-register_bits!(xdmaps_cc_n_offset_7, dst_cache_ctrl, u8, 25, 27);
-register_bits!(xdmaps_cc_n_offset_7, dst_prot_ctrl, u8, 22, 24);
-register_bits!(xdmaps_cc_n_offset_7, dst_burst_len, u8, 18, 21);
-register_bits!(xdmaps_cc_n_offset_7, dst_burst_size, u8, 15, 17);
-register_bit!(xdmaps_cc_n_offset_7,  dst_inc, 14);
-register_bits!(xdmaps_cc_n_offset_7, src_cache_ctrl, u8, 11, 13);
-register_bits!(xdmaps_cc_n_offset_7, src_prot_ctrl, u8, 8, 10);
-register_bits!(xdmaps_cc_n_offset_7, src_burst_len, u8, 4, 7);
-register_bits!(xdmaps_cc_n_offset_7, src_burst_size, u8, 1, 3);
-register_bit!(xdmaps_cc_n_offset_7,  src_inc, 0);
-
-register!(xdmaps_lc0_n_offset_7, XDmaPsLc0NOffset7, RW, u32);
-register_bits!(xdmaps_lc0_n_offset_7, loop_counter_iteration, u8, 0, 7);
-
-register!(xdmaps_lc1_n_offset_7, XDmaPsLc1NOffset7, RW, u32);
-register_bits!(xdmaps_lc1_n_offset_7, loop_counter_iteration, u8, 0, 7);
+register!(lc0, Lc, RW, u32);
+register_bits!(lc0, loop_counter_iteration, u8, 0, 7);
 
 register!(dbgstatus, DbgStatus, RW, u32);
 register_bit!(dbgstatus, dbgstatus, 0);
