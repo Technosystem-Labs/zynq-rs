@@ -49,7 +49,7 @@ let
     name = "${crate}";
     src = ./.;
     crateSubdir = crate;
-    cargoSha256 = "11868q4ib6n1rp7lh3a1maa5faim2cvhsckz3vx6vwh8i1nh88n9";
+    cargoSha256 = "0106i3qg44gvcv18bq3854lbj7x4qkjzqpw5ldrxjlzf6h13gfgv";
     cargoFeatures = features;
     doCheck = false;
   };
