@@ -8,8 +8,8 @@ let
   rustcSrc = pkgs.fetchgit {
     url = https://github.com/rust-lang/rust.git;
     # master of 2020-01-25
-    rev = "c2d141df59703393c0c683abc259f9a8c3be041a";
-    sha256 = "0v23ia4sp436yjksbq5m5vdarj481w2z8q3px51kidabdd2282yr";
+    rev = "02046a5d402c789c006d0da7662f800fe3c45faf";
+    sha256 = "0wjd9ql8ayqda1mxn4783h9zp1chwzvkbm4h6rhb1pgyi5zlnaaj";
     fetchSubmodules = true;
   };
   targets = [];
