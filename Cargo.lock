@@ -39,7 +39,6 @@ dependencies = [
  "libcortex_a9 0.0.0",
  "libregister 0.0.0",
  "smoltcp 0.5.0 (git+https://github.com/m-labs/smoltcp.git?rev=8eb01aca364aefe5f823d68d552d62c76c9be4a3)",
- "vcell 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "volatile-register 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -50,8 +49,6 @@ dependencies = [
  "bit_field 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libregister 0.0.0",
  "smoltcp 0.5.0 (git+https://github.com/m-labs/smoltcp.git?rev=8eb01aca364aefe5f823d68d552d62c76c9be4a3)",
- "vcell 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "volatile-register 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
