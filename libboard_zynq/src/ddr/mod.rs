@@ -61,7 +61,7 @@ impl DdrRam {
     fn calibrate_iob_impedance(clocks: &Clocks) {
         let divisor0 = ((DCI_FREQ - 1 + clocks.ddr) / DCI_FREQ)
             .max(1).min(63) as u8;
-        let divisor1 = (clocks.ddr / DCI_FREQ / u32::from(divisor0))
+        let divisor1 = ((DCI_FREQ - 1 + clocks.ddr) / DCI_FREQ / u32::from(divisor0))
             .max(1).min(63) as u8;
         println!("DDR DCI clock: {} Hz", clocks.ddr / u32::from(divisor0) / u32::from(divisor1));
 
@@ -111,21 +111,46 @@ impl DdrRam {
             slcr.ddriob_addr0.write(addr_config.clone());
             slcr.ddriob_addr1.write(addr_config);
 
-            let data_config = slcr::DdriobConfig::zeroed()
+            #[cfg(feature = "target_zc706")]
+            let data0_config = slcr::DdriobConfig::zeroed()
                 .inp_type(slcr::DdriobInputType::VrefDifferential)
                 .term_en(true)
                 .dci_type(slcr::DdriobDciType::Termination)
                 .output_en(slcr::DdriobOutputEn::Obuf);
-            slcr.ddriob_data0.write(data_config.clone());
-            slcr.ddriob_data1.write(data_config);
+            #[cfg(feature = "target_zc706")]
+            let data1_config = data0_config.clone();
+            #[cfg(feature = "target_cora_z7_10")]
+            let data0_config = slcr::DdriobConfig::zeroed()
+                .inp_type(slcr::DdriobInputType::VrefDifferential)
+                .term_en(true)
+                .dci_type(slcr::DdriobDciType::Termination)
+                .output_en(slcr::DdriobOutputEn::Obuf);
+            #[cfg(feature = "target_cora_z7_10")]
+            let data1_config = slcr::DdriobConfig::zeroed()
+                .pullup_en(true);
+            slcr.ddriob_data0.write(data0_config);
+            slcr.ddriob_data1.write(data1_config);
 
-            let diff_config = slcr::DdriobConfig::zeroed()
+            #[cfg(feature = "target_zc706")]
+            let diff0_config = slcr::DdriobConfig::zeroed()
                 .inp_type(slcr::DdriobInputType::Differential)
                 .term_en(true)
                 .dci_type(slcr::DdriobDciType::Termination)
                 .output_en(slcr::DdriobOutputEn::Obuf);
-            slcr.ddriob_diff0.write(diff_config.clone());
-            slcr.ddriob_diff1.write(diff_config);
+            #[cfg(feature = "target_zc706")]
+            let diff1_config = diff0_config.clone();
+            #[cfg(feature = "target_cora_z7_10")]
+            let diff0_config = slcr::DdriobConfig::zeroed()
+                .inp_type(slcr::DdriobInputType::Differential)
+                .term_en(true)
+                .dci_type(slcr::DdriobDciType::Termination)
+                .output_en(slcr::DdriobOutputEn::Obuf);
+            #[cfg(feature = "target_cora_z7_10")]
+            let diff1_config = slcr::DdriobConfig::zeroed()
+                .pullup_en(true);
+
+            slcr.ddriob_diff0.write(diff0_config);
+            slcr.ddriob_diff1.write(diff1_config);
 
             slcr.ddriob_clock.write(
                 slcr::DdriobConfig::zeroed()
@@ -140,24 +165,17 @@ impl DdrRam {
                 slcr.ddriob_drive_slew_clock.write(0x00F9861C);
             }
 
-            #[cfg(feature = "target_zc706")]
-            let vref_sel = slcr::DdriobVrefSel::Vref0_75V;
-            #[cfg(feature = "target_cora_z7_10")]
-            let vref_sel = slcr::DdriobVrefSel::Vref0_675V;
-
-            // // Enable internal V[REF]
-            // slcr.ddriob_ddr_ctrl.modify(|_, w| w
-            //         .vref_ext_en_lower(false)
-            //         .vref_ext_en_upper(false)
-            //         .vref_sel(vref_sel)
-            //         .vref_int_en(true)
-            // );
             // Enable external V[REF]
+            #[cfg(feature = "target_cora_z7_10")]
+            slcr.ddriob_ddr_ctrl.modify(|_, w| w
+                    .vref_int_en(false)
+                    .vref_ext_en_lower(true)
+                    .vref_ext_en_upper(false)
+            );
+            #[cfg(feature = "target_zc706")]
             slcr.ddriob_ddr_ctrl.modify(|_, w| w
                     .vref_ext_en_lower(true)
                     .vref_ext_en_upper(true)
-                    .vref_sel(vref_sel)
-                    .vref_int_en(false)
             );
         });
     }
