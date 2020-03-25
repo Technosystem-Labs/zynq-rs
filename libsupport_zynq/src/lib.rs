@@ -11,4 +11,3 @@ pub mod boot;
 mod abort;
 mod panic;
 pub mod ram;
-pub use smoltcp;

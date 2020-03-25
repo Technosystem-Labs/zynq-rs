@@ -1,5 +1,8 @@
 #![no_std]
 
+/// Re-export so that dependents can always use the same version
+pub use smoltcp;
+
 pub mod slcr;
 pub mod clocks;
 pub mod uart;

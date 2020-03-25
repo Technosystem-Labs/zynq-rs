@@ -3,15 +3,20 @@
 
 use core::mem::transmute;
 use libcortex_a9::mutex::Mutex;
-use libboard_zynq::{print, println, self as zynq, clocks::Clocks, clocks::source::{ClockSource, ArmPll, IoPll}};
+use libboard_zynq::{
+    print, println,
+    self as zynq, clocks::Clocks, clocks::source::{ClockSource, ArmPll, IoPll},
+    smoltcp::{
+        wire::{EthernetAddress, IpAddress, IpCidr},
+        iface::{NeighborCache, EthernetInterfaceBuilder},
+        time::Instant,
+        socket::SocketSet,
+        socket::{TcpSocket, TcpSocketBuffer},
+    },
+};
 use libsupport_zynq::{
     ram, alloc::{vec, vec::Vec},
     boot,
-    smoltcp::wire::{EthernetAddress, IpAddress, IpCidr},
-    smoltcp::iface::{NeighborCache, EthernetInterfaceBuilder},
-    smoltcp::time::Instant,
-    smoltcp::socket::SocketSet,
-    smoltcp::socket::{TcpSocket, TcpSocketBuffer},
 };
 
 const HWADDR: [u8; 6] = [0, 0x23, 0xde, 0xea, 0xbe, 0xef];

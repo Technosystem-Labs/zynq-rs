@@ -12,9 +12,3 @@ default = ["target_zc706"]
 [dependencies]
 bit_field = "0.10"
 libregister = { path = "../libregister" }
-
-[dependencies.smoltcp]
-git = "https://github.com/m-labs/smoltcp.git"
-rev = "8eb01aca364aefe5f823d68d552d62c76c9be4a3"
-features = ["ethernet", "proto-ipv4", "socket-tcp"]
-default-features = false
