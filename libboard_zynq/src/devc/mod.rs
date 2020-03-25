@@ -1,4 +1,5 @@
 use libregister::*;
+use crate::slcr;
 mod regs;
 
 pub struct DevC {
@@ -23,5 +24,17 @@ impl DevC {
             w.pcap_mode(false)
             .pcap_pr(false)
         })
+    }
+
+    pub fn program(&mut self) {
+        slcr::RegisterBlock::unlocked(|slcr| {
+            slcr.init_preload_fpga();
+        });
+
+        while !self.regs.int_sts.read().ixr_pcfg_done() {}
+
+        slcr::RegisterBlock::unlocked(|slcr| {
+            slcr.init_postload_fpga();
+        });
     }
 }

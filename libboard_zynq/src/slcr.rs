@@ -50,13 +50,20 @@ pub enum DdriobOutputEn {
 #[repr(u8)]
 pub enum DdriobVrefSel {
     /// For LPDDR2 with 1.2V IO
-    Vref0_6V,
+    Vref0_6V = 0b0001,
     /// For DDR3L with 1.35V IO
-    Vref0_675V,
+    Vref0_675V = 0b0010,
     /// For DDR3 with 1.5V IO
-    Vref0_75V,
+    Vref0_75V = 0b0100,
     /// For DDR2 with 1.8V IO
-    Vref0_9V,
+    Vref0_9V = 0b1000,
+}
+
+#[repr(u8)]
+pub enum LevelShifterEnable {
+    DisableAll = 0x0,
+    EnablePsToPl = 0xA,
+    EnableAll = 0xF,
 }
 
 
@@ -130,7 +137,7 @@ pub struct RegisterBlock {
     pub smc_rst_ctrl: RW<u32>,
     pub ocm_rst_ctrl: RW<u32>,
     reserved4: [u32; 1],
-    pub fpga_rst_ctrl: RW<u32>,
+    pub fpga_rst_ctrl: FpgaRstCtrl,
     pub a9_cpu_rst_ctrl: A9CpuRstCtrl,
     reserved5: [u32; 1],
     pub rs_awdt_ctrl: RW<u32>,
@@ -219,7 +226,7 @@ pub struct RegisterBlock {
     pub sd0_wp_cd_sel: RW<u32>,
     pub sd1_wp_cd_sel: RW<u32>,
     reserved17: [u32; 50],
-    pub lvl_shftr_en: RW<u32>,
+    pub lvl_shftr_en: LvlShftr,
     reserved18: [u32; 3],
     pub ocm_cfg: RW<u32>,
     reserved19: [u32; 123],
@@ -263,6 +270,38 @@ impl RegisterBlock {
         self.pss_rst_ctrl.write(
             PssRstCtrl::zeroed()
                 .soft_rst(true)
+        );
+    }
+
+    pub fn init_preload_fpga(&mut self) {
+        // Assert FPGA top level output resets
+        self.fpga_rst_ctrl.write(
+            FpgaRstCtrl::zeroed()
+                .fpga0_out_rst(true)
+                .fpga1_out_rst(true)
+                .fpga2_out_rst(true)
+                .fpga3_out_rst(true)
+        );
+        // Disable level shifters
+        self.lvl_shftr_en.write(
+            LvlShftr::zeroed()
+        );
+        // Enable output level shifters
+        self.lvl_shftr_en.write(
+            LvlShftr::zeroed()
+                .user_lvl_shftr_en(LevelShifterEnable::EnablePsToPl)
+        );
+    }
+
+    pub fn init_postload_fpga(&mut self) {
+        // Enable level shifters
+        self.lvl_shftr_en.write(
+            LvlShftr::zeroed()
+                .user_lvl_shftr_en(LevelShifterEnable::EnableAll)
+        );
+        // Deassert AXI interface resets
+        self.fpga_rst_ctrl.write(
+            FpgaRstCtrl::zeroed()
         );
     }
 }
@@ -453,6 +492,12 @@ register!(lqspi_rst_ctrl, LqspiRstCtrl, RW, u32);
 register_bit!(lqspi_rst_ctrl, ref_rst, 1);
 register_bit!(lqspi_rst_ctrl, cpu1x_rst, 0);
 
+register!(fpga_rst_ctrl, FpgaRstCtrl, RW, u32);
+register_bit!(fpga_rst_ctrl, fpga0_out_rst, 0);
+register_bit!(fpga_rst_ctrl, fpga1_out_rst, 1);
+register_bit!(fpga_rst_ctrl, fpga2_out_rst, 2);
+register_bit!(fpga_rst_ctrl, fpga3_out_rst, 3);
+
 register!(a9_cpu_rst_ctrl, A9CpuRstCtrl, RW, u32);
 register_bit!(a9_cpu_rst_ctrl, peri_rst, 8);
 register_bit!(a9_cpu_rst_ctrl, a9_clkstop1, 5);
@@ -555,6 +600,9 @@ mio_pin_register!(mio_pin_50, MioPin50);
 mio_pin_register!(mio_pin_51, MioPin51);
 mio_pin_register!(mio_pin_52, MioPin52);
 mio_pin_register!(mio_pin_53, MioPin53);
+
+register!(lvl_shftr, LvlShftr, RW, u32);
+register_bits_typed!(lvl_shftr, user_lvl_shftr_en, u8, LevelShifterEnable, 0, 3);
 
 register!(gpiob_ctrl, GpiobCtrl, RW, u32);
 register_bit!(gpiob_ctrl, vref_en, 0);
