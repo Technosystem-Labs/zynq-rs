@@ -10,7 +10,7 @@ target_zc706 = ["libboard_zynq/target_zc706"]
 target_cora_z7_10 = ["libboard_zynq/target_cora_z7_10"]
 
 [dependencies]
-r0 = "0.2"
+r0 = "1"
 compiler_builtins = "0.1"
 linked_list_allocator = { version = "0.8", default-features = false }
 libregister = { path = "../libregister" }

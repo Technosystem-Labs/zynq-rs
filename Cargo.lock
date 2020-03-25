@@ -7,17 +7,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "bitflags"
-version = "1.1.0"
+version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "byteorder"
-version = "1.3.2"
+version = "1.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "compiler_builtins"
-version = "0.1.24"
+version = "0.1.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -38,7 +38,6 @@ dependencies = [
  "bit_field 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libcortex_a9 0.0.0",
  "libregister 0.0.0",
- "r0 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "smoltcp 0.5.0 (git+https://github.com/m-labs/smoltcp.git?rev=8eb01aca364aefe5f823d68d552d62c76c9be4a3)",
  "vcell 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "volatile-register 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -50,7 +49,6 @@ version = "0.0.0"
 dependencies = [
  "bit_field 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libregister 0.0.0",
- "r0 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "smoltcp 0.5.0 (git+https://github.com/m-labs/smoltcp.git?rev=8eb01aca364aefe5f823d68d552d62c76c9be4a3)",
  "vcell 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "volatile-register 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -69,12 +67,12 @@ dependencies = [
 name = "libsupport_zynq"
 version = "0.0.0"
 dependencies = [
- "compiler_builtins 0.1.24 (registry+https://github.com/rust-lang/crates.io-index)",
+ "compiler_builtins 0.1.26 (registry+https://github.com/rust-lang/crates.io-index)",
  "libboard_zynq 0.0.0",
  "libcortex_a9 0.0.0",
  "libregister 0.0.0",
  "linked_list_allocator 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "r0 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "r0 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "smoltcp 0.5.0 (git+https://github.com/m-labs/smoltcp.git?rev=8eb01aca364aefe5f823d68d552d62c76c9be4a3)",
 ]
 
@@ -90,7 +88,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "r0"
-version = "0.2.2"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -98,8 +96,8 @@ name = "smoltcp"
 version = "0.5.0"
 source = "git+https://github.com/m-labs/smoltcp.git?rev=8eb01aca364aefe5f823d68d552d62c76c9be4a3#8eb01aca364aefe5f823d68d552d62c76c9be4a3"
 dependencies = [
- "bitflags 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "byteorder 1.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "byteorder 1.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "managed 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -118,12 +116,12 @@ dependencies = [
 
 [metadata]
 "checksum bit_field 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a165d606cf084741d4ac3a28fb6e9b1eb0bd31f6cd999098cfddb0b2ab381dc0"
-"checksum bitflags 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3d155346769a6855b86399e9bc3814ab343cd3d62c7e985113d46a0ec3c281fd"
-"checksum byteorder 1.3.2 (registry+https://github.com/rust-lang/crates.io-index)" = "a7c3dd8985a7111efc5c80b44e23ecdd8c007de8ade3b96595387e812b957cf5"
-"checksum compiler_builtins 0.1.24 (registry+https://github.com/rust-lang/crates.io-index)" = "b9975aefa63997ef75ca9cf013ff1bb81487aaa0b622c21053afd3b92979a7af"
+"checksum bitflags 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
+"checksum byteorder 1.3.4 (registry+https://github.com/rust-lang/crates.io-index)" = "08c48aae112d48ed9f069b33538ea9e3e90aa263cfa3d1c24309612b1f7472de"
+"checksum compiler_builtins 0.1.26 (registry+https://github.com/rust-lang/crates.io-index)" = "036b035e9ebcd705affece16319223d19f229e2358be6e3b7b094e57193312e6"
 "checksum linked_list_allocator 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)" = "5825aea823c659d0fdcdbe8c9b78baf56f3a10365d783db874f6d360df72626f"
 "checksum managed 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)" = "fdcec5e97041c7f0f1c5b7d93f12e57293c831c646f4cc7a5db59460c7ea8de6"
-"checksum r0 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "e2a38df5b15c8d5c7e8654189744d8e396bddc18ad48041a500ce52d6948941f"
+"checksum r0 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "bd7a31eed1591dcbc95d92ad7161908e72f4677f8fabf2a32ca49b4237cbf211"
 "checksum smoltcp 0.5.0 (git+https://github.com/m-labs/smoltcp.git?rev=8eb01aca364aefe5f823d68d552d62c76c9be4a3)" = "<none>"
 "checksum vcell 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "876e32dcadfe563a4289e994f7cb391197f362b6315dc45e8ba4aa6f564a4b3c"
 "checksum volatile-register 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0d67cb4616d99b940db1d6bd28844ff97108b498a6ca850e5b6191a532063286"

@@ -10,7 +10,6 @@ target_cora_z7_10 = []
 default = ["target_zc706"]
 
 [dependencies]
-r0 = "0.2"
 vcell = "0.1"
 volatile-register = "0.2"
 bit_field = "0.10"
