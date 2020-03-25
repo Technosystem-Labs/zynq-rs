@@ -16,7 +16,6 @@ libregister = { path = "../libregister" }
 libcortex_a9 = { path = "../libcortex_a9" }
 
 [dependencies.smoltcp]
-git = "https://github.com/m-labs/smoltcp.git"
-rev = "8eb01aca364aefe5f823d68d552d62c76c9be4a3"
+version = "0.6"
 features = ["ethernet", "proto-ipv4", "socket-tcp"]
 default-features = false
