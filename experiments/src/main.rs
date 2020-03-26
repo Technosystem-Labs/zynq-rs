@@ -18,6 +18,7 @@ use libsupport_zynq::{
     ram, alloc::{vec, vec::Vec},
     boot,
 };
+use libasync::task;
 
 const HWADDR: [u8; 6] = [0, 0x23, 0xde, 0xea, 0xbe, 0xef];
 
@@ -99,6 +100,26 @@ pub fn main_core0() {
 
         flash = flash_io.stop();
     }
+
+    task::spawn(async {
+        println!("outer task");
+    });
+    task::spawn(async {
+        for i in 1..=3 {
+            println!("outer task2: {}", i);
+            task::r#yield().await;
+        }
+    });
+    task::block_on(async {
+        task::spawn(async {
+            println!("inner task");
+        });
+
+        for i in 1..=10 {
+            println!("yield {}", i);
+            task::r#yield().await;
+        }
+    });
 
     let core1_stack = unsafe { &mut STACK_CORE1[..] };
     println!("{} bytes stack for core1", core1_stack.len());

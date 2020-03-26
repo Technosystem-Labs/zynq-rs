@@ -2,6 +2,7 @@
 members = [
   "libregister", "libcortex_a9",
   "libboard_zynq", "libsupport_zynq",
+  "libasync",
   "experiments",
 ]
 

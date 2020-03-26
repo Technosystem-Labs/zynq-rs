@@ -24,10 +24,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "experiments"
 version = "0.0.0"
 dependencies = [
+ "libasync 0.0.0",
  "libboard_zynq 0.0.0",
  "libcortex_a9 0.0.0",
  "libregister 0.0.0",
  "libsupport_zynq 0.0.0",
+]
+
+[[package]]
+name = "libasync"
+version = "0.0.0"
+dependencies = [
+ "libboard_zynq 0.0.0",
+ "libcortex_a9 0.0.0",
+ "pin-utils 0.1.0-alpha.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -81,6 +91,11 @@ version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "pin-utils"
+version = "0.1.0-alpha.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "r0"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -115,6 +130,7 @@ dependencies = [
 "checksum compiler_builtins 0.1.26 (registry+https://github.com/rust-lang/crates.io-index)" = "036b035e9ebcd705affece16319223d19f229e2358be6e3b7b094e57193312e6"
 "checksum linked_list_allocator 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)" = "5825aea823c659d0fdcdbe8c9b78baf56f3a10365d783db874f6d360df72626f"
 "checksum managed 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)" = "fdcec5e97041c7f0f1c5b7d93f12e57293c831c646f4cc7a5db59460c7ea8de6"
+"checksum pin-utils 0.1.0-alpha.4 (registry+https://github.com/rust-lang/crates.io-index)" = "5894c618ce612a3fa23881b152b608bafb8c56cfc22f434a3ba3120b40f7b587"
 "checksum r0 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "bd7a31eed1591dcbc95d92ad7161908e72f4677f8fabf2a32ca49b4237cbf211"
 "checksum smoltcp 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0fe46639fd2ec79eadf8fe719f237a7a0bd4dac5d957f1ca5bbdbc1c3c39e53a"
 "checksum vcell 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "876e32dcadfe563a4289e994f7cb391197f362b6315dc45e8ba4aa6f564a4b3c"
