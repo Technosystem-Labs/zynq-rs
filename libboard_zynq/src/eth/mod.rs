@@ -1,3 +1,4 @@
+use core::ops::{Deref, DerefMut};
 use libregister::*;
 use crate::println;
 use super::slcr;
@@ -17,6 +18,29 @@ const TX_10: u32 = 10_000_000;
 const TX_100: u32 = 25_000_000;
 /// Clock for GbE
 const TX_1000: u32 = 125_000_000;
+
+#[derive(Clone)]
+#[repr(C, align(0x08))]
+pub struct Buffer(pub [u8; MTU]);
+
+impl Buffer {
+    pub fn new() -> Self {
+        Buffer([0; MTU])
+    }
+}
+
+impl Deref for Buffer {
+    type Target = [u8];
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Buffer {
+    fn deref_mut(&mut self) -> &mut <Self as Deref>::Target {
+        &mut self.0
+    }
+}
 
 pub struct Eth<'r, RX, TX> {
     rx: RX,
@@ -239,7 +263,7 @@ impl<'r, RX, TX> Eth<'r, RX, TX> {
         });
     }
 
-    pub fn start_rx<'rx>(self, rx_list: &'rx mut [rx::DescEntry], rx_buffers: &'rx mut [[u8; MTU]]) -> Eth<'r, rx::DescList<'rx>, TX> {
+    pub fn start_rx<'rx>(self, rx_list: &'rx mut [rx::DescEntry], rx_buffers: &'rx mut [Buffer]) -> Eth<'r, rx::DescList<'rx>, TX> {
         let new_self = Eth {
             rx: rx::DescList::new(rx_list, rx_buffers),
             tx: self.tx,
@@ -258,7 +282,7 @@ impl<'r, RX, TX> Eth<'r, RX, TX> {
         new_self
     }
 
-    pub fn start_tx<'tx>(self, tx_list: &'tx mut [tx::DescEntry], tx_buffers: &'tx mut [[u8; MTU]]) -> Eth<'r, RX, tx::DescList<'tx>> {
+    pub fn start_tx<'tx>(self, tx_list: &'tx mut [tx::DescEntry], tx_buffers: &'tx mut [Buffer]) -> Eth<'r, RX, tx::DescList<'tx>> {
         let new_self = Eth {
             rx: self.rx,
             tx: tx::DescList::new(tx_list, tx_buffers),

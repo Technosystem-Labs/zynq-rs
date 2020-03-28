@@ -1,6 +1,6 @@
 use core::ops::Deref;
 use libregister::*;
-use super::MTU;
+use super::Buffer;
 
 #[derive(Debug)]
 pub enum Error {
@@ -55,16 +55,16 @@ register_bit!(desc_word1, global_broadcast, 31);
 #[repr(C)]
 pub struct DescList<'a> {
     list: &'a mut [DescEntry],
-    buffers: &'a mut [[u8; MTU]],
+    buffers: &'a mut [Buffer],
     next: usize,
 }
 
 impl<'a> DescList<'a> {
-    pub fn new(list: &'a mut [DescEntry], buffers: &'a mut [[u8; MTU]]) -> Self {
+    pub fn new(list: &'a mut [DescEntry], buffers: &'a mut [Buffer]) -> Self {
         let last = list.len().min(buffers.len()) - 1;
         for (i, (entry, buffer)) in list.iter_mut().zip(buffers.iter_mut()).enumerate() {
             let is_last = i == last;
-            let buffer_addr = &mut buffer[0] as *mut _ as u32;
+            let buffer_addr = &mut buffer.0[0] as *mut _ as u32;
             assert!(buffer_addr & 0b11 == 0);
             entry.word0.write(
                 DescWord0::zeroed()

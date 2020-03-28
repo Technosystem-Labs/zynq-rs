@@ -1,6 +1,6 @@
 use core::ops::{Deref, DerefMut};
 use libregister::*;
-use super::{MTU, regs};
+use super::{Buffer, regs};
 
 /// Descriptor entry
 #[repr(C, align(0x08))]
@@ -42,12 +42,12 @@ pub const DESCS: usize = 8;
 #[repr(C)]
 pub struct DescList<'a> {
     list: &'a mut [DescEntry],
-    buffers: &'a mut [[u8; MTU]],
+    buffers: &'a mut [Buffer],
     next: usize,
 }
 
 impl<'a> DescList<'a> {
-    pub fn new(list: &'a mut [DescEntry], buffers: &'a mut [[u8; MTU]]) -> Self {
+    pub fn new(list: &'a mut [DescEntry], buffers: &'a mut [Buffer]) -> Self {
         let last = list.len().min(buffers.len()) - 1;
         // Sending seems to not work properly with only one packet
         // buffer (two duplicates get send with every packet), so
@@ -57,7 +57,7 @@ impl<'a> DescList<'a> {
 
         for (i, (entry, buffer)) in list.iter_mut().zip(buffers.iter_mut()).enumerate() {
             let is_last = i == last;
-            let buffer_addr = &mut buffer[0] as *mut _ as u32;
+            let buffer_addr = &mut buffer.0[0] as *mut _ as u32;
             assert!(buffer_addr & 0b11 == 0);
             entry.word0.write(
                 DescWord0::zeroed()
