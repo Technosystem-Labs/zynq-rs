@@ -11,3 +11,8 @@ pin-utils = "0.1.0-alpha.4"
 libcortex_a9 = { path = "../libcortex_a9" }
 # TODO: delete
 libboard_zynq = { path = "../libboard_zynq" }
+
+[dependencies.smoltcp]
+version = "0.6"
+default-features = false
+features = ["alloc"]

@@ -1,14 +1,17 @@
 #![no_std]
 #![no_main]
 
+extern crate alloc;
+
 use core::mem::transmute;
+use alloc::collections::BTreeMap;
 use libcortex_a9::mutex::Mutex;
 use libboard_zynq::{
     print, println,
     self as zynq, clocks::Clocks, clocks::source::{ClockSource, ArmPll, IoPll},
     smoltcp::{
         wire::{EthernetAddress, IpAddress, IpCidr},
-        iface::{NeighborCache, EthernetInterfaceBuilder},
+        iface::{NeighborCache, EthernetInterfaceBuilder, Routes},
         time::Instant,
         socket::SocketSet,
         socket::{TcpSocket, TcpSocketBuffer},
@@ -18,7 +21,7 @@ use libsupport_zynq::{
     ram, alloc::{vec, vec::Vec},
     boot,
 };
-use libasync::task;
+use libasync::{smoltcp::{Sockets, TcpStream}, task};
 
 const HWADDR: [u8; 6] = [0, 0x23, 0xde, 0xea, 0xbe, 0xef];
 
@@ -152,78 +155,94 @@ pub fn main_core0() {
     let mut rx_descs = (0..RX_LEN)
         .map(|_| zynq::eth::rx::DescEntry::zeroed())
         .collect::<Vec<_>>();
-    let mut rx_buffers = vec![[0u8; zynq::eth::MTU]; RX_LEN];
+    let mut rx_buffers = vec![zynq::eth::Buffer::new(); RX_LEN];
     // Number of transmission buffers (minimum is two because with
     // one, duplicate packet transmission occurs)
     const TX_LEN: usize = 8;
     let mut tx_descs = (0..TX_LEN)
         .map(|_| zynq::eth::tx::DescEntry::zeroed())
         .collect::<Vec<_>>();
-    let mut tx_buffers = vec![[0u8; zynq::eth::MTU]; TX_LEN];
+    let mut tx_buffers = vec![zynq::eth::Buffer::new(); TX_LEN];
     let eth = eth.start_rx(&mut rx_descs, &mut rx_buffers);
-    //let mut eth = eth.start_tx(&mut tx_descs, &mut tx_buffers);
+    // let mut eth = eth.start_tx(&mut tx_descs, &mut tx_buffers);
     let mut eth = eth.start_tx(
         // HACK
         unsafe { transmute(tx_descs.as_mut_slice()) },
         unsafe { transmute(tx_buffers.as_mut_slice()) },
     );
+    // loop {
+    //     match eth.recv_next() {
+    //         Ok(None) => {},
+    //         Ok(Some(pkt)) => println!("received {} bytes", pkt.len()),
+    //         Err(e) => println!("e: {:?}", e),
+    //     }
+    // }
 
+    println!("iface...");
     let ethernet_addr = EthernetAddress(HWADDR);
     // IP stack
     let local_addr = IpAddress::v4(192, 168, 1, 51);
     let mut ip_addrs = [IpCidr::new(local_addr, 24)];
+    let mut routes_storage = vec![None; 4];
+    let routes = Routes::new(/*BTreeMap::new()*/ &mut routes_storage[..]);
     let mut neighbor_storage = vec![None; 256];
     let neighbor_cache = NeighborCache::new(&mut neighbor_storage[..]);
     let mut iface = EthernetInterfaceBuilder::new(&mut eth)
         .ethernet_addr(ethernet_addr)
         .ip_addrs(&mut ip_addrs[..])
+        .routes(routes)
         .neighbor_cache(neighbor_cache)
         .finalize();
-    let mut sockets_storage = [
-        None, None, None, None,
-        None, None, None, None
-    ];
-    let mut sockets = SocketSet::new(&mut sockets_storage[..]);
 
-    // taken from example code for smoltcp
-    let mut tcp_server_rx_data = vec![0; 512 * 1024];
-    let mut tcp_server_tx_data = vec![0; 512 * 1024];
-    let tcp_rx_buffer = TcpSocketBuffer::new(&mut tcp_server_rx_data[..]);
-    let tcp_tx_buffer = TcpSocketBuffer::new(&mut tcp_server_tx_data[..]);
-    let tcp_socket = TcpSocket::new(tcp_rx_buffer, tcp_tx_buffer);
-    let tcp_handle = sockets.add(tcp_socket);
+    // TODO: compare with ps7_init
+    
+    println!("Sockets init...");
+    Sockets::init(32);
     /// `chargen`
     const TCP_PORT: u16 = 19;
-
-    let mut time = 0u32;
-    loop {
-        time += 1;
-        let timestamp = Instant::from_millis(time);
-
-        match iface.poll(&mut sockets, timestamp) {
-            Ok(_) => {},
-            Err(e) => {
-                println!("poll error: {}", e);
-            }
+    task::spawn(async {
+        println!("listening");
+        while let socket = TcpStream::listen(TCP_PORT, 2048, 2048).await {
+            println!("got connection");
+            task::spawn(async {
+                println!("spawned for connection");
+                // while l
+                drop(socket);
+            });
         }
+        println!("done?");
+    });
 
-        // (mostly) taken from smoltcp example: TCP echo server
-        let mut socket = sockets.get::<TcpSocket>(tcp_handle);
-        if !socket.is_open() {
-            socket.listen(TCP_PORT).unwrap()
-        }
-        if socket.may_recv() && socket.can_send() {
-            socket.recv(|buf| {
-                let len = buf.len().min(4096);
-                let buffer = buf[..len].iter().cloned().collect::<Vec<_>>();
-                (len, buffer)
-            })
-                .and_then(|buffer| socket.send_slice(&buffer[..]))
-                .map(|_| {})
-                .unwrap_or_else(|e| println!("tcp: {:?}", e));
+    Sockets::run(&mut iface);
+    // let mut time = 0u32;
+    // loop {
+    //     time += 1;
+    //     let timestamp = Instant::from_millis(time);
 
-        }
-    }
+    //     match iface.poll(&mut sockets, timestamp) {
+    //         Ok(_) => {},
+    //         Err(e) => {
+    //             println!("poll error: {}", e);
+    //         }
+    //     }
+
+    //     // (mostly) taken from smoltcp example: TCP echo server
+    //     let mut socket = sockets.get::<TcpSocket>(tcp_handle);
+    //     if !socket.is_open() {
+    //         socket.listen(TCP_PORT).unwrap()
+    //     }
+    //     if socket.may_recv() && socket.can_send() {
+    //         socket.recv(|buf| {
+    //             let len = buf.len().min(4096);
+    //             let buffer = buf[..len].iter().cloned().collect::<Vec<_>>();
+    //             (len, buffer)
+    //         })
+    //             .and_then(|buffer| socket.send_slice(&buffer[..]))
+    //             .map(|_| {})
+    //             .unwrap_or_else(|e| println!("tcp: {:?}", e));
+
+    //     }
+    // }
 
     // #[allow(unreachable_code)]
     // drop(tx_descs);

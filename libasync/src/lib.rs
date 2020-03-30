@@ -4,3 +4,5 @@ extern crate alloc;
 
 pub mod task;
 pub mod executor;
+
+pub mod smoltcp;
