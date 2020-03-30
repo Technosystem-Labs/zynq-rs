@@ -137,7 +137,7 @@ impl L1Table {
                 domain: 0b1111,
                 exec: true,
                 cacheable: true,
-                bufferable: true,
+                bufferable: false,
             });
         }
         /* (unassigned/reserved). */
