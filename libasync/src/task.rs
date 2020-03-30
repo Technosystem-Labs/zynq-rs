@@ -17,10 +17,7 @@ pub fn block_on<T>(f: impl Future<Output = T>) -> T {
 /// Spawns a task onto the executor
 ///
 /// The spawned task will not make any progress until `block_on` is called.
-///
-/// The future `f` must never terminate. The program will *abort* if `f` (the async code) returns.
-/// The right signature here would be `f: impl Future<Output = !>` but that requires nightly
-pub fn spawn<T>(f: impl Future<Output = T> + 'static) {
+pub fn spawn(f: impl Future + 'static) {
     executor::current().spawn(f)
 }
 
