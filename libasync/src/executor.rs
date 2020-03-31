@@ -9,8 +9,6 @@ use core::{
 use alloc::{boxed::Box, collections::VecDeque as Deque};
 //use futures::future::FutureExt;
 use pin_utils::pin_mut;
-// TODO: delete
-//use libboard_zynq::println;
 
 // NOTE `*const ()` is &AtomicBool
 static VTABLE: RawWakerVTable = {

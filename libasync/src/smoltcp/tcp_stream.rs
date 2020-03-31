@@ -1,30 +1,52 @@
+//! async TCP interface
+//!
+//! TODO: implement futures AsyncRead/AsyncWrite/Stream/Sink interfaces
+
 use core::{
-    cell::{RefCell, UnsafeCell},
     future::Future,
-    mem::MaybeUninit,
     pin::Pin,
-    sync::atomic::{AtomicBool, Ordering},
     task::{Context, Poll},
 };
 use alloc::vec;
 use smoltcp::{
-    iface::EthernetInterface,
-    phy::Device,
     socket::{
-        SocketSet, SocketHandle, SocketRef,
+        SocketHandle, SocketRef,
         TcpSocketBuffer, TcpSocket,
     },
-    time::Instant,
 };
-use libboard_zynq::println;
 use super::Sockets;
 
+/// References a smoltcp TcpSocket
 pub struct TcpStream {
     handle: SocketHandle,
 }
 
+/// Wait while polling a stream
+macro_rules! poll_stream {
+    ($stream: expr, $output: ty, $f: expr) => (async {
+        struct Adhoc<'a> {
+            stream: &'a TcpStream,
+        }
+
+        impl<'a> Future for Adhoc<'a> {
+            type Output = $output;
+
+            fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+                let result = self.stream.with_socket($f);
+                if !result.is_ready() {
+                    Sockets::register_waker(cx.waker().clone());
+                }
+                result
+            }
+        }
+
+        Adhoc { stream: $stream }.await
+    })
+}
+
 impl TcpStream {
     fn new(rx_bufsize: usize, tx_bufsize: usize) -> Self {
+        // TODO: Uninitialized is faster than zeroed
         let rx_buffer = TcpSocketBuffer::new(vec![0u8; rx_bufsize]);
         let tx_buffer = TcpSocketBuffer::new(vec![0u8; tx_bufsize]);
         let socket = TcpSocket::new(rx_buffer, tx_buffer);
@@ -33,16 +55,18 @@ impl TcpStream {
         TcpStream { handle }
     }
 
+    /// Operate on the referenced TCP socket
     fn with_socket<F, R>(&self, f: F) -> R
     where
         F: FnOnce(SocketRef<TcpSocket>) -> R,
     {
-        println!("with_socket");
         let mut sockets = Sockets::instance().sockets.borrow_mut();
         let socket_ref = sockets.get::<TcpSocket>(self.handle);
         f(socket_ref)
     }
 
+    /// Listen for the next incoming connection on a TCP
+    /// port. Succeeds on connection attempt.
     pub async fn listen(port: u16, rx_bufsize: usize, tx_bufsize: usize) -> Self {
         struct Accept {
             stream: Option<TcpStream>,
@@ -55,11 +79,9 @@ impl TcpStream {
                 let is_active = self.stream.as_ref()
                     .map(|s| s.with_socket(|s| s.is_active()))
                     .unwrap_or(true);
-                println!("is_active={:?}", is_active);
                 if is_active {
                     Poll::Ready(self.stream.take().unwrap())
                 } else {
-                    println!("register_waker");
                     Sockets::register_waker(cx.waker().clone());
 
                     //asm::sev();
@@ -70,21 +92,112 @@ impl TcpStream {
 
         let stream = Self::new(rx_bufsize, tx_bufsize);
         stream.with_socket(|mut s| s.listen(port)).expect("listen");
-        println!("listening on {}", port);
         Accept {
             stream: Some(stream),
         }.await
     }
 
-    pub async fn recv(&self) {
-        // self.socket();
+    /// Probe the receive buffer
+    ///
+    /// Instead of handing you the data on the heap all at once,
+    /// smoltcp's read interface is wrapped so that your callback can
+    /// just return `Poll::Pending` if there is not enough data
+    /// yet. Likewise, return the amount of bytes consumed from the
+    /// buffer in the `Poll::Ready` result.
+    pub async fn recv<F, R>(&self, f: F) -> smoltcp::Result<R>
+    where
+        F: Fn(&[u8]) -> Poll<(usize, R)>,
+    {
+        struct Recv<'a, F: FnOnce(&[u8]) -> Poll<(usize, R)>, R> {
+            stream: &'a TcpStream,
+            f: F,
+        }
+
+        impl<'a, F: Fn(&[u8]) -> Poll<(usize, R)>, R> Future for Recv<'a, F, R> {
+            type Output = smoltcp::Result<R>;
+
+            fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+                let result = self.stream.with_socket(|mut socket| {
+                    socket.recv(|buf| match (self.f)(buf) {
+                        Poll::Ready((amount, result)) => (amount, Poll::Ready(Ok(result))),
+                        Poll::Pending => (0, Poll::Pending),
+                    })
+                });
+                match result {
+                    Ok(result) => {
+                        if !result.is_ready() {
+                            Sockets::register_waker(cx.waker().clone());
+                        }
+                        result
+                    }
+                    Err(e) =>
+                        Poll::Ready(Err(e)),
+                }
+            }
+        }
+
+        Recv {
+            stream: self,
+            f,
+        }.await
+    }
+
+    /// Wait until there is any space in the socket's send queue
+    async fn wait_can_send(&self) -> smoltcp::Result<()> {
+        poll_stream!(self, smoltcp::Result<()>, |socket| {
+            if !socket.is_active() {
+                Poll::Ready(Err(smoltcp::Error::Illegal))
+            } else if socket.can_send() {
+                Poll::Ready(Ok(()))
+            } else {
+                Poll::Pending
+            }
+        }).await
+    }
+
+    /// Yields to wait for more buffer space
+    pub async fn send<I: IntoIterator<Item = u8>>(&self, data: I) -> Result<(), smoltcp::Error> {
+        let mut data = data.into_iter();
+        let mut done = false;
+        while !done {
+            self.wait_can_send().await?;
+
+            self.with_socket(|mut socket| {
+                socket.send(|buf| {
+                    for i in 0..buf.len() {
+                        if let Some(byte) = data.next() {
+                            buf[i] = byte;
+                        } else {
+                            done = true;
+                            return (i, ())
+                        }
+                    }
+                    (buf.len(), ())
+                })
+            })?;
+        }
+
+        Ok(())
+    }
+
+    /// Wait for all queued data to be sent and ACKed
+    ///
+    /// **Warning:** this may not work as immediately as expected! The
+    /// other side may wait until it sends packets to you for
+    /// piggybacking the ACKs.
+    pub async fn flush(&self) {
+        poll_stream!(self, (), |socket| {
+            if socket.may_send() && socket.send_queue() > 0 {
+                Poll::Pending
+            } else {
+                Poll::Ready(())
+            }
+        }).await
     }
 }
 
 impl Drop for TcpStream {
     fn drop(&mut self) {
-        // TODO: verify
-        println!("tcpstream drop");
         Sockets::instance().sockets.borrow_mut()
             .remove(self.handle);
     }

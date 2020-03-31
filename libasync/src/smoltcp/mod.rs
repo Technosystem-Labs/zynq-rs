@@ -2,17 +2,13 @@ use core::{
     cell::RefCell,
     task::Waker,
 };
-use alloc::{vec, vec::Vec};
+use alloc::vec::Vec;
 use smoltcp::{
     iface::EthernetInterface,
     phy::Device,
-    socket::{
-        SocketSet, SocketHandle,
-        TcpSocketBuffer, TcpSocket,
-    },
+    socket::SocketSet,
     time::Instant,
 };
-use libboard_zynq::println;
 use crate::task;
 
 mod tcp_stream;
@@ -27,7 +23,6 @@ pub struct Sockets {
 
 impl Sockets {
     pub fn init(max_sockets: usize) {
-        println!("initializing {} sockets", max_sockets);
         let mut sockets_storage = Vec::with_capacity(max_sockets);
         for _ in 0..max_sockets {
             sockets_storage.push(None);
@@ -40,7 +35,6 @@ impl Sockets {
             sockets,
             wakers,
         };
-        println!("sockets initialized");
         unsafe { SOCKETS = Some(instance); }
     }
 
@@ -64,16 +58,13 @@ impl Sockets {
         let instant = Instant::from_millis(0);
         let processed = {
             let mut sockets = self.sockets.borrow_mut();
-            let r = iface.poll(&mut sockets, instant);
-            if r != Ok(false) { println!("poll: {:?}", r); }
-            match r {
+            match iface.poll(&mut sockets, instant) {
                 Ok(processed) => processed,
                 Err(_) => true,
             }
         };
         if processed {
             let mut wakers = self.wakers.borrow_mut();
-            println!("wakeup of {}", wakers.len());
             for waker in wakers.drain(..) {
                 waker.wake();
             }
@@ -83,7 +74,6 @@ impl Sockets {
     /// TODO: this was called through eg. TcpStream, another poll()
     /// might want to send packets before sleeping for an interrupt.
     pub(crate) fn register_waker(waker: Waker) {
-        println!("register_waker");
         Self::instance().wakers.borrow_mut()
             .push(waker);
     }

@@ -3,13 +3,14 @@
 
 extern crate alloc;
 
-use core::mem::transmute;
-use alloc::collections::BTreeMap;
+use core::{mem::transmute, task::Poll};
+use alloc::{borrow::ToOwned, collections::BTreeMap, format};
 use libcortex_a9::mutex::Mutex;
 use libboard_zynq::{
     print, println,
     self as zynq, clocks::Clocks, clocks::source::{ClockSource, ArmPll, IoPll},
     smoltcp::{
+        self,
         wire::{EthernetAddress, IpAddress, IpCidr},
         iface::{NeighborCache, EthernetInterfaceBuilder, Routes},
         time::Instant,
@@ -199,18 +200,46 @@ pub fn main_core0() {
 
     // TODO: compare with ps7_init
     
-    println!("Sockets init...");
     Sockets::init(32);
     /// `chargen`
     const TCP_PORT: u16 = 19;
+    async fn handle_connection(socket: TcpStream) -> smoltcp::Result<()> {
+        socket.send("Enter your name: ".bytes()).await?;
+        let name = socket.recv(|buf| {
+            if buf.len() > 100 {
+                // Too much input, consume all
+                Poll::Ready((buf.len(), None))
+            } else {
+                for (i, b) in buf.iter().enumerate() {
+                    if *b == '\n' as u8 {
+                        return match core::str::from_utf8(&buf[0..i]) {
+                            Ok(name) =>
+                                Poll::Ready((i + 1, Some(name.to_owned()))),
+                            Err(_) =>
+                                Poll::Ready((i + 1, None))
+                        };
+                    }
+                }
+                Poll::Pending
+            }
+        }).await?;
+        match name {
+            Some(name) =>
+                socket.send(format!("Hello {}!\n", name).bytes()).await?,
+            None =>
+                socket.send("I had trouble reading your name.\n".bytes()).await?,
+        }
+        socket.flush().await;
+        Ok(())
+    }
+
     task::spawn(async {
         println!("listening");
         while let socket = TcpStream::listen(TCP_PORT, 2048, 2048).await {
-            println!("got connection");
             task::spawn(async {
-                println!("spawned for connection");
-                // while l
-                drop(socket);
+                handle_connection(socket)
+                    .await
+                    .map_err(|e| println!("Connection: {:?}", e));
             });
         }
         println!("done?");
