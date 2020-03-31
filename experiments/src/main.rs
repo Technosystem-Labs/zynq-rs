@@ -44,8 +44,11 @@ pub fn main_core0() {
     println!("Setup clock sources...");
     ArmPll::setup(2 * CPU_FREQ);
     Clocks::set_cpu_freq(CPU_FREQ);
-    IoPll::setup(700_000_000);
-    libboard_zynq::stdio::drop_uart();
+    #[cfg(feature = "target_zc706")]
+    {
+        IoPll::setup(1_000_000_000);
+        libboard_zynq::stdio::drop_uart();
+    }
     println!("PLLs set up");
     let clocks = zynq::clocks::Clocks::get();
     println!("CPU Clocks: {}/{}/{}/{}", clocks.cpu_6x4x(), clocks.cpu_3x2x(), clocks.cpu_2x(), clocks.cpu_1x());
