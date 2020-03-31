@@ -30,6 +30,12 @@ static VTABLE: RawWakerVTable = {
     RawWakerVTable::new(clone, wake, wake_by_ref, drop)
 };
 
+/// ready should not move as long as this waker references it. That is
+/// the reason for keeping Tasks in a pinned box.
+fn wrap_waker(ready: &AtomicBool) -> Waker {
+    unsafe { Waker::from_raw(RawWaker::new(ready as *const _ as *const _, &VTABLE)) }
+}
+
 /// A single-threaded executor
 ///
 /// This is a singleton
@@ -67,8 +73,7 @@ impl Executor {
 
         pin_mut!(f);
         let ready = AtomicBool::new(true);
-        let waker =
-            unsafe { Waker::from_raw(RawWaker::new(&ready as *const _ as *const _, &VTABLE)) };
+        let waker = wrap_waker(&ready);
         let val = loop {
             // advance the main task
             if ready.load(Ordering::Relaxed) {
@@ -94,14 +99,8 @@ impl Executor {
                     // we are about to service the task so switch the `ready` flag to `false`
                     task.ready.store(false, Ordering::Relaxed);
 
-                    // NOTE we never deallocate tasks so `&ready` is always pointing to
-                    // allocated memory (`&'static AtomicBool`)
-                    let waker = unsafe {
-                        Waker::from_raw(RawWaker::new(&task.ready as *const _ as *const _, &VTABLE))
-                    };
+                    let waker = wrap_waker(&task.ready);
                     let mut cx = Context::from_waker(&waker);
-                    // this points into a `static` memory so it's already pinned
-                    // println!("run task");
                     let ready = task.f.as_mut().poll(&mut cx).is_ready();
                     if ready {
                         // Task is finished, do not requeue
