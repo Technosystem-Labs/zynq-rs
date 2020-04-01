@@ -47,9 +47,15 @@ macro_rules! poll_stream {
 
 impl TcpStream {
     fn new(rx_bufsize: usize, tx_bufsize: usize) -> Self {
-        // TODO: Uninitialized is faster than zeroed
-        let rx_buffer = TcpSocketBuffer::new(vec![0u8; rx_bufsize]);
-        let tx_buffer = TcpSocketBuffer::new(vec![0u8; tx_bufsize]);
+        fn uninit_vec<T>(size: usize) -> Vec<T> {
+            let mut result = Vec::with_capacity(size);
+            unsafe {
+                result.set_len(size);
+            }
+            result
+        }
+        let rx_buffer = TcpSocketBuffer::new(uninit_vec(rx_bufsize));
+        let tx_buffer = TcpSocketBuffer::new(uninit_vec(tx_bufsize));
         let socket = TcpSocket::new(rx_buffer, tx_buffer);
         let handle = Sockets::instance().sockets.borrow_mut()
             .add(socket);
