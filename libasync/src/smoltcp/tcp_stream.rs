@@ -7,7 +7,7 @@ use core::{
     pin::Pin,
     task::{Context, Poll},
 };
-use alloc::{boxed::Box, vec, vec::Vec};
+use alloc::vec::Vec;
 use smoltcp::{
     socket::{
         SocketHandle, SocketRef,
@@ -22,7 +22,7 @@ pub struct TcpStream {
     handle: SocketHandle,
 }
 
-/// Wait while polling a stream
+/// Wait while letting `$f()` poll a stream's socket
 macro_rules! poll_stream {
     ($stream: expr, $output: ty, $f: expr) => (async {
         struct Adhoc<'a> {
@@ -46,6 +46,11 @@ macro_rules! poll_stream {
 }
 
 impl TcpStream {
+    /// Allocates sockets and its buffers, registers it in the
+    /// SocketSet.
+    ///
+    /// Not `pub` as the result can not yet be used. Use `listen()` or
+    /// `connect()` to obtain a valid TcpStream.
     fn new(rx_bufsize: usize, tx_bufsize: usize) -> Self {
         fn uninit_vec<T>(size: usize) -> Vec<T> {
             let mut result = Vec::with_capacity(size);
@@ -100,7 +105,10 @@ impl TcpStream {
     /// `listen()` with a backlog instead.
     pub async fn accept(port: u16, rx_bufsize: usize, tx_bufsize: usize) -> Self {
         let stream = Self::new(rx_bufsize, tx_bufsize);
-        stream.with_socket(|mut s| s.listen(port)).expect("listen");
+        // Set socket to listen
+        stream.with_socket(|mut s| s.listen(port))
+            .expect("listen");
+        // Wait for a connection
         poll_stream!(&stream, (), |socket| {
             if socket.is_active() {
                 Poll::Ready(())
@@ -133,8 +141,11 @@ impl TcpStream {
             fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
                 let result = self.stream.with_socket(|mut socket| {
                     socket.recv(|buf| match (self.f)(buf) {
-                        Poll::Ready((amount, result)) => (amount, Poll::Ready(Ok(result))),
-                        Poll::Pending => (0, Poll::Pending),
+                        Poll::Ready((amount, result)) =>
+                            (amount, Poll::Ready(Ok(result))),
+                        Poll::Pending =>
+                            // 0 bytes consumed
+                            (0, Poll::Pending),
                     })
                 });
                 match result {
@@ -211,6 +222,8 @@ impl TcpStream {
 }
 
 impl Drop for TcpStream {
+    /// Free item in the socket set, which leads to deallocation of
+    /// the rx/tx buffers associated with this socket.
     fn drop(&mut self) {
         Sockets::instance().sockets.borrow_mut()
             .remove(self.handle);
