@@ -7,13 +7,14 @@ use core::{
     pin::Pin,
     task::{Context, Poll},
 };
-use alloc::vec;
+use alloc::{boxed::Box, vec, vec::Vec};
 use smoltcp::{
     socket::{
         SocketHandle, SocketRef,
         TcpSocketBuffer, TcpSocket,
     },
 };
+use crate::task;
 use super::Sockets;
 
 /// References a smoltcp TcpSocket
@@ -65,9 +66,33 @@ impl TcpStream {
         f(socket_ref)
     }
 
+    /// Spawns `backlog` tasks with listening sockets so that more
+    /// connections can be accepted while some are still
+    /// handshaking. Spawns additional tasks for each connection.
+    pub fn listen<F, R, T>(port: u16, rx_bufsize: usize, tx_bufsize: usize, backlog: usize, f: F)
+    where
+        F: Fn(Self) -> R + Copy + 'static,
+        R: Future<Output = T> + 'static,
+    {
+        for _ in 0..backlog {
+            task::spawn(async move {
+                loop {
+                    // Wait for new connection
+                    let stream = TcpStream::accept(port, rx_bufsize, tx_bufsize).await;
+                    // Spawn async task for new connection
+                    task::spawn(f(stream));
+                }
+            });
+        }
+    }
+
     /// Listen for the next incoming connection on a TCP
     /// port. Succeeds on connection attempt.
-    pub async fn listen(port: u16, rx_bufsize: usize, tx_bufsize: usize) -> Self {
+    ///
+    /// Calling this serially in a loop will cause slow/botched
+    /// connection attempts stall any more new connections. Use
+    /// `listen()` with a backlog instead.
+    pub async fn accept(port: u16, rx_bufsize: usize, tx_bufsize: usize) -> Self {
         struct Accept {
             stream: Option<TcpStream>,
         }

@@ -203,46 +203,40 @@ pub fn main_core0() {
     Sockets::init(32);
     /// `chargen`
     const TCP_PORT: u16 = 19;
-    async fn handle_connection(socket: TcpStream) -> smoltcp::Result<()> {
-        socket.send("Enter your name: ".bytes()).await?;
-        let name = socket.recv(|buf| {
+    async fn handle_connection(stream: TcpStream) -> smoltcp::Result<()> {
+        stream.send("Enter your name: ".bytes()).await?;
+        let name = stream.recv(|buf| {
+            for (i, b) in buf.iter().enumerate() {
+                if *b == '\n' as u8 {
+                    return match core::str::from_utf8(&buf[0..i]) {
+                        Ok(name) =>
+                            Poll::Ready((i + 1, Some(name.to_owned()))),
+                        Err(_) =>
+                            Poll::Ready((i + 1, None))
+                    };
+                }
+            }
             if buf.len() > 100 {
                 // Too much input, consume all
                 Poll::Ready((buf.len(), None))
             } else {
-                for (i, b) in buf.iter().enumerate() {
-                    if *b == '\n' as u8 {
-                        return match core::str::from_utf8(&buf[0..i]) {
-                            Ok(name) =>
-                                Poll::Ready((i + 1, Some(name.to_owned()))),
-                            Err(_) =>
-                                Poll::Ready((i + 1, None))
-                        };
-                    }
-                }
                 Poll::Pending
             }
         }).await?;
         match name {
             Some(name) =>
-                socket.send(format!("Hello {}!\n", name).bytes()).await?,
+                stream.send(format!("Hello {}!\n", name).bytes()).await?,
             None =>
-                socket.send("I had trouble reading your name.\n".bytes()).await?,
+                stream.send("I had trouble reading your name.\n".bytes()).await?,
         }
-        socket.flush().await;
+        stream.flush().await;
         Ok(())
     }
 
-    task::spawn(async {
-        println!("listening");
-        while let socket = TcpStream::listen(TCP_PORT, 2048, 2048).await {
-            task::spawn(async {
-                handle_connection(socket)
-                    .await
-                    .map_err(|e| println!("Connection: {:?}", e));
-            });
-        }
-        println!("done?");
+    TcpStream::listen(TCP_PORT, 2048, 2048, 8, |stream| async {
+        handle_connection(stream)
+            .await
+            .map_err(|e| println!("Connection: {:?}", e));
     });
 
     Sockets::run(&mut iface);
