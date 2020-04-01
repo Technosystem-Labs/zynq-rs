@@ -93,33 +93,16 @@ impl TcpStream {
     /// connection attempts stall any more new connections. Use
     /// `listen()` with a backlog instead.
     pub async fn accept(port: u16, rx_bufsize: usize, tx_bufsize: usize) -> Self {
-        struct Accept {
-            stream: Option<TcpStream>,
-        }
-
-        impl Future for Accept {
-            type Output = TcpStream;
-
-            fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-                let is_active = self.stream.as_ref()
-                    .map(|s| s.with_socket(|s| s.is_active()))
-                    .unwrap_or(true);
-                if is_active {
-                    Poll::Ready(self.stream.take().unwrap())
-                } else {
-                    Sockets::register_waker(cx.waker().clone());
-
-                    //asm::sev();
-                    Poll::Pending
-                }
-            }
-        }
-
         let stream = Self::new(rx_bufsize, tx_bufsize);
         stream.with_socket(|mut s| s.listen(port)).expect("listen");
-        Accept {
-            stream: Some(stream),
-        }.await
+        poll_stream!(&stream, (), |socket| {
+            if socket.is_active() {
+                Poll::Ready(())
+            } else {
+                Poll::Pending
+            }
+        }).await;
+        stream
     }
 
     /// Probe the receive buffer
