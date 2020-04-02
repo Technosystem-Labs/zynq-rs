@@ -626,7 +626,7 @@ register_bit!(ddriob_ddr_ctrl, refio_en, 9);
 
 register!(ddriob_dci_ctrl, DdriobDciCtrl, RW, u32);
 register_bit!(ddriob_dci_ctrl, reset, 0);
-register_bit!(ddriob_dci_ctrl, enable, 0);
+register_bit!(ddriob_dci_ctrl, enable, 1);
 register_bits!(ddriob_dci_ctrl, nref_opt1, u8, 6, 7);
 register_bits!(ddriob_dci_ctrl, nref_opt2, u8, 8, 10);
 register_bits!(ddriob_dci_ctrl, nref_opt4, u8, 11, 13);

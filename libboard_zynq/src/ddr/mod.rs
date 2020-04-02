@@ -1,6 +1,6 @@
 use libregister::{RegisterR, RegisterW, RegisterRW};
 use crate::{print, println};
-use super::slcr;
+use super::slcr::{self, DdriobVrefSel};
 use super::clocks::{Clocks, source::{DdrPll, ClockSource}};
 
 mod regs;
@@ -174,21 +174,25 @@ impl DdrRam {
             );
             #[cfg(feature = "target_zc706")]
             slcr.ddriob_ddr_ctrl.modify(|_, w| w
-                    .vref_ext_en_lower(true)
-                    .vref_ext_en_upper(true)
+                    .vref_int_en(true)
+                    .vref_sel(DdriobVrefSel::Vref0_75V)
+                    .vref_ext_en_lower(false)
+                    .vref_ext_en_upper(false)
             );
         });
     }
 
     /// Reset DDR controller
     fn reset_ddrc(&mut self) {
-        self.regs.ddrc_ctrl.modify(|_, w| w
-            .soft_rstb(false)
-        );
         #[cfg(feature = "target_zc706")]
         let width = regs::DataBusWidth::Width32bit;
         #[cfg(feature = "target_cora_z7_10")]
         let width = regs::DataBusWidth::Width16bit;
+        self.regs.ddrc_ctrl.modify(|_, w| w
+            .soft_rstb(false)
+            .powerdown_en(false)
+            .data_bus_width(width)
+        );
         self.regs.ddrc_ctrl.modify(|_, w| w
             .soft_rstb(true)
             .powerdown_en(false)

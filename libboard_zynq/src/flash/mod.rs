@@ -184,7 +184,6 @@ impl Flash<()> {
                 slcr::MioPin00::zeroed()
                     .l0_sel(true)
                     .io_type(slcr::IoBufferType::Lvcmos18)
-                    .pullup(true)
             );
 
             // Option: Add Second Serial Clock
@@ -193,6 +192,7 @@ impl Flash<()> {
                 slcr::MioPin09::zeroed()
                     .l0_sel(true)
                     .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
             );
 
             // Option: Add 4-bit Data
@@ -201,21 +201,25 @@ impl Flash<()> {
                 slcr::MioPin10::zeroed()
                     .l0_sel(true)
                     .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
             );
             slcr.mio_pin_11.write(
                 slcr::MioPin11::zeroed()
                     .l0_sel(true)
                     .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
             );
             slcr.mio_pin_12.write(
                 slcr::MioPin12::zeroed()
                     .l0_sel(true)
                     .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
             );
             slcr.mio_pin_13.write(
                 slcr::MioPin13::zeroed()
                     .l0_sel(true)
                     .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
             );
 
             // Option: Add Feedback Output Clock
@@ -224,6 +228,7 @@ impl Flash<()> {
                 slcr::MioPin08::zeroed()
                     .l0_sel(true)
                     .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
             );
         });
     }

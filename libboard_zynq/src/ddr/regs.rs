@@ -3,6 +3,7 @@ use volatile_register::{RO, RW};
 use libregister::{register, register_bit, register_bits_typed};
 
 #[allow(unused)]
+#[derive(Clone, Copy)]
 #[repr(u8)]
 pub enum DataBusWidth {
     Width32bit = 0b00,
