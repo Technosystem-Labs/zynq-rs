@@ -241,8 +241,11 @@ pub fn main_core0() {
             .map_err(|e| println!("Connection: {:?}", e));
     });
 
-    Sockets::run(&mut iface);
-    // let mut time = 0u32;
+    let mut time = 0u32;
+    Sockets::run(&mut iface, || {
+        time += 1;
+        Instant::from_millis(time)
+    });
     // loop {
     //     time += 1;
     //     let timestamp = Instant::from_millis(time);

@@ -35,15 +35,20 @@ impl Sockets {
             sockets,
             wakers,
         };
+        // println!("sockets initialized");
         unsafe { SOCKETS = Some(instance); }
     }
 
     /// Block and run executor indefinitely while polling the smoltcp
     /// iface
-    pub fn run<'b, 'c, 'e, D: for<'d> Device<'d>>(iface: &mut EthernetInterface<'b, 'c, 'e, D>) {
+    pub fn run<'b, 'c, 'e, D: for<'d> Device<'d>>(
+        iface: &mut EthernetInterface<'b, 'c, 'e, D>,
+        mut get_time: impl FnMut() -> Instant,
+    ) {
         task::block_on(async {
             loop {
-                Self::instance().poll(iface);
+                let instant = get_time();
+                Self::instance().poll(iface, instant);
                 task::r#yield().await;
             }
         });
@@ -53,9 +58,11 @@ impl Sockets {
         unsafe { SOCKETS.as_ref().expect("Sockets") }
     }
     
-    fn poll<'b, 'c, 'e, D: for<'d> Device<'d>>(&self, iface: &mut EthernetInterface<'b, 'c, 'e, D>) {
-        // TODO:
-        let instant = Instant::from_millis(0);
+    fn poll<'b, 'c, 'e, D: for<'d> Device<'d>>(
+        &self,
+        iface: &mut EthernetInterface<'b, 'c, 'e, D>,
+        instant: Instant
+    ) {
         let processed = {
             let mut sockets = self.sockets.borrow_mut();
             match iface.poll(&mut sockets, instant) {
