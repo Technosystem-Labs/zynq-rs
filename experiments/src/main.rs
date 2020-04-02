@@ -24,6 +24,8 @@ use libsupport_zynq::{
 };
 use libasync::{smoltcp::{Sockets, TcpStream}, task};
 
+mod ps7_init;
+
 const HWADDR: [u8; 6] = [0, 0x23, 0xde, 0xea, 0xbe, 0xef];
 
 static mut STACK_CORE1: [u32; 512] = [0; 512];
