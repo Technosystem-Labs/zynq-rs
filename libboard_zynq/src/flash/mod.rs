@@ -22,7 +22,10 @@ pub const PAGE_SIZE: u32 = 0x100;
 
 /// Instruction: Read Identification
 const INST_RDID: u8 = 0x9F;
+/// Instruction: Read
 const INST_READ: u8 = 0x03;
+/// Instruction: Quad I/O Fast Read
+const INST_4IO_FAST_READ: u8 = 0xEB;
 /// Instruction: Write Disable
 const INST_WRDI: u8 = 0x04;
 /// Instruction: Write Enable
@@ -291,14 +294,14 @@ impl Flash<()> {
 
         self.regs.lqspi_cfg.write(regs::LqspiCfg::zeroed()
             // Quad I/O Fast Read
-            .inst_code(0xEB)
+            .inst_code(INST_4IO_FAST_READ)
+            .dummy_mask(0x2)
+            .mode_en(false)
             .mode_bits(0xFF)
-            .dummy_byte(0x2)
-            .mode_en(true)
             // 2 devices
             .two_mem(true)
             .u_page(false)
-            // Linear Addressing Mode
+            // Quad SPI mode
             .lq_mode(true)
         );
 
@@ -318,14 +321,15 @@ impl Flash<()> {
         );
 
         self.regs.lqspi_cfg.write(regs::LqspiCfg::zeroed()
+            // Quad I/O Fast Read
+            .inst_code(INST_READ)
+            .dummy_mask(0x2)
+            .mode_en(false)
             .mode_bits(0xFF)
-            .dummy_byte(0x2)
-            .mode_en(true)
             // 2 devices
             .two_mem(true)
-            .sep_bus(true)
-            .u_page(chip_index != 0)
-            // Manual I/O mode
+            .u_page(false)
+            // Quad SPI mode
             .lq_mode(false)
         );
 

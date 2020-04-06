@@ -116,7 +116,7 @@ register_bit!(qspi_gpio,
 
 register!(lqspi_cfg, LqspiCfg, RW, u32);
 register_bits!(lqspi_cfg, inst_code, u8, 0, 7);
-register_bits!(lqspi_cfg, dummy_byte, u8, 8, 10);
+register_bits!(lqspi_cfg, dummy_mask, u8, 8, 10);
 register_bits!(lqspi_cfg, mode_bits, u8, 16, 23);
 register_bit!(lqspi_cfg, mode_on, 24);
 register_bit!(lqspi_cfg, mode_en, 25);
