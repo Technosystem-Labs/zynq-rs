@@ -22,6 +22,15 @@ pub fn bpiall() {
     }
 }
 
+/// Data cache clean by set/way
+#[inline(always)]
+pub fn dccsw(setway: u32) {
+    unsafe {
+        asm!("mcr p15, 0, $0, c7, c10, 2" :: "r" (setway) :: "volatile");
+    }
+}
+
+/// Data cache invalidate by set/way
 #[inline(always)]
 pub fn dcisw(setway: u32) {
     unsafe {
@@ -60,74 +69,76 @@ pub fn dciall() {
     }
 }
 
-/// Data cache clear and invalidate by memory virtual address. This
+
+const CACHE_LINE: usize = 0x20;
+const CACHE_LINE_MASK: usize = CACHE_LINE - 1;
+
+#[inline]
+fn cache_line_addrs(first_addr: usize, beyond_addr: usize) -> impl Iterator<Item = usize> {
+    let first_addr = first_addr & !CACHE_LINE_MASK;
+    let beyond_addr = (beyond_addr | CACHE_LINE_MASK) + 1;
+
+    (first_addr..beyond_addr).step_by(CACHE_LINE)
+}
+
+fn object_cache_line_addrs<T>(object: &T) -> impl Iterator<Item = usize> {
+    let first_addr = object as *const _ as usize;
+    let beyond_addr = (object as *const _ as usize) + core::mem::size_of_val(object);
+    cache_line_addrs(first_addr, beyond_addr)
+}
+
+fn slice_cache_line_addrs<T>(slice: &[T]) -> impl Iterator<Item = usize> {
+    let first_addr = &slice[0] as *const _ as usize;
+    let beyond_addr = (&slice[slice.len() - 1] as *const _ as usize) +
+        core::mem::size_of_val(&slice[slice.len() - 1]);
+    cache_line_addrs(first_addr, beyond_addr)
+}
+
+/// Data cache clean and invalidate by memory virtual address. This
 /// flushes data out to the point of coherency, and invalidates the
 /// corresponding cache line (as appropriate when DMA is meant to be
 /// writing into it).
 #[inline(always)]
-pub fn dccimva(addr: usize) {
+pub fn dccimvac(addr: usize) {
     unsafe {
         asm!("mcr p15, 0, $0, c7, c14, 1" :: "r" (addr) :: "volatile");
     }
 }
 
-/// clear cache line by virtual address to point of coherency (DCCMVAC)
-#[inline]
-pub fn dccmvac(addr: u32) {
+/// Data cache clean and invalidate for an object.
+pub fn dcci<T>(object: &T) {
+    for addr in object_cache_line_addrs(object) {
+        dccimvac(addr);
+    }
+}
+
+pub fn dcci_slice<T>(slice: &mut [T]) {
+    for addr in slice_cache_line_addrs(slice) {
+        dccimvac(addr);
+    }
+}
+
+/// Data cache clean by memory virtual address.
+#[inline(always)]
+pub fn dccmvac(addr: usize) {
     unsafe {
         asm!("mcr p15, 0, $0, c7, c10, 1" :: "r" (addr) :: "volatile");
     }
 }
 
-/// The DCCIVMA (data cache clear and invalidate) applied to the
-/// region of memory occupied by the argument. This does not modify
-/// the argument, but due to the invalidate part (only ever needed if
-/// external write access is to be granted, e.g. by DMA) it only makes
-/// sense if the caller has exclusive access to it as otherwise other
-/// accesses might just bring it back into the data cache.
-pub fn dcci<T>(object: &mut T) {
-    let cache_line = 0x20;
-    let first_addr =
-        (object as *mut _ as *const _ as usize) & !(cache_line - 1);
-    let beyond_addr = (
-        (object as *mut _ as *const _ as usize)
-            + core::mem::size_of_val(object)
-            + (cache_line - 1)
-    ) & !(cache_line - 1);
-    for addr in (first_addr..beyond_addr).step_by(cache_line) {
-        dccimva(addr);
+/// Data cache clean for an object.
+pub fn dcc<T>(object: &T) {
+    for addr in object_cache_line_addrs(object) {
+        dccmvac(addr);
     }
 }
 
-pub fn dcci_slice_content<T>(slice: &mut [T]) {
-    if slice.len() == 0 {
-        return;
-    }
-    let cache_line = 0x20;
-    let first_addr =
-        (&slice[0] as *const _ as usize) & !(cache_line - 1);
-    let beyond_addr = (
-        (&slice[slice.len() - 1] as *const _ as usize)
-            + (cache_line - 1)
-    ) & !(cache_line - 1);
-    for addr in (first_addr..beyond_addr).step_by(cache_line) {
-        dccimva(addr);
-    }
-}
-
-pub fn dcci_slice_content_unmut<T>(slice: &[T]) {
-    if slice.len() == 0 {
-        return;
-    }
-    let cache_line = 0x20;
-    let first_addr =
-        (&slice[0] as *const _ as usize) & !(cache_line - 1);
-    let beyond_addr = (
-        (&slice[slice.len() - 1] as *const _ as usize)
-            + (cache_line - 1)
-    ) & !(cache_line - 1);
-    for addr in (first_addr..beyond_addr).step_by(cache_line) {
-        dccimva(addr);
+/// Data cache clean for an object. Panics if not properly
+/// aligned and properly sized to be contained in an exact number of
+/// cache lines.
+pub fn dcc_slice<T>(slice: &[T]) {
+    for addr in slice_cache_line_addrs(slice) {
+        dccmvac(addr);
     }
 }
 
@@ -136,79 +147,30 @@ pub fn dcci_slice_content_unmut<T>(slice: &[T]) {
 /// unsafe, as this discards a write-back cache line, potentially
 /// affecting more data than intended.
 #[inline(always)]
-pub unsafe fn dcimva(addr: usize) {
+pub unsafe fn dcimvac(addr: usize) {
     asm!("mcr p15, 0, $0, c7, c6, 1" :: "r" (addr) :: "volatile");
 }
 
-/// Data cache invalidate for an object. Panics if not properly
-/// aligned and properly sized to be contained in an exact number of
-/// cache lines.
-pub fn dci<T>(object: &mut T) {
-    let cache_line = 0x20;
-    let first_addr = object as *mut _ as *const _ as usize;
-    let beyond_addr = (object as *mut _ as *const _ as usize) +
-        core::mem::size_of_val(object);
-    assert_eq!((first_addr & (cache_line - 1)), 0x00);
-    assert_eq!((beyond_addr & (cache_line - 1)), 0x00);
-    for addr in (first_addr..beyond_addr).step_by(cache_line) {
-        unsafe {
-            dcimva(addr);
-        }
+/// Data cache clean and invalidate for an object.
+pub unsafe fn dci<T>(object: &mut T) {
+    let first_addr = object as *const _ as usize;
+    let beyond_addr = (object as *const _ as usize) + core::mem::size_of_val(object);
+    assert_eq!(first_addr & CACHE_LINE_MASK, 0, "dci object first_addr must be aligned");
+    assert_eq!(beyond_addr & CACHE_LINE_MASK, 0, "dci object beyond_addr must be aligned");
+
+    for addr in (first_addr..beyond_addr).step_by(CACHE_LINE) {
+        dcimvac(addr);
     }
 }
 
-/// Data cache invalidate for the contents of a slice. Panics if not
-/// properly aligned and properly sized to be contained in an exact
-/// number of cache lines.
-pub fn dci_slice_content<T>(slice: &mut [T]) {
-    if slice.len() == 0 {
-        return;
-    }
-    let cache_line = 0x20;
+pub unsafe fn dci_slice<T>(slice: &mut [T]) {
     let first_addr = &slice[0] as *const _ as usize;
-    let beyond_addr = (&slice[slice.len() - 1] as *const _ as usize)
-        + core::mem::size_of::<T>();
-    assert_eq!((first_addr & (cache_line - 1)), 0x00);
-    assert_eq!((beyond_addr & (cache_line - 1)), 0x00);
-    for addr in (first_addr..beyond_addr).step_by(cache_line) {
-        unsafe {
-            dcimva(addr);
-        }
-    }
-}
+    let beyond_addr = (&slice[slice.len() - 1] as *const _ as usize) +
+        core::mem::size_of_val(&slice[slice.len() - 1]);
+    assert_eq!(first_addr & CACHE_LINE_MASK, 0, "dci slice first_addr must be aligned");
+    assert_eq!(beyond_addr & CACHE_LINE_MASK, 0, "dci slice beyond_addr must be aligned");
 
-pub unsafe fn dci_more_than_slice_content<T>(slice: &mut [T]) {
-    if slice.len() == 0 {
-        return;
-    }
-    let cache_line = 0x20;
-    let first_addr =
-        (&slice[0] as *const _ as usize) & !(cache_line - 1);
-    let beyond_addr = (
-        (&slice[slice.len() - 1] as *const _ as usize)
-            + (cache_line - 1)
-    ) & !(cache_line - 1);
-    assert_eq!((first_addr & (cache_line - 1)), 0x00);
-    assert_eq!((beyond_addr & (cache_line - 1)), 0x00);
-    for addr in (first_addr..beyond_addr).step_by(cache_line) {
-        dcimva(addr);
-    }
-}
-
-pub unsafe fn dci_more_than_slice_content_nonmut<T>(slice: &[T]) {
-    if slice.len() == 0 {
-        return;
-    }
-    let cache_line = 0x20;
-    let first_addr =
-        (&slice[0] as *const _ as usize) & !(cache_line - 1);
-    let beyond_addr = (
-        (&slice[slice.len() - 1] as *const _ as usize)
-            + (cache_line - 1)
-    ) & !(cache_line - 1);
-    assert_eq!((first_addr & (cache_line - 1)), 0x00);
-    assert_eq!((beyond_addr & (cache_line - 1)), 0x00);
-    for addr in (first_addr..beyond_addr).step_by(cache_line) {
-        dcimva(addr);
+    for addr in (first_addr..beyond_addr).step_by(CACHE_LINE) {
+        dcimvac(addr);
     }
 }
