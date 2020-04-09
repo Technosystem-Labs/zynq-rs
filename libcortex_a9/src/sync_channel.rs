@@ -102,3 +102,11 @@ impl<T> Receiver<T> {
         }
     }
 }
+
+impl<T> Iterator for Receiver<T> {
+    type Item = Box<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(self.recv())
+    }
+}

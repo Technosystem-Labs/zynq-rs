@@ -135,11 +135,9 @@ pub fn main_core0() {
     let core1 = boot::Core1::start(core1_stack);
 
 
-    let (tx, mut rx) = sync_channel(1000);
+    let (tx, mut rx) = sync_channel(10);
     *SHARED.lock() = Some(tx);
-    let mut i = 0u32;
-    loop {
-        let r = rx.recv();
+    for (i, r) in rx.enumerate() {
         // println!("Recvd {}", r);
         if i != *r {
             println!("Expected {}, received {}", i, r);
@@ -147,8 +145,6 @@ pub fn main_core0() {
         if i % 100000 == 0 {
             println!("{} Ok", i);
         }
-
-        i += 1;
     }
     core1.reset();
 
@@ -253,7 +249,7 @@ pub fn main_core0() {
     });
 }
 
-static SHARED: Mutex<Option<sync_channel::Sender<u32>>> = Mutex::new(None);
+static SHARED: Mutex<Option<sync_channel::Sender<usize>>> = Mutex::new(None);
 static DONE: Mutex<bool> = Mutex::new(false);
 
 #[no_mangle]
