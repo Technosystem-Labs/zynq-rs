@@ -5,7 +5,7 @@ extern crate alloc;
 
 use core::{mem::transmute, task::Poll};
 use alloc::{borrow::ToOwned, collections::BTreeMap, format};
-use libcortex_a9::mutex::Mutex;
+use libcortex_a9::{mutex::Mutex, sync_channel::{self, sync_channel}};
 use libboard_zynq::{
     print, println,
     self as zynq, clocks::Clocks, clocks::source::{ClockSource, ArmPll, IoPll},
@@ -134,17 +134,22 @@ pub fn main_core0() {
     println!("{} bytes stack for core1", core1_stack.len());
     let core1 = boot::Core1::start(core1_stack);
 
-    for _ in 0..0x1000000 {
-        let mut l = SHARED.lock();
-        *l += 1;
-    }
-    while !*DONE.lock() {
-        let x = { *SHARED.lock() };
-        println!("shared: {:08X}", x);
-    }
-    let x = { *SHARED.lock() };
-    println!("done shared: {:08X}", x);
 
+    let (tx, mut rx) = sync_channel(1000);
+    *SHARED.lock() = Some(tx);
+    let mut i = 0u32;
+    loop {
+        let r = rx.recv();
+        // println!("Recvd {}", r);
+        if i != *r {
+            println!("Expected {}, received {}", i, r);
+        }
+        if i % 100000 == 0 {
+            println!("{} Ok", i);
+        }
+
+        i += 1;
+    }
     core1.reset();
 
     libcortex_a9::asm::dsb();
@@ -246,51 +251,27 @@ pub fn main_core0() {
         time += 1;
         Instant::from_millis(time)
     });
-    // loop {
-    //     time += 1;
-    //     let timestamp = Instant::from_millis(time);
-
-    //     match iface.poll(&mut sockets, timestamp) {
-    //         Ok(_) => {},
-    //         Err(e) => {
-    //             println!("poll error: {}", e);
-    //         }
-    //     }
-
-    //     // (mostly) taken from smoltcp example: TCP echo server
-    //     let mut socket = sockets.get::<TcpSocket>(tcp_handle);
-    //     if !socket.is_open() {
-    //         socket.listen(TCP_PORT).unwrap()
-    //     }
-    //     if socket.may_recv() && socket.can_send() {
-    //         socket.recv(|buf| {
-    //             let len = buf.len().min(4096);
-    //             let buffer = buf[..len].iter().cloned().collect::<Vec<_>>();
-    //             (len, buffer)
-    //         })
-    //             .and_then(|buffer| socket.send_slice(&buffer[..]))
-    //             .map(|_| {})
-    //             .unwrap_or_else(|e| println!("tcp: {:?}", e));
-
-    //     }
-    // }
-
-    // #[allow(unreachable_code)]
-    // drop(tx_descs);
-    // #[allow(unreachable_code)]
-    // drop(tx_buffers);
 }
 
-static SHARED: Mutex<u32> = Mutex::new(0);
+static SHARED: Mutex<Option<sync_channel::Sender<u32>>> = Mutex::new(None);
 static DONE: Mutex<bool> = Mutex::new(false);
 
 #[no_mangle]
 pub fn main_core1() {
     println!("Hello from core1!");
-    for _ in 0..0x1000000 {
-        let mut l = SHARED.lock();
-        *l += 1;
+
+    let mut tx = None;
+    while tx.is_none() {
+        tx = SHARED.lock().take();
     }
+    println!("Core1 got tx");
+    let mut tx = tx.unwrap();
+
+    for i in 0.. {
+        // println!("S {}", i);
+        tx.send(i);
+    }
+
     println!("core1 done!");
     *DONE.lock() = true;
 
