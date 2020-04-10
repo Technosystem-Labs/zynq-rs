@@ -1,5 +1,3 @@
-use volatile_register::{RO, WO, RW};
-
 use libregister::{
     register, register_at,
     register_bit, register_bits, register_bits_typed,
