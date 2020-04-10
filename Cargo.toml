@@ -14,6 +14,6 @@ lto = false
 panic = "abort"
 debug = true
 # Link-Time Optimization:
-# turned off for producing unusable debug symbols.
-lto = false
+# turn off if you get unusable debug symbols.
+lto = true
 opt-level = 'z'  # Optimize for size.
