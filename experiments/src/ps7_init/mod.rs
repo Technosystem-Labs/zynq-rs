@@ -1,3 +1,5 @@
+#![cfg(feature = "target_zc706")]
+
 use libboard_zynq::println;
 
 mod zc706;
@@ -5,8 +7,8 @@ mod zc706;
 
 #[cfg(feature = "target_zc706")]
 use zc706 as target;
-#[cfg(feature = "target_cora_z7_10")]
-use cora_z7_10 as target;
+// #[cfg(feature = "target_cora_z7_10")]
+// use cora_z7_10 as target;
 
 pub fn report_differences() {
     for (i, op) in target::INIT_DATA.iter().enumerate() {
