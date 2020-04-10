@@ -328,7 +328,7 @@ impl Flash<()> {
             .mode_bits(0xFF)
             // 2 devices
             .two_mem(true)
-            .u_page(false)
+            .u_page(chip_index != 0)
             // Quad SPI mode
             .lq_mode(false)
         );
