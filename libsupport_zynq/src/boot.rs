@@ -142,7 +142,7 @@ impl<S: AsMut<[u32]>> Core1<S> {
         // Ensure stack pointer has been written to cache
         asm::dmb();
         // Flush cache-line
-        cache::dccmvac(unsafe { &CORE1_STACK } as *const _ as u32);
+        cache::dccmvac(unsafe { &CORE1_STACK } as *const _ as usize);
 
         // wake up core1
         slcr::RegisterBlock::unlocked(|slcr| {
