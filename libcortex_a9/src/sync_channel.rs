@@ -1,6 +1,9 @@
 use core::{
+    future::Future,
+    pin::Pin,
     ptr::null_mut,
     sync::atomic::{AtomicPtr, Ordering},
+    task::{Context, Poll},
 };
 use alloc::{
     boxed::Box,
@@ -64,7 +67,70 @@ impl<T> Sender<T> {
             self.pos = 0;
         }
     }
+
+    /// Non-blocking send, handing you back ownership of the ocntent on **failure**
+    pub fn try_send<B: Into<Box<T>>>(&mut self, content: B) -> Option<Box<T>> {
+        let ptr = Box::into_raw(content.into());
+        let entry = &self.channel[self.pos];
+        // try to write the new pointer if the current pointer is
+        // NULL
+        if entry.compare_and_swap(null_mut(), ptr, Ordering::Acquire) == null_mut() {
+            dsb();
+            // wake power-saving receivers
+            sev();
+
+            // advance
+            self.pos += 1;
+            // wrap
+            if self.pos >= self.channel.len() {
+                self.pos = 0;
+            }
+
+            // success
+            None
+        } else {
+            let content = unsafe { Box::from_raw(ptr) };
+            // failure
+            Some(content)
+        }
+    }
+
+    pub async fn async_send<B: Into<Box<T>>>(&mut self, content: B) {
+        struct Send<'a, T> {
+            sender: &'a mut Sender<T>,
+            content: Option<Box<T>>,
+        }
+
+        impl<T> Future for Send<'_, T> {
+            type Output = ();
+
+            fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+                match self.content.take() {
+                    Some(content) => {
+                        if let Some(content) = self.sender.try_send(content) {
+                            // failure
+                            self.content = Some(content);
+                            cx.waker().wake_by_ref();
+                            Poll::Pending
+                        } else {
+                            // success
+                            Poll::Ready(())
+                        }
+                    }
+                    None => panic!("Send future polled after success"),
+                }
+            }
+        }
+
+        Send {
+            sender: self,
+            content: Some(content.into()),
+        }.await
+    }
 }
+
+
+
 
 /// Receiving half of a channel
 pub struct Receiver<T> {
@@ -100,6 +166,55 @@ impl<T> Receiver<T> {
             // power-saving
             wfe();
         }
+    }
+
+    /// Non-blocking receive
+    pub fn try_recv(&mut self) -> Option<Box<T>> {
+        let entry = &self.channel[self.pos];
+
+        dmb();
+        let ptr = entry.swap(null_mut(), Ordering::Release);
+        if ptr != null_mut() {
+            dsb();
+            // wake power-saving senders
+            sev();
+
+            let content = unsafe { Box::from_raw(ptr) };
+
+            // advance
+            self.pos += 1;
+            // wrap
+            if self.pos >= self.channel.len() {
+                self.pos = 0;
+            }
+
+            Some(content)
+        } else {
+            None
+        }
+    }
+
+    pub async fn async_recv(&mut self) -> Box<T> {
+        struct Recv<'a, T> {
+            receiver: &'a mut Receiver<T>,
+        }
+
+        impl<T> Future for Recv<'_, T> {
+            type Output = Box<T>;
+
+            fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+                if let Some(content) = self.receiver.try_recv() {
+                    Poll::Ready(content)
+                } else {
+                    cx.waker().wake_by_ref();
+                    Poll::Pending
+                }
+            }
+        }
+
+        Recv {
+            receiver: self,
+        }.await
     }
 }
 

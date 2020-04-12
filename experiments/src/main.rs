@@ -110,8 +110,12 @@ pub fn main_core0() {
         flash = flash_io.stop();
     }
 
-    task::spawn(async {
+    let (mut tx, mut rx) = sync_channel::sync_channel(0);
+    task::spawn(async move {
         println!("outer task");
+        while let Some(item) = *rx.async_recv().await {
+            println!("received {}", item);
+        }
     });
     task::spawn(async {
         for i in 1..=3 {
@@ -127,25 +131,26 @@ pub fn main_core0() {
         for i in 1..=10 {
             println!("yield {}", i);
             task::r#yield().await;
+            tx.async_send(Some(i)).await;
         }
+        tx.async_send(None).await;
     });
 
     let core1_stack = unsafe { &mut STACK_CORE1[..] };
     println!("{} bytes stack for core1", core1_stack.len());
     let core1 = boot::Core1::start(core1_stack);
 
-
-    let (tx, mut rx) = sync_channel(10);
-    *SHARED.lock() = Some(tx);
-    for (i, r) in rx.enumerate() {
-        // println!("Recvd {}", r);
-        if i != *r {
-            println!("Expected {}, received {}", i, r);
+    let (mut core1_req, rx) = sync_channel(10);
+    *CORE1_REQ.lock() = Some(rx);
+    let (tx, mut core1_res) = sync_channel(10);
+    *CORE1_RES.lock() = Some(tx);
+    task::block_on(async {
+        for i in 0..10 {
+            core1_req.async_send(i).await;
+            let j = core1_res.async_recv().await;
+            println!("{} -> {}", i, j);
         }
-        if i % 100000 == 0 {
-            println!("{} Ok", i);
-        }
-    }
+    });
     core1.reset();
 
     libcortex_a9::asm::dsb();
@@ -249,23 +254,27 @@ pub fn main_core0() {
     });
 }
 
-static SHARED: Mutex<Option<sync_channel::Sender<usize>>> = Mutex::new(None);
+static CORE1_REQ: Mutex<Option<sync_channel::Receiver<usize>>> = Mutex::new(None);
+static CORE1_RES: Mutex<Option<sync_channel::Sender<usize>>> = Mutex::new(None);
 static DONE: Mutex<bool> = Mutex::new(false);
 
 #[no_mangle]
 pub fn main_core1() {
     println!("Hello from core1!");
 
-    let mut tx = None;
-    while tx.is_none() {
-        tx = SHARED.lock().take();
+    let mut req = None;
+    while req.is_none() {
+        req = CORE1_REQ.lock().take();
     }
-    println!("Core1 got tx");
-    let mut tx = tx.unwrap();
+    let mut req = req.unwrap();
+    let mut res = None;
+    while res.is_none() {
+        res = CORE1_RES.lock().take();
+    }
+    let mut res = res.unwrap();
 
-    for i in 0.. {
-        // println!("S {}", i);
-        tx.send(i);
+    for i in req {
+        res.send(*i * *i);
     }
 
     println!("core1 done!");
