@@ -68,7 +68,7 @@ impl<T> Sender<T> {
         }
     }
 
-    /// Non-blocking send, handing you back ownership of the ocntent on **failure**
+    /// Non-blocking send, handing you back ownership of the content on **failure**
     pub fn try_send<B: Into<Box<T>>>(&mut self, content: B) -> Option<Box<T>> {
         let ptr = Box::into_raw(content.into());
         let entry = &self.channel[self.pos];
