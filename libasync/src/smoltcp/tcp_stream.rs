@@ -82,10 +82,11 @@ impl TcpStream {
     /// handshaking. Spawns additional tasks for each connection.
     pub fn listen<F, R, T>(port: u16, rx_bufsize: usize, tx_bufsize: usize, backlog: usize, f: F)
     where
-        F: Fn(Self) -> R + Copy + 'static,
+        F: Fn(Self) -> R + Clone + 'static,
         R: Future<Output = T> + 'static,
     {
         for _ in 0..backlog {
+            let f = f.clone();
             task::spawn(async move {
                 loop {
                     // Wait for new connection
