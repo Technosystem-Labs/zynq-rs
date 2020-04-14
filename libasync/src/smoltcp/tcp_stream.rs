@@ -141,18 +141,12 @@ impl TcpStream {
 
             fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
                 let result = self.stream.with_socket(|mut socket| {
-                    socket.recv(|buf| {
-                        if buf.len() > 0 {
-                            match (self.f)(buf) {
-                                Poll::Ready((amount, result)) =>
-                                    (amount, Poll::Ready(Ok(result))),
-                                Poll::Pending =>
-                                    // 0 bytes consumed
-                                    (0, Poll::Pending),
-                            }
-                        } else {
-                            (0, Poll::Pending)
-                        }
+                    socket.recv(|buf| match (self.f)(buf) {
+                        Poll::Ready((amount, result)) =>
+                            (amount, Poll::Ready(Ok(result))),
+                        Poll::Pending =>
+                            // 0 bytes consumed
+                            (0, Poll::Pending),
                     })
                 });
                 match result {
