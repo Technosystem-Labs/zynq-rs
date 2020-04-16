@@ -241,10 +241,20 @@ pub fn main_core0() {
         Ok(())
     }
 
-    TcpStream::listen(TCP_PORT, 2048, 2048, 8, |stream| async {
-        handle_connection(stream)
-            .await
-            .map_err(|e| println!("Connection: {:?}", e));
+    let mut counter = alloc::rc::Rc::new(core::cell::RefCell::new(0));
+    task::spawn(async move {
+        while let stream = TcpStream::accept(TCP_PORT, 2048, 2408).await.unwrap() {
+            let counter = counter.clone();
+            task::spawn(async move {
+                *counter.borrow_mut() += 1;
+                println!("Serving {} connections", *counter.borrow());
+                handle_connection(stream)
+                    .await
+                    .map_err(|e| println!("Connection: {:?}", e));
+                *counter.borrow_mut() -= 1;
+                println!("Now serving {} connections", *counter.borrow());
+            });
+        }
     });
 
     let mut time = 0u32;
