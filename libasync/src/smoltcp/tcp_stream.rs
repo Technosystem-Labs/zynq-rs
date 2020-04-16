@@ -14,6 +14,7 @@ use smoltcp::{
         SocketHandle, SocketRef,
         TcpSocketBuffer, TcpSocket, TcpState,
     },
+    time::Duration,
 };
 use crate::task;
 use super::Sockets;
@@ -216,6 +217,38 @@ impl TcpStream {
                 Poll::Ready(Err(Error::Truncated))
             }
         }).await
+    }
+
+    /// Close the transmit half of the connection
+    pub async fn close(&self) {
+        self.with_socket(|mut socket| socket.close());
+
+        // Yield for one iface.poll() to send the packet
+        task::r#yield().await;
+    }
+
+    /// Destroy the socket, sending the RST
+    pub async fn abort(self) {
+        self.with_socket(|mut socket| socket.abort());
+
+        // Yield for one iface.poll() to send the packet
+        task::r#yield().await;
+    }
+
+    pub fn keep_alive(&self) -> Option<Duration> {
+        self.with_socket(|socket| socket.keep_alive())
+    }
+
+    pub fn set_keep_alive(&mut self, interval: Option<Duration>) {
+        self.with_socket(|mut socket| socket.set_keep_alive(interval));
+    }
+
+    pub fn timeout(&self) -> Option<Duration> {
+        self.with_socket(|socket| socket.timeout())
+    }
+
+    pub fn set_timeout(&mut self, duration: Option<Duration>) {
+        self.with_socket(|mut socket| socket.set_timeout(duration));
     }
 }
 
