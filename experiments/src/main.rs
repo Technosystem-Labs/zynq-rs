@@ -261,7 +261,7 @@ pub fn main_core0() {
     Sockets::run(&mut iface, || {
         time += 1;
         Instant::from_millis(time)
-    });
+    })
 }
 
 static CORE1_REQ: Mutex<Option<sync_channel::Receiver<usize>>> = Mutex::new(None);

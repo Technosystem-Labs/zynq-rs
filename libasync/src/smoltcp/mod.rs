@@ -44,14 +44,14 @@ impl Sockets {
     pub fn run<'b, 'c, 'e, D: for<'d> Device<'d>>(
         iface: &mut EthernetInterface<'b, 'c, 'e, D>,
         mut get_time: impl FnMut() -> Instant,
-    ) {
+    ) -> ! {
         task::block_on(async {
             loop {
                 let instant = get_time();
                 Self::instance().poll(iface, instant);
                 task::r#yield().await;
             }
-        });
+        })
     }
 
     pub(crate) fn instance() -> &'static Self {
