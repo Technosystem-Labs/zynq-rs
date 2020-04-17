@@ -109,17 +109,6 @@ pub struct Core1<S: AsMut<[u32]>> {
 }
 
 impl<S: AsMut<[u32]>> Core1<S> {
-    pub fn reset(&self) {
-        unsafe {
-            CORE1_STACK.set(0);
-        }
-
-        slcr::RegisterBlock::unlocked(|slcr| {
-            slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_rst1(true));
-            slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_rst1(false));
-        });
-    }
-
     /// Reset and start core1
     ///
     /// The stack must not be in OCM because core1 still has to
@@ -151,5 +140,19 @@ impl<S: AsMut<[u32]>> Core1<S> {
         });
 
         core
+    }
+
+    pub fn disable(&self) {
+        unsafe {
+            CORE1_STACK.set(0);
+        }
+        self.restart();
+    }
+
+    pub fn restart(&self) {
+        slcr::RegisterBlock::unlocked(|slcr| {
+            slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_rst1(true));
+            slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_rst1(false));
+        });
     }
 }

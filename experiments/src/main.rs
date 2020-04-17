@@ -151,7 +151,7 @@ pub fn main_core0() {
             println!("{} -> {}", i, j);
         }
     });
-    core1.reset();
+    core1.disable();
 
     libcortex_a9::asm::dsb();
     print!("Core1 stack [{:08X}..{:08X}]:", &core1.stack[0] as *const _ as u32, &core1.stack[core1.stack.len() - 1] as *const _ as u32);
