@@ -11,6 +11,7 @@ target_cora_z7_10 = ["libboard_zynq/target_cora_z7_10", "libsupport_zynq/target_
 default = ["target_zc706"]
 
 [dependencies]
+log = "0.4"
 libregister = { path = "../libregister" }
 libcortex_a9 = { path = "../libcortex_a9" }
 libboard_zynq = { path = "../libboard_zynq" }

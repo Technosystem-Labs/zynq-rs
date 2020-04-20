@@ -5,6 +5,7 @@ extern crate alloc;
 
 use core::{mem::transmute, task::Poll};
 use alloc::{borrow::ToOwned, collections::BTreeMap, format};
+use log::info;
 use libcortex_a9::{mutex::Mutex, sync_channel::{self, sync_channel}};
 use libboard_zynq::{
     print, println,
@@ -34,9 +35,13 @@ static mut STACK_CORE1: [u32; 512] = [0; 512];
 pub fn main_core0() {
     // zynq::clocks::CpuClocks::enable_io(1_250_000_000);
     println!("\nzc706 main");
+
+    libsupport_zynq::logger::init().unwrap();
+    log::set_max_level(log::LevelFilter::Trace);
+
     {
         use libregister::RegisterR;
-        println!("Boot mode: {:?}", zynq::slcr::RegisterBlock::new().boot_mode.read().boot_mode_pins());
+        info!("Boot mode: {:?}", zynq::slcr::RegisterBlock::new().boot_mode.read().boot_mode_pins());
     }
 
     #[cfg(feature = "target_zc706")]

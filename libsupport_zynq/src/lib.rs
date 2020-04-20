@@ -10,4 +10,5 @@ pub extern crate compiler_builtins;
 pub mod boot;
 mod abort;
 mod panic;
+pub mod logger;
 pub mod ram;
