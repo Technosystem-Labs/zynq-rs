@@ -62,7 +62,7 @@ macro_rules! println {
         use core::fmt::Write;
         let mut uart = $crate::stdio::get_uart();
         let _ = write!(uart, $($arg)*);
-        let _ = write!(uart, "\r\n");
+        let _ = write!(uart, "\n");
         while !uart.tx_fifo_empty() {}
     })
 }
