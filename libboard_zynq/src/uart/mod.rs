@@ -1,4 +1,5 @@
 use core::fmt;
+use void::Void;
 
 use libregister::*;
 use super::slcr;
@@ -209,9 +210,9 @@ impl fmt::Write for Uart {
 
 /// embedded_hal async API
 impl embedded_hal::serial::Write<u8> for Uart {
-    type Error = ();
+    type Error = Void;
 
-    fn write(&mut self, b: u8) -> nb::Result<(), ()> {
+    fn write(&mut self, b: u8) -> nb::Result<(), Void> {
         if self.tx_fifo_full() {
             Err(nb::Error::WouldBlock)
         } else {
@@ -220,7 +221,7 @@ impl embedded_hal::serial::Write<u8> for Uart {
         }
     }
 
-    fn flush(&mut self) -> nb::Result<(), ()> {
+    fn flush(&mut self) -> nb::Result<(), Void> {
         if self.tx_fifo_empty() {
             Ok(())
         } else {
