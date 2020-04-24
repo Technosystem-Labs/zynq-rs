@@ -18,6 +18,34 @@ pub struct RegisterBlock {
     reserved1: [u32; 2],
     pub scu_access_control: RW<u32>,
     pub scu_non_secure_access_control: RW<u32>,
+    reserved2: [u32; 42],
+    pub iccicr: RW<u32>,
+    pub iccpmw: RW<u32>,
+    pub iccbpr: RW<u32>,
+    pub icciar: RW<u32>,
+    pub icceoir: RW<u32>,
+    pub iccrpr: RW<u32>,
+    pub icchpir: RW<u32>,
+    pub iccabpr: RW<u32>,
+    reserved3: [u32; 55],
+    pub iccidr: RW<u32>,
+    pub global_timer_counter0: ValueRegister,
+    pub global_timer_counter1: ValueRegister,
+    pub global_timer_control: GlobalTimerControl,
+    pub global_timer_interrupt_status: RW<u32>,
+    pub comparator_value0: ValueRegister,
+    pub comparator_value1: ValueRegister,
+    pub auto_increment: ValueRegister,
+    reserved4: [u32; 249],
+    pub private_timer_load: ValueRegister,
+    pub private_timer_counter: ValueRegister,
+    pub private_timer_control: RW<u32>,
+    pub private_timer_interrupt_status: RW<u32>,
+    reserved5: [u32; 4],
+    pub watchdog_load: ValueRegister,
+    pub watchdog_counter: ValueRegister,
+    pub watchdog_control: RW<u32>,
+    pub watchdog_interrupt_status: RW<u32>,
     // there is plenty more (unimplemented)
 }
 register_at!(RegisterBlock, 0xF8F00000, new);
@@ -59,3 +87,13 @@ impl ScuInvalidate {
         );
     }
 }
+
+register!(value_register, ValueRegister, RW, u32);
+register_bits!(value_register, value, u32, 0, 31);
+
+register!(global_timer_control, GlobalTimerControl, RW, u32);
+register_bits!(global_timer_control, prescaler, u16, 8, 15);
+register_bit!(global_timer_control, auto_increment_mode, 3);
+register_bit!(global_timer_control, irq_enable, 2);
+register_bit!(global_timer_control, comp_enablea, 1);
+register_bit!(global_timer_control, timer_enable, 0);

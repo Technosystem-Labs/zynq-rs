@@ -15,3 +15,5 @@ pub mod ddr;
 pub mod mpcore;
 pub mod flash;
 pub mod dmac;
+pub mod time;
+pub mod timer;
