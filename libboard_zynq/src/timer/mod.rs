@@ -1,2 +1,2 @@
-mod global;
+pub mod global;
 pub use global::GlobalTimer;
