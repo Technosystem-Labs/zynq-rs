@@ -206,3 +206,28 @@ impl fmt::Write for Uart {
         Ok(())
     }
 }
+
+/// embedded_hal async API
+impl embedded_hal::serial::Write<u8> for Uart {
+    type Error = ();
+
+    fn write(&mut self, b: u8) -> nb::Result<(), ()> {
+        if self.tx_fifo_full() {
+            Err(nb::Error::WouldBlock)
+        } else {
+            self.write_byte(b);
+            Ok(())
+        }
+    }
+
+    fn flush(&mut self) -> nb::Result<(), ()> {
+        if self.tx_fifo_empty() {
+            Ok(())
+        } else {
+            Err(nb::Error::WouldBlock)
+        }
+    }
+}
+
+/// embedded_hal sync API
+impl embedded_hal::blocking::serial::write::Default<u8> for Uart {}
