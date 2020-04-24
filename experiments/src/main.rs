@@ -6,6 +6,8 @@ extern crate alloc;
 use core::{mem::transmute, task::Poll};
 use alloc::{borrow::ToOwned, collections::BTreeMap, format};
 use log::info;
+use embedded_hal::timer::CountDown;
+use libregister::RegisterR;
 use libcortex_a9::{mutex::Mutex, sync_channel::{self, sync_channel}};
 use libboard_zynq::{
     print, println,
@@ -18,12 +20,13 @@ use libboard_zynq::{
         socket::SocketSet,
         socket::{TcpSocket, TcpSocketBuffer},
     },
+    time::Milliseconds,
 };
 use libsupport_zynq::{
     ram, alloc::{vec, vec::Vec},
     boot,
 };
-use libasync::{smoltcp::{Sockets, TcpStream}, task};
+use libasync::{delay, smoltcp::{Sockets, TcpStream}, task};
 
 mod ps7_init;
 
@@ -39,10 +42,7 @@ pub fn main_core0() {
     libsupport_zynq::logger::init().unwrap();
     log::set_max_level(log::LevelFilter::Trace);
 
-    {
-        use libregister::RegisterR;
-        info!("Boot mode: {:?}", zynq::slcr::RegisterBlock::new().boot_mode.read().boot_mode_pins());
-    }
+    info!("Boot mode: {:?}", zynq::slcr::RegisterBlock::new().boot_mode.read().boot_mode_pins());
 
     #[cfg(feature = "target_zc706")]
     const CPU_FREQ: u32 = 800_000_000;
@@ -71,6 +71,8 @@ pub fn main_core0() {
         println!("");
     }
     let mut flash = flash.stop();
+
+    let timer = libboard_zynq::timer::GlobalTimer::new();
 
     let mut ddr = zynq::ddr::DdrRam::new();
     #[cfg(not(feature = "target_zc706"))]
@@ -262,10 +264,16 @@ pub fn main_core0() {
         }
     });
 
-    let mut time = 0u32;
+    let mut countdown = timer.countdown();
+    task::spawn(async move {
+        loop {
+            delay(&mut countdown, Milliseconds(1000)).await;
+            println!("time: {} ms", timer.get_time().0);
+        }
+    });
+
     Sockets::run(&mut iface, || {
-        time += 1;
-        Instant::from_millis(time)
+        Instant::from_millis(timer.get_time().0 as i64)
     })
 }
 

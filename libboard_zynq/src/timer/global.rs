@@ -7,32 +7,34 @@ use crate::{
 };
 
 /// "uptime"
+#[derive(Clone, Copy)]
 pub struct GlobalTimer {
-    regs: &'static mut mpcore::RegisterBlock,
+    regs: &'static mpcore::RegisterBlock,
 }
 
 impl GlobalTimer {
     pub fn new() -> GlobalTimer {
-        let regs = mpcore::RegisterBlock::new();
+        let mut regs = mpcore::RegisterBlock::new();
+        Self::reset(&mut regs);
         GlobalTimer { regs }
     }
 
-    pub fn reset(&mut self) {
+    fn reset(regs: &mut mpcore::RegisterBlock) {
         // Disable
-        self.regs.global_timer_control.write(
+        regs.global_timer_control.write(
             mpcore::GlobalTimerControl::zeroed()
         );
 
         // Reset counters
-        self.regs.global_timer_counter0.write(
+        regs.global_timer_counter0.write(
             mpcore::ValueRegister::zeroed()
         );
-        self.regs.global_timer_counter1.write(
+        regs.global_timer_counter1.write(
             mpcore::ValueRegister::zeroed()
         );
 
         // Start
-        self.regs.global_timer_control.write(
+        regs.global_timer_control.write(
             mpcore::GlobalTimerControl::zeroed()
                 // maximum prescaler is still enough for millisecond
                 // precision while overflowing after centuries.
@@ -68,23 +70,23 @@ impl GlobalTimer {
     /// `embedded_hal::timer::CountDown`
     pub fn countdown(&self) -> CountDown {
         CountDown {
-            timer: &self,
+            timer: self.clone(),
             timeout: Milliseconds(0),
         }
     }
 }
 
 #[derive(Clone)]
-pub struct CountDown<'a> {
-    timer: &'a GlobalTimer,
+pub struct CountDown {
+    timer: GlobalTimer,
     timeout: Milliseconds,
 }
 
-impl embedded_hal::timer::CountDown for CountDown<'_> {
+impl embedded_hal::timer::CountDown for CountDown {
     type Time = Milliseconds;
 
     fn start<T: Into<Self::Time>>(&mut self, count: T) {
-        self.timeout = count.into();
+        self.timeout = self.timer.get_time() + count.into();
     }
 
     fn wait(&mut self) -> nb::Result<(), Void> {
