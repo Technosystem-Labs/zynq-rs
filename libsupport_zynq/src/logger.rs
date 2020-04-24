@@ -16,8 +16,14 @@ impl log::Log for Logger {
     }
 
     fn log(&self, record: &log::Record) {
-        if true || self.enabled(record.metadata()) {
-            println!("{} - {}", record.level(), record.args());
+        if self.enabled(record.metadata()) {
+            // TODO: let timestamp = clock::get_us();
+            let timestamp = 0;
+            let seconds   = timestamp / 1_000_000;
+            let micros    = timestamp % 1_000_000;
+
+            println!("[{:6}.{:06}s] {:>5}({}): {}",
+                     seconds, micros, record.level(), record.target(), record.args());
         }
     }
     fn flush(&self) {
