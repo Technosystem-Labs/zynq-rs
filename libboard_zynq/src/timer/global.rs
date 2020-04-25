@@ -78,6 +78,14 @@ impl GlobalTimer {
         Milliseconds(self.get_counter() * (prescaler + 1) / (clocks.cpu_3x2x() as u64 / 1000))
     }
 
+    /// read with high precision
+    pub fn get_us(&self) -> u64 {
+        let prescaler = self.regs.global_timer_control.read().prescaler() as u64;
+        let clocks = Clocks::get();
+
+        1_000_000 * self.get_counter() * (prescaler + 1) / clocks.cpu_3x2x() as u64
+    }
+
     /// return a handle that has implements
     /// `embedded_hal::timer::CountDown`
     pub fn countdown(&self) -> CountDown {

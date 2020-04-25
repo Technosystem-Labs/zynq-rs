@@ -1,6 +1,6 @@
 //! A logger for the `log` crate
 
-use libboard_zynq::{println, stdio};
+use libboard_zynq::{println, stdio, timer::GlobalTimer};
 
 pub static LOGGER: Logger = Logger;
 
@@ -17,8 +17,9 @@ impl log::Log for Logger {
 
     fn log(&self, record: &log::Record) {
         if self.enabled(record.metadata()) {
-            // TODO: let timestamp = clock::get_us();
-            let timestamp = 0;
+            let timestamp = unsafe {
+                GlobalTimer::get()
+            }.get_us();
             let seconds   = timestamp / 1_000_000;
             let micros    = timestamp % 1_000_000;
 

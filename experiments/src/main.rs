@@ -268,7 +268,11 @@ pub fn main_core0() {
     task::spawn(async move {
         loop {
             delay(&mut countdown, Milliseconds(1000)).await;
-            println!("time: {} ms", timer.get_time().0);
+
+            let timestamp = timer.get_us();
+            let seconds   = timestamp / 1_000_000;
+            let micros    = timestamp % 1_000_000;
+            println!("time: {:6}.{:06}s", seconds, micros);
         }
     });
 
