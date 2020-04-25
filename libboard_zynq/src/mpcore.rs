@@ -92,7 +92,7 @@ register!(value_register, ValueRegister, RW, u32);
 register_bits!(value_register, value, u32, 0, 31);
 
 register!(global_timer_control, GlobalTimerControl, RW, u32);
-register_bits!(global_timer_control, prescaler, u16, 8, 15);
+register_bits!(global_timer_control, prescaler, u8, 8, 15);
 register_bit!(global_timer_control, auto_increment_mode, 3);
 register_bit!(global_timer_control, irq_enable, 2);
 register_bit!(global_timer_control, comp_enablea, 1);

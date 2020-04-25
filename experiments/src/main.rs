@@ -72,7 +72,7 @@ pub fn main_core0() {
     }
     let mut flash = flash.stop();
 
-    let timer = libboard_zynq::timer::GlobalTimer::new();
+    let timer = libboard_zynq::timer::GlobalTimer::start();
 
     let mut ddr = zynq::ddr::DdrRam::new();
     #[cfg(not(feature = "target_zc706"))]

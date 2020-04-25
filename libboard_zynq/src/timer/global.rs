@@ -13,7 +13,14 @@ pub struct GlobalTimer {
 }
 
 impl GlobalTimer {
-    pub fn new() -> GlobalTimer {
+    /// Get the potentially uninitialized timer
+    pub unsafe fn get() -> GlobalTimer {
+        let mut regs = mpcore::RegisterBlock::new();
+        GlobalTimer { regs }
+    }
+
+    /// Get the timer with a reset
+    pub fn start() -> GlobalTimer {
         let mut regs = mpcore::RegisterBlock::new();
         Self::reset(&mut regs);
         GlobalTimer { regs }
@@ -33,12 +40,17 @@ impl GlobalTimer {
             mpcore::ValueRegister::zeroed()
         );
 
+        // find a prescaler value that matches CPU speed / 2 to us
+        let clocks = Clocks::get();
+        let mut prescaler = clocks.cpu_3x2x() / 1_000_000;
+        while prescaler > 256 {
+            prescaler /= 2;
+        }
+
         // Start
         regs.global_timer_control.write(
             mpcore::GlobalTimerControl::zeroed()
-                // maximum prescaler is still enough for millisecond
-                // precision while overflowing after centuries.
-                .prescaler(255)
+                .prescaler((prescaler - 1) as u8)
                 .auto_increment_mode(true)
                 .timer_enable(true)
         );
