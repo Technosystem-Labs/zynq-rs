@@ -79,6 +79,10 @@ pub struct LR;
 def_reg_r!(LR, u32, "mov $0, lr");
 def_reg_w!(LR, u32, "mov lr, $0");
 
+pub struct VBAR;
+def_reg_r!(VBAR, u32, "mrc p15, 0, $0, c12, c0, 0");
+def_reg_w!(VBAR, u32, "mcr p15, 0, $0, c12, c0, 0");
+
 pub struct MPIDR;
 def_reg_r!(MPIDR, u32, "mrc p15, 0, $0, c0, c0, 5");
 
