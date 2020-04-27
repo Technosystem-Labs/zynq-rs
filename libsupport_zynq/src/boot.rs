@@ -111,7 +111,7 @@ pub struct Core1<S: AsMut<[u32]>> {
 impl<S: AsMut<[u32]>> Core1<S> {
     /// Reset and start core1
     ///
-    /// The stack must not be in OCM because core1 still has to
+    /// The stack must be in OCM because core1 still has to
     /// initialize its MMU before it can access DDR.
     pub fn start(stack: S) -> Self {
         let mut core = Core1 { stack };
