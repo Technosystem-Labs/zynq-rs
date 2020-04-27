@@ -83,6 +83,14 @@ pub struct VBAR;
 def_reg_r!(VBAR, u32, "mrc p15, 0, $0, c12, c0, 0");
 def_reg_w!(VBAR, u32, "mcr p15, 0, $0, c12, c0, 0");
 
+pub struct MVBAR;
+def_reg_r!(MVBAR, u32, "mrc p15, 0, $0, c12, c0, 1");
+def_reg_w!(MVBAR, u32, "mcr p15, 0, $0, c12, c0, 1");
+
+pub struct HVBAR;
+def_reg_r!(HVBAR, u32, "mrc p15, 4, $0, c12, c0, 0");
+def_reg_w!(HVBAR, u32, "mcr p15, 4, $0, c12, c0, 0");
+
 pub struct MPIDR;
 def_reg_r!(MPIDR, u32, "mrc p15, 0, $0, c0, c0, 5");
 
