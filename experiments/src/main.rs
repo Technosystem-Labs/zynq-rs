@@ -77,7 +77,7 @@ pub fn main_core0() {
     let mut ddr = zynq::ddr::DdrRam::new();
     #[cfg(not(feature = "target_zc706"))]
     ddr.memtest();
-    ram::init_alloc(&mut ddr);
+    ram::init_alloc_ddr(&mut ddr);
 
     for i in 0..=1 {
         let mut flash_io = flash.manual_mode(i);

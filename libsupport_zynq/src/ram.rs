@@ -27,10 +27,24 @@ unsafe impl GlobalAlloc for CortexA9Alloc {
     }
 }
 
-pub fn init_alloc(ddr: &mut DdrRam) {
+pub fn init_alloc_ddr(ddr: &mut DdrRam) {
     unsafe {
         ALLOCATOR.0.lock()
             .init(ddr.ptr::<u8>() as usize, ddr.size());
+    }
+}
+
+extern "C" {
+    static __heap_start: usize;
+    static __heap_end: usize;
+}
+
+pub fn init_alloc_linker() {
+    unsafe {
+        let start = &__heap_start as *const usize as usize;
+        let end = &__heap_end as *const usize as usize;
+        ALLOCATOR.0.lock()
+            .init(start, end - start);
     }
 }
 
