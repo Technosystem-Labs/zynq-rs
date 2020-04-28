@@ -32,8 +32,6 @@ mod ps7_init;
 
 const HWADDR: [u8; 6] = [0, 0x23, 0xde, 0xea, 0xbe, 0xef];
 
-static mut STACK_CORE1: [u32; 512] = [0; 512];
-
 #[no_mangle]
 pub fn main_core0() {
     // zynq::clocks::CpuClocks::enable_io(1_250_000_000);
@@ -143,9 +141,7 @@ pub fn main_core0() {
         tx.async_send(None).await;
     });
 
-    let core1_stack = unsafe { &mut STACK_CORE1[..] };
-    println!("{} bytes stack for core1", core1_stack.len());
-    let core1 = boot::Core1::start(core1_stack);
+    let core1 = boot::Core1::start();
 
     let (mut core1_req, rx) = sync_channel(10);
     *CORE1_REQ.lock() = Some(rx);
@@ -159,13 +155,6 @@ pub fn main_core0() {
         }
     });
     core1.disable();
-
-    libcortex_a9::asm::dsb();
-    print!("Core1 stack [{:08X}..{:08X}]:", &core1.stack[0] as *const _ as u32, &core1.stack[core1.stack.len() - 1] as *const _ as u32);
-    for w in core1.stack {
-        print!(" {:08X}", w);
-    }
-    println!(".");
 
     let eth = zynq::eth::Eth::default(HWADDR.clone());
     println!("Eth on");

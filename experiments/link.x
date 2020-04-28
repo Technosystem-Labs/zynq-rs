@@ -46,10 +46,16 @@ SECTIONS
         __bss_end = .;
     } > OCM
 
-    .stack (NOLOAD) : ALIGN(8) {
-      __stack_end = .;
+    .stack1 (NOLOAD) : ALIGN(8) {
+      __stack1_end = .;
+      . += 0x200;
+      __stack1_start = .;
+    } > OCM
+
+    .stack0 (NOLOAD) : ALIGN(8) {
+      __stack0_end = .;
       . = ORIGIN(OCM) + LENGTH(OCM) - 8;
-      __stack_start = .;
+      __stack0_start = .;
     } > OCM
 
   /DISCARD/ :
@@ -61,4 +67,4 @@ SECTIONS
   }
 }
 
-ASSERT(SIZEOF(.stack) >= 0x8000, "less than 32 KB left for stack");
+ASSERT(SIZEOF(.stack0) >= 0x8000, "less than 32 KB left for stack");
