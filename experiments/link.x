@@ -39,7 +39,6 @@ SECTIONS
     .bss (NOLOAD) : ALIGN(4)
     {
         __bss_start = .;
-        /* Aligned to 16 kB */
         KEEP(*(.bss.l1_table));
         *(.bss .bss.*);
         . = ALIGN(4);
@@ -58,7 +57,8 @@ SECTIONS
         __stack0_start = .;
     } > OCM
 
-    /DISCARD/ : {
+    /DISCARD/ :
+    {
         /* Unused exception related info that only wastes space */
         *(.ARM.exidx);
         *(.ARM.exidx.*);
