@@ -12,9 +12,9 @@ PROVIDE(FIQ = Reset);
 
 MEMORY
 {
-  /* 256 kB On-Chip Memory */
-  OCM : ORIGIN = 0, LENGTH = 0x30000
-  OCM3 : ORIGIN = 0xFFFF0000, LENGTH = 0x10000
+    /* 256 kB On-Chip Memory */
+    OCM : ORIGIN = 0, LENGTH = 0x30000
+    OCM3 : ORIGIN = 0xFFFF0000, LENGTH = 0x10000
 }
 
 SECTIONS
@@ -47,24 +47,23 @@ SECTIONS
     } > OCM
 
     .stack1 (NOLOAD) : ALIGN(8) {
-      __stack1_end = .;
-      . += 0x200;
-      __stack1_start = .;
+        __stack1_end = .;
+        . += 0x200;
+        __stack1_start = .;
     } > OCM
 
     .stack0 (NOLOAD) : ALIGN(8) {
-      __stack0_end = .;
-      . = ORIGIN(OCM) + LENGTH(OCM) - 8;
-      __stack0_start = .;
+        __stack0_end = .;
+        . = ORIGIN(OCM) + LENGTH(OCM) - 8;
+        __stack0_start = .;
     } > OCM
 
-  /DISCARD/ :
-  {
-    /* Unused exception related info that only wastes space */
-    *(.ARM.exidx);
-    *(.ARM.exidx.*);
-    *(.ARM.extab.*);
-  }
+    /DISCARD/ : {
+        /* Unused exception related info that only wastes space */
+        *(.ARM.exidx);
+        *(.ARM.exidx.*);
+        *(.ARM.extab.*);
+    }
 }
 
 ASSERT(SIZEOF(.stack0) >= 0x8000, "less than 32 KB left for stack");
