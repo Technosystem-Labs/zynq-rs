@@ -1,7 +1,5 @@
 ENTRY(_boot_cores);
 
-STACK_SIZE = 0x8000;
-
 /* Provide some defaults */
 PROVIDE(Reset = _boot_cores);
 PROVIDE(UndefinedInstruction = Reset);
@@ -38,21 +36,21 @@ SECTIONS
         *(.data .data.*);
     } > OCM
  
-    .bss (NOLOAD) : ALIGN(0x4000)
+    .bss (NOLOAD) : ALIGN(4)
     {
+        __bss_start = .;
         /* Aligned to 16 kB */
         KEEP(*(.bss.l1_table));
         *(.bss .bss.*);
         . = ALIGN(4);
+        __bss_end = .;
     } > OCM
-    __bss_start = ADDR(.bss);
-    __bss_end = ADDR(.bss) + SIZEOF(.bss);
 
-    .stack (NOLOAD) : ALIGN(0x1000) {
-      . += STACK_SIZE;
+    .stack (NOLOAD) : ALIGN(8) {
+      __stack_end = .;
+      . = ORIGIN(OCM) + LENGTH(OCM) - 8;
+      __stack_start = .;
     } > OCM
-    __stack_end = ADDR(.stack);
-    __stack_start = ADDR(.stack) + SIZEOF(.stack);
 
   /DISCARD/ :
   {
@@ -62,3 +60,5 @@ SECTIONS
     *(.ARM.extab.*);
   }
 }
+
+ASSERT(SIZEOF(.stack) >= 0x8000, "less than 32 KB left for stack");

@@ -101,8 +101,6 @@ pub static mut l1_table: L1Table = L1Table {
     table: [L1Entry(0); L1_TABLE_SIZE]
 };
 
-/// The `#[repr(align(16384))]` is unfortunately ineffective. Hence we
-/// require explicit linking to a region defined in the linker script.
 #[repr(align(16384))]
 pub struct L1Table {
     table: [L1Entry; L1_TABLE_SIZE]
