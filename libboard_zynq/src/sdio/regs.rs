@@ -24,41 +24,41 @@ pub enum ResponseTypeSelect {
 #[repr(u8)]
 pub enum BusVoltage {
     /// 3.3V
-    v33 = 0b111,
+    V33 = 0b111,
     /// 3.0V, typ.
-    v30 = 0b110,
+    V30 = 0b110,
     /// 1.8V, typ.
-    v18 = 0b101,
+    V18 = 0b101,
 }
 
 #[allow(unused)]
 #[repr(u8)]
 pub enum DmaSelect {
-    sdma = 0b00,
-    adma1 = 0b01,
-    adma2 = 0b10,
-    adma3 = 0b11,
+    SDMA  = 0b00,
+    ADMA1 = 0b01,
+    ADMA2 = 0b10,
+    ADMA3 = 0b11,
 }
 
 #[allow(unused)]
 #[repr(u8)]
 /// SDCLK Frequency divisor, d(number) means baseclock divides by (number).
 pub enum SdclkFreqDivisor {
-    d256 = 0x80,
-    d128 = 0x40,
-    d64 = 0x20,
-    d32 = 0x10,
-    d16 = 0x08,
-    d8 = 0x04,
-    d4 = 0x02,
-    d2 = 0x01,
-    d1 = 0x00,
+    D256 = 0x80,
+    D128 = 0x40,
+    D64 = 0x20,
+    D32 = 0x10,
+    D16 = 0x08,
+    D8 = 0x04,
+    D4 = 0x02,
+    D2 = 0x01,
+    D1 = 0x00,
 }
 
 #[repr(C)]
 pub struct RegisterBlock {
-    pub sdma_system_address: RM<u32>,
-    pub block_size_block_count: BockSizeBlockCount,
+    pub sdma_system_address: RO<u32>,
+    pub block_size_block_count: BlockSizeBlockCount,
     pub argument: RW<u32>,
     pub transfer_mode_command: TransferModeCommand,
     pub responses: [RO<u32>; 4],
@@ -68,6 +68,7 @@ pub struct RegisterBlock {
     pub control: Control,
     /// Clock and timeout control, and software reset register.
     pub timing_control: TimingControl,
+    pub interrupt_status: InterruptStatus,
 }
 
 register_at!(RegisterBlock, 0xE0100000, sd0);
@@ -218,9 +219,9 @@ register_bit!(
     card_detected,
     18
 );
-regsiter_bit!(present_state, card_state_stable, 17);
+register_bit!(present_state, card_state_stable, 17);
 register_bit!(present_state, card_inserted, 16);
-register_bit!(present_state, buffer_read_en, 11,);
+register_bit!(present_state, buffer_read_en, 11);
 register_bit!(present_state, buffer_write_en, 10);
 register_bit!(present_state, read_transfer_active, 9);
 register_bit!(present_state, write_transfer_active, 8);
@@ -230,7 +231,7 @@ register_bit!(present_state, command_inhibit_cmd, 0);
 
 register!(control, Control, RW, u32);
 register_bit!(
-    contorl,
+    control,
     /// Enable wakeup event via SD card removal assertion.
     wakeup_on_removal,
     26
@@ -340,9 +341,39 @@ register_bits_typed!(
     8,
     15
 );
-register_bits!(timing_control, sd_clk_en, 2);
-register_bits!(timing_control,
+register_bit!(timing_control, sd_clk_en, 2);
+register_bit!(
+    timing_control,
     /// 1 when SD clock is stable.
     /// Note that this field is read-only.
-    internal_clk_stable, 1);
-register_bits!(timing_control, internal_clk_en, 0);
+    internal_clk_stable,
+    1,
+    RO
+);
+register_bit!(timing_control, internal_clk_en, 0);
+
+register!(interrupt_status, InterruptStatus, RW, u32, 1 << 15 | 1 << 8);
+register_bit!(interrupt_status, ceata_error, 29, WTC);
+register_bit!(interrupt_status, target_response_error, 28, WTC);
+register_bit!(interrupt_status, adma_error, 25, WTC);
+register_bit!(interrupt_status, auto_cmd12_error, 24, WTC);
+register_bit!(interrupt_status, current_limit_error, 23, WTC);
+register_bit!(interrupt_status, data_end_bit_error, 22, WTC);
+register_bit!(interrupt_status, data_crc_error, 21, WTC);
+register_bit!(interrupt_status, data_timeout_error, 20, WTC);
+register_bit!(interrupt_status, command_index_error, 19, WTC);
+register_bit!(interrupt_status, command_end_bit_error, 18, WTC);
+register_bit!(interrupt_status, command_crc_error, 17, WTC);
+register_bit!(interrupt_status, command_timeout_error, 16, WTC);
+register_bit!(interrupt_status, error_interrupt, 15, RO);
+register_bit!(interrupt_status, boot_terminate_interrupt, 10, WTC);
+register_bit!(interrupt_status, boot_ack_rcv, 9, WTC);
+register_bit!(interrupt_status, card_interrupt, 8, RO);
+register_bit!(interrupt_status, card_removal, 7, WTC);
+register_bit!(interrupt_status, card_insertion, 6, WTC);
+register_bit!(interrupt_status, buffer_read_ready, 5, WTC);
+register_bit!(interrupt_status, buffer_write_ready, 4, WTC);
+register_bit!(interrupt_status, dma_interrupt, 3, WTC);
+register_bit!(interrupt_status, block_gap_event, 2, WTC);
+register_bit!(interrupt_status, transfer_complete, 1, WTC);
+register_bit!(interrupt_status, command_complete, 0, WTC);
