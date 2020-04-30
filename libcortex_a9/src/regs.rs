@@ -11,7 +11,7 @@ macro_rules! def_reg_r {
             #[inline]
             fn read(&self) -> Self::R {
                 let mut value: u32;
-                unsafe { asm!($asm_instr : "=r" (value) ::: "volatile") }
+                unsafe { llvm_asm!($asm_instr : "=r" (value) ::: "volatile") }
                 value.into()
             }
         }
@@ -26,7 +26,7 @@ macro_rules! def_reg_w {
             #[inline]
             fn write(&mut self, value: Self::W) {
                 let value: u32 = value.into();
-                unsafe { asm!($asm_instr :: "r" (value) :: "volatile") }
+                unsafe { llvm_asm!($asm_instr :: "r" (value) :: "volatile") }
             }
 
             #[inline]
