@@ -65,4 +65,4 @@ SECTIONS
     }
 }
 
-ASSERT(SIZEOF(.stack0) >= 0x8000, "less than 32 KB left for stack");
+ASSERT(SIZEOF(.stack0) >= 0x1000, "less than 4 KB left for stack");
