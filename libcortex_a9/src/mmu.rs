@@ -94,14 +94,11 @@ impl L1Entry {
 }
 
 const L1_TABLE_SIZE: usize = 4096;
-#[doc(hidden)]
-#[link_section = ".bss.l1_table"]
-#[no_mangle]
-pub static mut l1_table: L1Table = L1Table {
+static mut l1_table: L1Table = L1Table {
     table: [L1Entry(0); L1_TABLE_SIZE]
 };
 
-#[repr(align(16384))]
+#[repr(C, align(16384))]
 pub struct L1Table {
     table: [L1Entry; L1_TABLE_SIZE]
 }
