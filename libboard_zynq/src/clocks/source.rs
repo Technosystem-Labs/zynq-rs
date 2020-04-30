@@ -1,3 +1,4 @@
+use log::debug;
 use libregister::{RegisterR, RegisterW, RegisterRW};
 use super::slcr;
 
@@ -48,6 +49,8 @@ pub trait ClockSource {
         u32::from(pll_ctrl.read().pll_fdiv()) * PS_CLK
     }
 
+    fn name() -> &'static str;
+
     /// Zynq-7000 AP SoC Technical Reference Manual:
     /// 25.10.4 PLLs
     fn setup(target_freq: u32) {
@@ -58,6 +61,7 @@ pub trait ClockSource {
             .expect("PLL_FDIV_LOCK_PARAM")
             .1.clone();
 
+        debug!("Set {} to {} Hz", Self::name(), target_freq);
         slcr::RegisterBlock::unlocked(|slcr| {
             let (pll_ctrl, pll_cfg, pll_status) = Self::pll_regs(slcr);
 
@@ -108,6 +112,10 @@ impl ClockSource for ArmPll {
     fn pll_locked(pll_status: &mut crate::slcr::PllStatus) -> bool {
         pll_status.read().arm_pll_lock()
     }
+
+    fn name() -> &'static str {
+        &"ARM_PLL"
+    }
 }
 
 /// DDR PLL: Recommended clock for the DDR DRAM controller and AXI_HP interfaces
@@ -129,6 +137,10 @@ impl ClockSource for DdrPll {
     #[inline]
     fn pll_locked(pll_status: &mut crate::slcr::PllStatus) -> bool {
         pll_status.read().ddr_pll_lock()
+    }
+
+    fn name() -> &'static str {
+        &"DDR_PLL"
     }
 }
 
@@ -152,5 +164,9 @@ impl ClockSource for IoPll {
     #[inline]
     fn pll_locked(pll_status: &mut crate::slcr::PllStatus) -> bool {
         pll_status.read().io_pll_lock()
+    }
+
+    fn name() -> &'static str {
+        &"IO_PLL"
     }
 }

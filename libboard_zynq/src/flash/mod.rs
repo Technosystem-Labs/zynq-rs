@@ -1,8 +1,9 @@
 //! Quad-SPI Flash Controller
 
-use crate::{print, println};
 use core::marker::PhantomData;
+use log::{error, info, warn};
 use libregister::{RegisterR, RegisterW, RegisterRW};
+use crate::{print, println};
 use super::slcr;
 use super::clocks::source::{IoPll, ClockSource};
 
@@ -422,17 +423,17 @@ impl Flash<Manual> {
         let sr1 = self.wait_while_sr1_zeroed();
 
         if sr1.e_err() {
-            println!("E_ERR");
+            error!("E_ERR");
         } else if sr1.p_err() {
-            println!("P_ERR");
+            error!("P_ERR");
         } else if sr1.wip() {
-            print!("Erase in progress");
+            info!("Erase in progress");
             while self.read_reg::<SR1>().wip() {
                 print!(".");
             }
             println!("");
         } else {
-            println!("erased? sr1={:02X}", sr1.inner);
+            warn!("erased? sr1={:02X}", sr1.inner);
         }
     }
 
@@ -448,17 +449,17 @@ impl Flash<Manual> {
         let sr1 = self.read_reg::<SR1>();
 
         if sr1.e_err() {
-            println!("E_ERR");
+            error!("E_ERR");
         } else if sr1.p_err() {
-            println!("P_ERR");
+            error!("P_ERR");
         } else if sr1.wip() {
-            println!("Program in progress");
+            info!("Program in progress");
             while self.read_reg::<SR1>().wip() {
                 print!(".");
             }
             println!("");
         } else {
-            println!("programmed? sr1={:02X}", sr1.inner);
+            warn!("programmed? sr1={:02X}", sr1.inner);
         }
     }
 

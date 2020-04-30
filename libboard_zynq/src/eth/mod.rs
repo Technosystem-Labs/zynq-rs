@@ -1,6 +1,6 @@
 use core::ops::{Deref, DerefMut};
+use log::{error, info, warn};
 use libregister::*;
-use crate::println;
 use super::slcr;
 use super::clocks::Clocks;
 
@@ -389,7 +389,7 @@ impl<'r, 'rx, 'tx: 'a, 'a> smoltcp::phy::Device<'a> for &mut Eth<'r, rx::DescLis
                 None
             }
             Err(e) => {
-                println!("eth recv error: {:?}", e);
+                error!("eth recv error: {:?}", e);
                 None
             }
         }
@@ -555,7 +555,7 @@ impl<'r> EthInner<'r> {
         if self.link != link {
             match &link {
                 Some(link) => {
-                    println!("eth: got {:?}", link);
+                    info!("eth: got {:?}", link);
 
                     use phy::LinkSpeed::*;
                     let txclock = match link.speed {
@@ -573,7 +573,7 @@ impl<'r> EthInner<'r> {
                     );
                 }
                 None => {
-                    println!("eth: link lost");
+                    warn!("eth: link lost");
                     phy.modify_control(self, |control|
                                        control.set_autoneg_enable(true)
                                        .set_restart_autoneg(true)
