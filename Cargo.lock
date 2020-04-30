@@ -66,6 +66,7 @@ dependencies = [
  "embedded-hal 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "libcortex_a9 0.0.0",
  "libregister 0.0.0",
+ "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "nb 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "smoltcp 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "void 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -98,7 +99,6 @@ dependencies = [
  "libcortex_a9 0.0.0",
  "libregister 0.0.0",
  "linked_list_allocator 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "r0 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

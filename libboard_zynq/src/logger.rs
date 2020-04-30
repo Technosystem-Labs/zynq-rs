@@ -1,6 +1,6 @@
 //! A logger for the `log` crate
 
-use libboard_zynq::{println, stdio, timer::GlobalTimer};
+use crate::{println, stdio, timer::GlobalTimer};
 
 pub static LOGGER: Logger = Logger;
 

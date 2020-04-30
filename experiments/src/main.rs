@@ -34,7 +34,7 @@ pub fn main_core0() {
     // zynq::clocks::CpuClocks::enable_io(1_250_000_000);
     println!("\nzc706 main");
 
-    libsupport_zynq::logger::init().unwrap();
+    libboard_zynq::logger::init().unwrap();
     log::set_max_level(log::LevelFilter::Trace);
 
     info!("Boot mode: {:?}", zynq::slcr::RegisterBlock::new().boot_mode.read().boot_mode_pins());
