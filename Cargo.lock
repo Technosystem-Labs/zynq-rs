@@ -98,13 +98,13 @@ dependencies = [
  "libboard_zynq 0.0.0",
  "libcortex_a9 0.0.0",
  "libregister 0.0.0",
- "linked_list_allocator 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "linked_list_allocator 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "r0 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "linked_list_allocator"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -170,7 +170,7 @@ dependencies = [
 "checksum cfg-if 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)" = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
 "checksum compiler_builtins 0.1.27 (registry+https://github.com/rust-lang/crates.io-index)" = "38f18416546abfbf8d801c555a0e99524453e7214f9cc9107ad49de3d5948ccc"
 "checksum embedded-hal 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "ee4908a155094da7723c2d60d617b820061e3b4efcc3d9e293d206a5a76c170b"
-"checksum linked_list_allocator 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)" = "c1070ea54beccbfd3a3987aca6440f94cc1e0b447c2d979d8c7f761e265417e4"
+"checksum linked_list_allocator 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)" = "d6b60501dd4c850950bb43f970d544f6ce04e0ca021da2db2538fbe9d923f19e"
 "checksum log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)" = "14b6052be84e6b71ab17edffc2eeabf5c2c3ae1fdb464aae35ac50c67a44e1f7"
 "checksum managed 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)" = "fdcec5e97041c7f0f1c5b7d93f12e57293c831c646f4cc7a5db59460c7ea8de6"
 "checksum nb 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "b1411551beb3c11dedfb0a90a0fa256b47d28b9ec2cdff34c25a2fa59e45dbdc"
