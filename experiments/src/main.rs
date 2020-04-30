@@ -6,7 +6,6 @@ extern crate alloc;
 use core::{mem::transmute, task::Poll};
 use alloc::{borrow::ToOwned, collections::BTreeMap, format};
 use log::info;
-use embedded_hal::timer::CountDown;
 use libregister::RegisterR;
 use libcortex_a9::{mutex::Mutex, sync_channel::{self, sync_channel}};
 use libboard_zynq::{
@@ -17,8 +16,6 @@ use libboard_zynq::{
         wire::{EthernetAddress, IpAddress, IpCidr},
         iface::{NeighborCache, EthernetInterfaceBuilder, Routes},
         time::Instant,
-        socket::SocketSet,
-        socket::{TcpSocket, TcpSocketBuffer},
     },
     time::Milliseconds,
 };
@@ -109,7 +106,7 @@ pub fn main_core0() {
             flash_io.erase(0);
         });
         flash_io.write_enabled(|flash_io| {
-            flash_io.program(0, [0x23054223; (0x100 >> 2)].iter().cloned());
+            flash_io.program(0, [0x23054223; 0x100 >> 2].iter().cloned());
         });
 
         flash = flash_io.stop();
@@ -178,23 +175,13 @@ pub fn main_core0() {
         unsafe { transmute(tx_descs.as_mut_slice()) },
         unsafe { transmute(tx_buffers.as_mut_slice()) },
     );
-    // loop {
-    //     match eth.recv_next() {
-    //         Ok(None) => {},
-    //         Ok(Some(pkt)) => println!("received {} bytes", pkt.len()),
-    //         Err(e) => println!("e: {:?}", e),
-    //     }
-    // }
 
-    println!("iface...");
     let ethernet_addr = EthernetAddress(HWADDR);
     // IP stack
     let local_addr = IpAddress::v4(192, 168, 1, 51);
     let mut ip_addrs = [IpCidr::new(local_addr, 24)];
-    let mut routes_storage = vec![None; 4];
-    let routes = Routes::new(/*BTreeMap::new()*/ &mut routes_storage[..]);
-    let mut neighbor_storage = vec![None; 256];
-    let neighbor_cache = NeighborCache::new(&mut neighbor_storage[..]);
+    let routes = Routes::new(BTreeMap::new());
+    let neighbor_cache = NeighborCache::new(BTreeMap::new());
     let mut iface = EthernetInterfaceBuilder::new(&mut eth)
         .ethernet_addr(ethernet_addr)
         .ip_addrs(&mut ip_addrs[..])
@@ -202,8 +189,8 @@ pub fn main_core0() {
         .neighbor_cache(neighbor_cache)
         .finalize();
 
-    // TODO: compare with ps7_init
-    
+    ps7_init::report_differences();
+
     Sockets::init(32);
     /// `chargen`
     const TCP_PORT: u16 = 19;
@@ -233,20 +220,20 @@ pub fn main_core0() {
             None =>
                 stream.send("I had trouble reading your name.\n".bytes()).await?,
         }
-        stream.flush().await;
+        let _ = stream.flush().await;
         Ok(())
     }
 
-    let mut counter = alloc::rc::Rc::new(core::cell::RefCell::new(0));
+    let counter = alloc::rc::Rc::new(core::cell::RefCell::new(0));
     task::spawn(async move {
-        while let stream = TcpStream::accept(TCP_PORT, 2048, 2408).await.unwrap() {
+        while let Ok(stream) = TcpStream::accept(TCP_PORT, 2048, 2408).await {
             let counter = counter.clone();
             task::spawn(async move {
                 *counter.borrow_mut() += 1;
                 println!("Serving {} connections", *counter.borrow());
                 handle_connection(stream)
                     .await
-                    .map_err(|e| println!("Connection: {:?}", e));
+                    .unwrap_or_else(|e| println!("Connection: {:?}", e));
                 *counter.borrow_mut() -= 1;
                 println!("Now serving {} connections", *counter.borrow());
             });
@@ -282,7 +269,7 @@ pub fn main_core1() {
     while req.is_none() {
         req = CORE1_REQ.lock().take();
     }
-    let mut req = req.unwrap();
+    let req = req.unwrap();
     let mut res = None;
     while res.is_none() {
         res = CORE1_RES.lock().take();
