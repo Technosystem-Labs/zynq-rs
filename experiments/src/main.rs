@@ -74,6 +74,7 @@ pub fn main_core0() {
     ddr.memtest();
     ram::init_alloc_ddr(&mut ddr);
 
+    #[cfg(dev)]
     for i in 0..=1 {
         let mut flash_io = flash.manual_mode(i);
         // println!("rdcr={:02X}", flash_io.rdcr());
@@ -111,32 +112,6 @@ pub fn main_core0() {
 
         flash = flash_io.stop();
     }
-
-    let (mut tx, mut rx) = sync_channel::sync_channel(0);
-    task::spawn(async move {
-        println!("outer task");
-        while let Some(item) = *rx.async_recv().await {
-            println!("received {}", item);
-        }
-    });
-    task::spawn(async {
-        for i in 1..=3 {
-            println!("outer task2: {}", i);
-            task::r#yield().await;
-        }
-    });
-    task::block_on(async {
-        task::spawn(async {
-            println!("inner task");
-        });
-
-        for i in 1..=10 {
-            println!("yield {}", i);
-            task::r#yield().await;
-            tx.async_send(Some(i)).await;
-        }
-        tx.async_send(None).await;
-    });
 
     let core1 = boot::Core1::start();
 
