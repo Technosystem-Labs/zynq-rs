@@ -2,6 +2,34 @@ use volatile_register::{RO, RW, WO};
 
 use libregister::{register, register_at, register_bit, register_bits, register_bits_typed};
 
+#[repr(C)]
+pub struct RegisterBlock {
+    pub sdma_system_address: RW<u32>,
+    pub block_size_block_count: BlockSizeBlockCount,
+    pub argument: RW<u32>,
+    pub transfer_mode_command: TransferModeCommand,
+    pub responses: [RO<u32>; 4],
+    pub buffer: RW<u32>,
+    pub present_state: PresentState,
+    /// Host. power, block gap, wakeup control
+    pub control: Control,
+    /// Clock and timeout control, and software reset register.
+    pub timing_control: TimingControl,
+    pub interrupt_status: InterruptStatus,
+    pub interrupt_status_en: InterruptStatusEn,
+    pub interrupt_signal_en: InterruptSignalEn,
+    pub auto_cmd12_error_status: AutoCmd12ErrorStatus,
+    pub capabilities: Capabilities,
+    pub max_current_capabilities: MaxCurrentCapabilities,
+    pub force_event: ForceEvent,
+    pub adma_error_status: AdmaErrorStatus,
+    pub adma_system_address: RW<u32>,
+    pub boot_data_timeout_counter: RW<u32>,
+    pub debug_selection: DebugSelection,
+    pub spi_interrupt_support: SpiInterruptSupport,
+    pub misc_reg: MiscReg,
+}
+
 #[allow(unused)]
 #[repr(u8)]
 pub enum CommandType {
@@ -34,7 +62,7 @@ pub enum BusVoltage {
 #[allow(unused)]
 #[repr(u8)]
 pub enum DmaSelect {
-    SDMA  = 0b00,
+    SDMA = 0b00,
     ADMA1 = 0b01,
     ADMA2 = 0b10,
     ADMA3 = 0b11,
@@ -42,7 +70,7 @@ pub enum DmaSelect {
 
 #[allow(unused)]
 #[repr(u8)]
-/// SDCLK Frequency divisor, d(number) means baseclock divides by (number).
+/// SDCLK Frequency divisor, d(number) means baseclock divided by (number).
 pub enum SdclkFreqDivisor {
     D256 = 0x80,
     D128 = 0x40,
@@ -55,20 +83,19 @@ pub enum SdclkFreqDivisor {
     D1 = 0x00,
 }
 
-#[repr(C)]
-pub struct RegisterBlock {
-    pub sdma_system_address: RO<u32>,
-    pub block_size_block_count: BlockSizeBlockCount,
-    pub argument: RW<u32>,
-    pub transfer_mode_command: TransferModeCommand,
-    pub responses: [RO<u32>; 4],
-    pub buffer: RW<u32>,
-    pub present_state: PresentState,
-    /// Host. power, block gap, wakeup control
-    pub control: Control,
-    /// Clock and timeout control, and software reset register.
-    pub timing_control: TimingControl,
-    pub interrupt_status: InterruptStatus,
+#[allow(unused)]
+#[repr(u8)]
+pub enum AdmaErrorState {
+    StStop = 0b00,
+    StFds = 0b01,
+    StTfr = 0b11,
+}
+
+#[allow(unused)]
+#[repr(u8)]
+pub enum SpecificationVersion {
+    V1 = 0,
+    V2 = 1,
 }
 
 register_at!(RegisterBlock, 0xE0100000, sd0);
@@ -377,3 +404,144 @@ register_bit!(interrupt_status, dma_interrupt, 3, WTC);
 register_bit!(interrupt_status, block_gap_event, 2, WTC);
 register_bit!(interrupt_status, transfer_complete, 1, WTC);
 register_bit!(interrupt_status, command_complete, 0, WTC);
+
+register!(interrupt_status_en, InterruptStatusEn, RW, u32);
+register_bit!(interrupt_status_en, ceata_error_status_en, 29);
+register_bit!(interrupt_status_en, target_response_error_status_en, 28);
+register_bit!(interrupt_status_en, adma_error_status_en, 25);
+register_bit!(interrupt_status_en, auto_cmd12_error_status_en, 24);
+register_bit!(interrupt_status_en, current_limit_error_status_en, 23);
+register_bit!(interrupt_status_en, data_end_bit_error_status_en, 22);
+register_bit!(interrupt_status_en, data_crc_error_status_en, 21);
+register_bit!(interrupt_status_en, data_timeout_error_status_en, 20);
+register_bit!(interrupt_status_en, cmd_index_error_status_en, 19);
+register_bit!(interrupt_status_en, cmd_end_bit_error_status_en, 18);
+register_bit!(interrupt_status_en, cmd_crc_error_status_en, 17);
+register_bit!(interrupt_status_en, cmd_timeout_error_status_en, 16);
+register_bit!(interrupt_status_en, fixed_to_0, 15, RO);
+register_bit!(interrupt_status_en, boot_terminate_interrupt_en, 10);
+register_bit!(interrupt_status_en, boot_ack_rcv_en, 9);
+register_bit!(interrupt_status_en, card_interrupt_status_en, 8);
+register_bit!(interrupt_status_en, card_removal_status_en, 7);
+register_bit!(interrupt_status_en, card_insertion_status_en, 6);
+register_bit!(interrupt_status_en, buffer_read_ready_status_en, 5);
+register_bit!(interrupt_status_en, buffer_write_ready_status_en, 4);
+register_bit!(interrupt_status_en, dma_interrupt_status_en, 3);
+register_bit!(interrupt_status_en, block_gap_evt_status_en, 2);
+register_bit!(interrupt_status_en, transfer_complete_status_en, 1);
+register_bit!(interrupt_status_en, cmd_complete_status_en, 0);
+
+register!(interrupt_signal_en, InterruptSignalEn, RW, u32);
+register_bit!(interrupt_signal_en, ceata_error_signal_en, 29);
+register_bit!(interrupt_signal_en, target_response_error_signal_en, 28);
+register_bit!(interrupt_signal_en, adma_error_signal_en, 25);
+register_bit!(interrupt_signal_en, auto_cmd12_error_signal_en, 24);
+register_bit!(interrupt_signal_en, current_limit_error_signal_en, 23);
+register_bit!(interrupt_signal_en, data_end_bit_error_signal_en, 22);
+register_bit!(interrupt_signal_en, data_crc_error_signal_en, 21);
+register_bit!(interrupt_signal_en, data_timeout_error_signal_en, 20);
+register_bit!(interrupt_signal_en, cmd_index_error_signal_en, 19);
+register_bit!(interrupt_signal_en, cmd_end_bit_error_signal_en, 18);
+register_bit!(interrupt_signal_en, cmd_crc_error_signal_en, 17);
+register_bit!(interrupt_signal_en, cmd_timeout_error_signal_en, 16);
+register_bit!(interrupt_signal_en, fixed_to_0, 15, RO);
+register_bit!(interrupt_signal_en, boot_terminate_interrupt_signal_en, 10);
+register_bit!(interrupt_signal_en, boot_ack_rcv_signal_en, 9);
+register_bit!(interrupt_signal_en, card_interrupt_signal_en, 8);
+register_bit!(interrupt_signal_en, card_removal_signal_en, 7);
+register_bit!(interrupt_signal_en, card_insertion_signal_en, 6);
+register_bit!(interrupt_signal_en, buffer_read_ready_signal_en, 5);
+register_bit!(interrupt_signal_en, buffer_write_ready_signal_en, 4);
+register_bit!(interrupt_signal_en, dma_interrupt_signal_en, 3);
+register_bit!(interrupt_signal_en, block_gap_evt_signal_en, 2);
+register_bit!(interrupt_signal_en, transfer_complete_signal_en, 1);
+register_bit!(interrupt_signal_en, cmd_complete_signal_en, 0);
+
+register!(auto_cmd12_error_status, AutoCmd12ErrorStatus, RO, u32);
+register_bit!(
+    auto_cmd12_error_status,
+    cmd_not_issued_by_auto_cmd12_error,
+    7
+);
+register_bit!(auto_cmd12_error_status, index_error, 4);
+register_bit!(auto_cmd12_error_status, end_bit_error, 3);
+register_bit!(auto_cmd12_error_status, crc_error, 2);
+register_bit!(auto_cmd12_error_status, timeout_error, 1);
+register_bit!(auto_cmd12_error_status, not_executed, 0);
+
+register!(capabilities, Capabilities, RO, u32);
+register_bit!(capabilities, spi_block_mode, 30);
+register_bit!(capabilities, spi_mode, 29);
+register_bit!(capabilities, support_64bit, 28);
+register_bit!(capabilities, interrupt_mode, 27);
+register_bit!(capabilities, voltage_1_8, 26);
+register_bit!(capabilities, voltage_3_0, 25);
+register_bit!(capabilities, voltage_3_3, 24);
+register_bit!(capabilities, suspend_resume, 23);
+register_bit!(capabilities, sdma, 22);
+register_bit!(capabilities, hgih_speed, 21);
+register_bit!(capabilities, adma2, 19);
+register_bit!(capabilities, extended_media_bus, 18);
+register_bits!(
+    capabilities,
+    /// Length = 2^(9 + v) bytes.
+    max_block_len,
+    u8,
+    16,
+    17
+);
+register_bit!(capabilities, timeout_clock_unit, 7);
+
+register!(max_current_capabilities, MaxCurrentCapabilities, RO, u32);
+register_bits!(max_current_capabilities, max_current_1_8v, u8, 16, 23);
+register_bits!(max_current_capabilities, max_current_3_0v, u8, 8, 15);
+register_bits!(max_current_capabilities, max_current_3_3v, u8, 0, 7);
+
+register!(force_event, ForceEvent, WO, u32);
+register_bit!(force_event, ceata_error, 29);
+register_bit!(force_event, target_response_error, 28);
+register_bit!(force_event, adma_error, 25);
+register_bit!(force_event, auto_cmd12_error, 24);
+register_bit!(force_event, current_limit_error, 23);
+register_bit!(force_event, data_end_bit_error, 22);
+register_bit!(force_event, data_crc_error, 21);
+register_bit!(force_event, data_timeout_error, 20);
+register_bit!(force_event, cmd_index_error, 19);
+register_bit!(force_event, cmd_end_bit_error, 18);
+register_bit!(force_event, cmd_crc_error, 17);
+register_bit!(force_event, cmd_timeout_error, 16);
+register_bit!(force_event, cmd_not_issued_by_auto_cmd12_error, 7);
+register_bit!(force_event, auto_cmd12_index_error, 4);
+register_bit!(force_event, auto_cmd12_end_bit_error, 3);
+register_bit!(force_event, auto_cmd12_crc_error, 2);
+register_bit!(force_event, auto_cmd12_timeout_error, 1);
+register_bit!(force_event, auto_cmd12_not_executed, 0);
+
+register!(adma_error_status, AdmaErrorStatus, RW, u32, 0b11);
+register_bit!(adma_error_status, length_mismatch_error, 2, WTC);
+register_bits_typed!(adma_error_status, error_state, u8, AdmaErrorState, 0, 1);
+
+register!(debug_selection, DebugSelection, WO, u32);
+register_bit!(debug_selection, debug_select, 0);
+
+register!(spi_interrupt_support, SpiInterruptSupport, RW, u32);
+register_bits!(
+    spi_interrupt_support,
+    /// There should be a problem with the documentation of this field.
+    spi_int_support,
+    u8,
+    0,
+    7
+);
+
+register!(misc_reg, MiscReg, RO, u32);
+register_bits!(misc_reg, vendor_version_num, u8, 24, 31);
+register_bits_typed!(misc_reg, spec_ver, u8, SpecificationVersion, 16, 23);
+register_bits!(
+    misc_reg,
+    /// Logical OR of interrupt signal and wakeup signal for each slot.
+    slot_interrupt_signal,
+    u8,
+    0,
+    7
+);

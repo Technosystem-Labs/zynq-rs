@@ -248,6 +248,7 @@ macro_rules! register_bit {
 
         $(#[$outer])*
         impl $mod_name::Write {
+            /// Clear bit field. (WTC)
             #[allow(unused)]
             #[inline]
             pub fn $name(mut self) -> Self {
