@@ -1,5 +1,5 @@
 use libregister::{RegisterR, RegisterW, RegisterRW};
-use log::{error, info};
+use log::{debug, info, error};
 use crate::{print, println};
 use super::slcr::{self, DdriobVrefSel};
 use super::clocks::{Clocks, source::{DdrPll, ClockSource}};
@@ -41,7 +41,7 @@ impl DdrRam {
         let clocks = Clocks::get();
         let ddr3x_clk_divisor = 2;
         let ddr2x_clk_divisor = 3;
-        info!("DDR 3x/2x clocks: {}/{}", clocks.ddr / u32::from(ddr3x_clk_divisor), clocks.ddr / u32::from(ddr2x_clk_divisor));
+        debug!("DDR 3x/2x clocks: {}/{}", clocks.ddr / u32::from(ddr3x_clk_divisor), clocks.ddr / u32::from(ddr2x_clk_divisor));
 
         slcr::RegisterBlock::unlocked(|slcr| {
             slcr.ddr_clk_ctrl.write(
@@ -62,7 +62,7 @@ impl DdrRam {
             .max(1).min(63) as u8;
         let divisor1 = ((DCI_FREQ - 1 + clocks.ddr) / DCI_FREQ / u32::from(divisor0))
             .max(1).min(63) as u8;
-        info!("DDR DCI clock: {} Hz", clocks.ddr / u32::from(divisor0) / u32::from(divisor1));
+        debug!("DDR DCI clock: {} Hz", clocks.ddr / u32::from(divisor0) / u32::from(divisor1));
 
         slcr::RegisterBlock::unlocked(|slcr| {
             // Step 1.
