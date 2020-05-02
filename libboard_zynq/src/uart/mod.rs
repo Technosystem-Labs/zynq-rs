@@ -221,7 +221,7 @@ impl embedded_hal::serial::Write<u8> for Uart {
     }
 
     fn flush(&mut self) -> nb::Result<(), Void> {
-        if self.tx_fifo_empty() {
+        if self.tx_idle() {
             Ok(())
         } else {
             Err(nb::Error::WouldBlock)

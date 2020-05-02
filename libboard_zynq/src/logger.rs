@@ -29,6 +29,6 @@ impl log::Log for Logger {
     }
     fn flush(&self) {
         let uart = stdio::get_uart();
-        while !uart.tx_fifo_empty() {}
+        while !uart.tx_idle() {}
     }
 }
