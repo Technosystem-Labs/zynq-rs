@@ -52,6 +52,7 @@ let
     cargoSha256 = "0wqsxbcphcf240mqfglckl0lz82f19g1jlcf3xk73aflpyxk5pmm";
     cargoFeatures = features;
     doCheck = false;
+    dontFixup = true;
   };
 in {
   inherit pkgs rustPlatform rustcSrc gcc;
