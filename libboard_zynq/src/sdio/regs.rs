@@ -142,8 +142,8 @@ register_bits_typed!(
     command_type,
     u8,
     CommandType,
-    24,
-    29
+    22,
+    23
 );
 register_bit!(
     transfer_mode_command,
