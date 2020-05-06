@@ -1,4 +1,5 @@
 use r0::zero_bss;
+use core::ptr::write_volatile;
 use libregister::{
     VolatileCell,
     RegisterR, RegisterW, RegisterRW,
@@ -108,7 +109,7 @@ pub struct Core1 {
 
 impl Core1 {
     /// Reset and start core1
-    pub fn start() -> Self {
+    pub fn start(sdram: bool) -> Self {
         // reset and stop (safe to repeat)
         slcr::RegisterBlock::unlocked(|slcr| {
             slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_rst1(true));
@@ -116,13 +117,27 @@ impl Core1 {
             slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_rst1(false));
         });
 
+        if sdram {
+            // Cores always start from OCM no matter what you do.
+            // Make up a vector table there that just jumps to SDRAM.
+            for i in 0..8 {
+                unsafe {
+                    // this is the ARM instruction "b +0x00100000"
+                    write_volatile((i*4) as *mut u32, 0xea03fffe);
+                }
+            }
+        }
+
         unsafe {
             CORE1_ENABLED.set(true);
         }
-        // Ensure stack pointer has been written to cache
+        // Ensure values have been written to cache
         asm::dmb();
         // Flush cache-line
         cache::dccmvac(unsafe { &CORE1_ENABLED } as *const _ as usize);
+        if sdram {
+            cache::dccmvac(0);
+        }
 
         // wake up core1
         slcr::RegisterBlock::unlocked(|slcr| {

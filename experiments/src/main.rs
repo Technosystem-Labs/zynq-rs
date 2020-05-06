@@ -113,7 +113,7 @@ pub fn main_core0() {
         flash = flash_io.stop();
     }
 
-    let core1 = boot::Core1::start();
+    let core1 = boot::Core1::start(false);
 
     let (mut core1_req, rx) = sync_channel(10);
     *CORE1_REQ.lock() = Some(rx);
