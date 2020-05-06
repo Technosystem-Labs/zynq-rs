@@ -1,5 +1,5 @@
 #![no_std]
-#![feature(asm, global_asm)]
+#![feature(llvm_asm, global_asm)]
 #![feature(never_type)]
 
 extern crate alloc;

@@ -6,7 +6,6 @@ extern crate alloc;
 use core::{mem::transmute, task::Poll};
 use alloc::{borrow::ToOwned, collections::BTreeMap, format};
 use log::info;
-use embedded_hal::timer::CountDown;
 use libregister::RegisterR;
 use libcortex_a9::{mutex::Mutex, sync_channel::{self, sync_channel}};
 use libboard_zynq::{
@@ -17,8 +16,6 @@ use libboard_zynq::{
         wire::{EthernetAddress, IpAddress, IpCidr},
         iface::{NeighborCache, EthernetInterfaceBuilder, Routes},
         time::Instant,
-        socket::SocketSet,
-        socket::{TcpSocket, TcpSocketBuffer},
     },
     time::Milliseconds,
 };
@@ -32,14 +29,12 @@ mod ps7_init;
 
 const HWADDR: [u8; 6] = [0, 0x23, 0xde, 0xea, 0xbe, 0xef];
 
-static mut STACK_CORE1: [u32; 512] = [0; 512];
-
 #[no_mangle]
 pub fn main_core0() {
     // zynq::clocks::CpuClocks::enable_io(1_250_000_000);
     println!("\nzc706 main");
 
-    libsupport_zynq::logger::init().unwrap();
+    libboard_zynq::logger::init().unwrap();
     log::set_max_level(log::LevelFilter::Trace);
 
     info!("Boot mode: {:?}", zynq::slcr::RegisterBlock::new().boot_mode.read().boot_mode_pins());
@@ -49,7 +44,7 @@ pub fn main_core0() {
     #[cfg(feature = "target_cora_z7_10")]
     const CPU_FREQ: u32 = 650_000_000;
 
-    println!("Setup clock sources...");
+    info!("Setup clock sources...");
     ArmPll::setup(2 * CPU_FREQ);
     Clocks::set_cpu_freq(CPU_FREQ);
     #[cfg(feature = "target_zc706")]
@@ -57,9 +52,9 @@ pub fn main_core0() {
         IoPll::setup(1_000_000_000);
         libboard_zynq::stdio::drop_uart();
     }
-    println!("PLLs set up");
+    info!("PLLs set up");
     let clocks = zynq::clocks::Clocks::get();
-    println!("CPU Clocks: {}/{}/{}/{}", clocks.cpu_6x4x(), clocks.cpu_3x2x(), clocks.cpu_2x(), clocks.cpu_1x());
+    info!("CPU Clocks: {}/{}/{}/{}", clocks.cpu_6x4x(), clocks.cpu_3x2x(), clocks.cpu_2x(), clocks.cpu_1x());
 
     let mut flash = zynq::flash::Flash::new(200_000_000).linear_addressing_mode();
     let flash_ram: &[u8] = unsafe { core::slice::from_raw_parts(flash.ptr(), flash.size()) };
@@ -79,6 +74,7 @@ pub fn main_core0() {
     ddr.memtest();
     ram::init_alloc_ddr(&mut ddr);
 
+    #[cfg(dev)]
     for i in 0..=1 {
         let mut flash_io = flash.manual_mode(i);
         // println!("rdcr={:02X}", flash_io.rdcr());
@@ -111,41 +107,13 @@ pub fn main_core0() {
             flash_io.erase(0);
         });
         flash_io.write_enabled(|flash_io| {
-            flash_io.program(0, [0x23054223; (0x100 >> 2)].iter().cloned());
+            flash_io.program(0, [0x23054223; 0x100 >> 2].iter().cloned());
         });
 
         flash = flash_io.stop();
     }
 
-    let (mut tx, mut rx) = sync_channel::sync_channel(0);
-    task::spawn(async move {
-        println!("outer task");
-        while let Some(item) = *rx.async_recv().await {
-            println!("received {}", item);
-        }
-    });
-    task::spawn(async {
-        for i in 1..=3 {
-            println!("outer task2: {}", i);
-            task::r#yield().await;
-        }
-    });
-    task::block_on(async {
-        task::spawn(async {
-            println!("inner task");
-        });
-
-        for i in 1..=10 {
-            println!("yield {}", i);
-            task::r#yield().await;
-            tx.async_send(Some(i)).await;
-        }
-        tx.async_send(None).await;
-    });
-
-    let core1_stack = unsafe { &mut STACK_CORE1[..] };
-    println!("{} bytes stack for core1", core1_stack.len());
-    let core1 = boot::Core1::start(core1_stack);
+    let core1 = boot::Core1::start();
 
     let (mut core1_req, rx) = sync_channel(10);
     *CORE1_REQ.lock() = Some(rx);
@@ -159,13 +127,6 @@ pub fn main_core0() {
         }
     });
     core1.disable();
-
-    libcortex_a9::asm::dsb();
-    print!("Core1 stack [{:08X}..{:08X}]:", &core1.stack[0] as *const _ as u32, &core1.stack[core1.stack.len() - 1] as *const _ as u32);
-    for w in core1.stack {
-        print!(" {:08X}", w);
-    }
-    println!(".");
 
     let eth = zynq::eth::Eth::default(HWADDR.clone());
     println!("Eth on");
@@ -189,23 +150,13 @@ pub fn main_core0() {
         unsafe { transmute(tx_descs.as_mut_slice()) },
         unsafe { transmute(tx_buffers.as_mut_slice()) },
     );
-    // loop {
-    //     match eth.recv_next() {
-    //         Ok(None) => {},
-    //         Ok(Some(pkt)) => println!("received {} bytes", pkt.len()),
-    //         Err(e) => println!("e: {:?}", e),
-    //     }
-    // }
 
-    println!("iface...");
     let ethernet_addr = EthernetAddress(HWADDR);
     // IP stack
     let local_addr = IpAddress::v4(192, 168, 1, 51);
     let mut ip_addrs = [IpCidr::new(local_addr, 24)];
-    let mut routes_storage = vec![None; 4];
-    let routes = Routes::new(/*BTreeMap::new()*/ &mut routes_storage[..]);
-    let mut neighbor_storage = vec![None; 256];
-    let neighbor_cache = NeighborCache::new(&mut neighbor_storage[..]);
+    let routes = Routes::new(BTreeMap::new());
+    let neighbor_cache = NeighborCache::new(BTreeMap::new());
     let mut iface = EthernetInterfaceBuilder::new(&mut eth)
         .ethernet_addr(ethernet_addr)
         .ip_addrs(&mut ip_addrs[..])
@@ -213,8 +164,8 @@ pub fn main_core0() {
         .neighbor_cache(neighbor_cache)
         .finalize();
 
-    // TODO: compare with ps7_init
-    
+    ps7_init::report_differences();
+
     Sockets::init(32);
     /// `chargen`
     const TCP_PORT: u16 = 19;
@@ -244,20 +195,20 @@ pub fn main_core0() {
             None =>
                 stream.send("I had trouble reading your name.\n".bytes()).await?,
         }
-        stream.flush().await;
+        let _ = stream.flush().await;
         Ok(())
     }
 
-    let mut counter = alloc::rc::Rc::new(core::cell::RefCell::new(0));
+    let counter = alloc::rc::Rc::new(core::cell::RefCell::new(0));
     task::spawn(async move {
-        while let stream = TcpStream::accept(TCP_PORT, 2048, 2408).await.unwrap() {
+        while let Ok(stream) = TcpStream::accept(TCP_PORT, 2048, 2408).await {
             let counter = counter.clone();
             task::spawn(async move {
                 *counter.borrow_mut() += 1;
                 println!("Serving {} connections", *counter.borrow());
                 handle_connection(stream)
                     .await
-                    .map_err(|e| println!("Connection: {:?}", e));
+                    .unwrap_or_else(|e| println!("Connection: {:?}", e));
                 *counter.borrow_mut() -= 1;
                 println!("Now serving {} connections", *counter.borrow());
             });
@@ -272,7 +223,7 @@ pub fn main_core0() {
             let timestamp = timer.get_us();
             let seconds   = timestamp / 1_000_000;
             let micros    = timestamp % 1_000_000;
-            println!("time: {:6}.{:06}s", seconds, micros);
+            info!("time: {:6}.{:06}s", seconds, micros);
         }
     });
 
@@ -293,7 +244,7 @@ pub fn main_core1() {
     while req.is_none() {
         req = CORE1_REQ.lock().take();
     }
-    let mut req = req.unwrap();
+    let req = req.unwrap();
     let mut res = None;
     while res.is_none() {
         res = CORE1_RES.lock().take();

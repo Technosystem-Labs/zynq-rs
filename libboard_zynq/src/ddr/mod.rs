@@ -1,4 +1,5 @@
 use libregister::{RegisterR, RegisterW, RegisterRW};
+use log::{debug, info, error};
 use crate::{print, println};
 use super::slcr::{self, DdriobVrefSel};
 use super::clocks::{Clocks, source::{DdrPll, ClockSource}};
@@ -38,11 +39,9 @@ impl DdrRam {
         DdrPll::setup(2 * DDR_FREQ);
 
         let clocks = Clocks::get();
-        println!("Clocks: {:?}", clocks);
-
         let ddr3x_clk_divisor = 2;
         let ddr2x_clk_divisor = 3;
-        println!("DDR 3x/2x clocks: {}/{}", clocks.ddr / u32::from(ddr3x_clk_divisor), clocks.ddr / u32::from(ddr2x_clk_divisor));
+        debug!("DDR 3x/2x clocks: {}/{}", clocks.ddr / u32::from(ddr3x_clk_divisor), clocks.ddr / u32::from(ddr2x_clk_divisor));
 
         slcr::RegisterBlock::unlocked(|slcr| {
             slcr.ddr_clk_ctrl.write(
@@ -63,7 +62,7 @@ impl DdrRam {
             .max(1).min(63) as u8;
         let divisor1 = ((DCI_FREQ - 1 + clocks.ddr) / DCI_FREQ / u32::from(divisor0))
             .max(1).min(63) as u8;
-        println!("DDR DCI clock: {} Hz", clocks.ddr / u32::from(divisor0) / u32::from(divisor1));
+        debug!("DDR DCI clock: {} Hz", clocks.ddr / u32::from(divisor0) / u32::from(divisor1));
 
         slcr::RegisterBlock::unlocked(|slcr| {
             // Step 1.
@@ -226,7 +225,7 @@ impl DdrRam {
         let patterns: &'static [u32] = &[0xffff_ffff, 0x5555_5555, 0xaaaa_aaaa, 0];
         let mut expected = None;
         for (i, pattern) in patterns.iter().enumerate() {
-            println!("memtest phase {} (status: {:?})", i, self.status());
+            info!("memtest phase {} (status: {:?})", i, self.status());
 
             for megabyte in 0..=(slice.len() / (1024 * 1024)) {
                 let start = megabyte * 1024 * 1024 / 4;
@@ -235,7 +234,7 @@ impl DdrRam {
                     expected.map(|expected| {
                         let read: u32 = *b;
                         if read != expected {
-                            println!("{:08X}: expected {:08X}, read {:08X}", b as *mut _ as usize, expected, read);
+                            error!("{:08X}: expected {:08X}, read {:08X}", b as *mut _ as usize, expected, read);
                         }
                     });
                     *b = *pattern;

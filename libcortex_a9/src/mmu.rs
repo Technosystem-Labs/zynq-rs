@@ -94,16 +94,11 @@ impl L1Entry {
 }
 
 const L1_TABLE_SIZE: usize = 4096;
-#[doc(hidden)]
-#[link_section = ".bss.l1_table"]
-#[no_mangle]
-pub static mut l1_table: L1Table = L1Table {
+static mut L1_TABLE: L1Table = L1Table {
     table: [L1Entry(0); L1_TABLE_SIZE]
 };
 
-/// The `#[repr(align(16384))]` is unfortunately ineffective. Hence we
-/// require explicit linking to a region defined in the linker script.
-#[repr(align(16384))]
+#[repr(C, align(16384))]
 pub struct L1Table {
     table: [L1Entry; L1_TABLE_SIZE]
 }
@@ -111,7 +106,7 @@ pub struct L1Table {
 impl L1Table {
     pub fn get() -> &'static mut Self {
         unsafe {
-            &mut l1_table
+            &mut L1_TABLE
         }
     }
 

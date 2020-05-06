@@ -15,7 +15,7 @@ pub struct GlobalTimer {
 impl GlobalTimer {
     /// Get the potentially uninitialized timer
     pub unsafe fn get() -> GlobalTimer {
-        let mut regs = mpcore::RegisterBlock::new();
+        let regs = mpcore::RegisterBlock::new();
         GlobalTimer { regs }
     }
 

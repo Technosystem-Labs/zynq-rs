@@ -1,6 +1,6 @@
 //! A logger for the `log` crate
 
-use libboard_zynq::{println, stdio, timer::GlobalTimer};
+use crate::{println, stdio, timer::GlobalTimer};
 
 pub static LOGGER: Logger = Logger;
 
@@ -29,6 +29,6 @@ impl log::Log for Logger {
     }
     fn flush(&self) {
         let uart = stdio::get_uart();
-        while !uart.tx_fifo_empty() {}
+        while !uart.tx_idle() {}
     }
 }

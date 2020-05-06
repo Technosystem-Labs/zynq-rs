@@ -18,3 +18,4 @@ pub mod dmac;
 pub mod time;
 pub mod timer;
 pub mod sdio;
+pub mod logger;
