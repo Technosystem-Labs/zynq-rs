@@ -123,7 +123,7 @@ impl L1Table {
             bufferable: true,
         });
         /* (DDR cacheable) */
-        for ddr in 1..=0x1ff {
+        for ddr in 1..=0x3ff {
             self.direct_mapped_section(ddr, L1Section {
                 global: true,
                 shareable: true,
@@ -132,19 +132,6 @@ impl L1Table {
                 domain: 0b1111,
                 exec: true,
                 cacheable: true,
-                bufferable: false,
-            });
-        }
-        /* (unassigned/reserved). */
-        for undef in 0x1ff..=0x3ff {
-            self.direct_mapped_section(undef, L1Section {
-                global: false,
-                shareable: false,
-                access: AccessPermissions::PermissionFault,
-                tex: 0,
-                domain: 0,
-                exec: false,
-                cacheable: false,
                 bufferable: false,
             });
         }
