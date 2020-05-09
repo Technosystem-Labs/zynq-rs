@@ -221,7 +221,7 @@ impl DdrRam {
     /// overlaps with OCM.
     pub fn size(&self) -> usize {
         #[cfg(feature = "target_zc706")]
-        let megabytes = 1022;
+        let megabytes = 1023;
         #[cfg(feature = "target_cora_z7_10")]
         let megabytes = 511;
 
@@ -237,9 +237,9 @@ impl DdrRam {
         for (i, pattern) in patterns.iter().enumerate() {
             info!("memtest phase {} (status: {:?})", i, self.status());
 
-            for megabyte in 0..=(slice.len() / (1024 * 1024)) {
+            for megabyte in 0..slice.len() / (1024 * 1024) {
                 let start = megabyte * 1024 * 1024 / 4;
-                let end = ((megabyte + 1) * 1024 * 1024 / 4).min(slice.len());
+                let end = ((megabyte + 1) * 1024 * 1024 / 4);
                 for b in slice[start..end].iter_mut() {
                     expected.map(|expected| {
                         let read: u32 = *b;
