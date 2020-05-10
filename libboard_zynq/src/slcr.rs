@@ -618,7 +618,7 @@ register_bits_typed!(ddriob_config, output_en, u8, DdriobOutputEn, 9, 10);
 register_bit!(ddriob_config, pullup_en, 11);
 
 register!(ddriob_ddr_ctrl, DdriobDdrCtrl, RW, u32);
-register_bit!(ddriob_ddr_ctrl, vref_int_en, 1);
+register_bit!(ddriob_ddr_ctrl, vref_int_en, 0);
 register_bits_typed!(ddriob_ddr_ctrl, vref_sel, u8, DdriobVrefSel, 1, 4);
 register_bit!(ddriob_ddr_ctrl, vref_ext_en_lower, 5);
 register_bit!(ddriob_ddr_ctrl, vref_ext_en_upper, 6);
