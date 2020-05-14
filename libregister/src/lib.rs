@@ -100,6 +100,19 @@ macro_rules! register_rw {
             }
         }
     );
+    ($mod_name: ident, $struct_name: ident, $mask: expr) => (
+        impl libregister::RegisterRW for $struct_name {
+            #[inline]
+            fn modify<F: FnOnce(Self::R, Self::W) -> Self::W>(&mut self, f: F) {
+                unsafe {
+                    self.inner.modify(|inner| {
+                        f($mod_name::Read { inner }, $mod_name::Write { inner: inner & ($mask) })
+                            .inner
+                    });
+                }
+            }
+        }
+    );
 }
 
 #[doc(hidden)]
@@ -168,6 +181,14 @@ macro_rules! register {
         libregister::register_common!($mod_name, $struct_name, VolatileCell<$inner>, $inner);
         libregister::register_vcell!($mod_name, $struct_name);
     );
+
+    // Define read-write register with mask on write (for WTC mixed access.)
+    ($mod_name: ident, $struct_name: ident, RW, $inner: ty, $mask: expr) => (
+        libregister::register_common!($mod_name, $struct_name, volatile_register::RW<$inner>, $inner);
+        libregister::register_r!($mod_name, $struct_name);
+        libregister::register_w!($mod_name, $struct_name);
+        libregister::register_rw!($mod_name, $struct_name, $mask);
+    );
 }
 
 /// Define a 1-bit field of a register
@@ -193,6 +214,47 @@ macro_rules! register_bit {
                 use bit_field::BitField;
 
                 self.inner.set_bit($bit, value);
+                self
+            }
+        }
+    );
+
+    // Single bit read-only
+    ($mod_name: ident, $(#[$outer:meta])* $name: ident, $bit: expr, RO) => (
+        $(#[$outer])*
+        impl $mod_name::Read {
+            #[allow(unused)]
+            #[inline]
+            pub fn $name(&self) -> bool {
+                use bit_field::BitField;
+
+                self.inner.get_bit($bit)
+            }
+        }
+    );
+
+    // Single bit write to clear. Note that this must be used with WTC register.
+    ($mod_name: ident, $(#[$outer:meta])* $name: ident, $bit: expr, WTC) => (
+        $(#[$outer])*
+        impl $mod_name::Read {
+            #[allow(unused)]
+            #[inline]
+            pub fn $name(&self) -> bool {
+                use bit_field::BitField;
+
+                self.inner.get_bit($bit)
+            }
+        }
+
+        $(#[$outer])*
+        impl $mod_name::Write {
+            /// Clear bit field. (WTC)
+            #[allow(unused)]
+            #[inline]
+            pub fn $name(mut self) -> Self {
+                use bit_field::BitField;
+
+                self.inner.set_bit($bit, true);
                 self
             }
         }
