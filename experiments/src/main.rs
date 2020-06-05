@@ -216,6 +216,7 @@ pub fn main_core0() {
         .neighbor_cache(neighbor_cache)
         .finalize();
 
+    #[cfg(feature = "target_zc706")]
     ps7_init::report_differences();
 
     Sockets::init(32);
