@@ -3,28 +3,37 @@
 
 extern crate alloc;
 
-use core::{mem::transmute, task::Poll};
 use alloc::{borrow::ToOwned, collections::BTreeMap, format};
-use log::info;
-use libregister::RegisterR;
-use libcortex_a9::{mutex::Mutex, sync_channel::{self, sync_channel}};
+use core::{mem::transmute, task::Poll};
+use libasync::{
+    delay,
+    smoltcp::{Sockets, TcpStream},
+    task,
+};
 use libboard_zynq::{
+    self as zynq,
+    clocks::source::{ArmPll, ClockSource, IoPll},
+    clocks::Clocks,
     print, println,
-    self as zynq, clocks::Clocks, clocks::source::{ClockSource, ArmPll, IoPll},
+    sdio::sd_card::SdCard,
     smoltcp::{
         self,
-        wire::{EthernetAddress, IpAddress, IpCidr},
-        iface::{NeighborCache, EthernetInterfaceBuilder, Routes},
+        iface::{EthernetInterfaceBuilder, NeighborCache, Routes},
         time::Instant,
+        wire::{EthernetAddress, IpAddress, IpCidr},
     },
-    sdio::sd_card::SdCard,
     time::Milliseconds,
 };
-use libsupport_zynq::{
-    ram, alloc::{vec, vec::Vec},
-    boot,
+use libcortex_a9::{
+    mutex::Mutex,
+    sync_channel::{self, sync_channel},
 };
-use libasync::{delay, smoltcp::{Sockets, TcpStream}, task};
+use libregister::RegisterR;
+use libsupport_zynq::{
+    alloc::{vec, vec::Vec},
+    boot, ram,
+};
+use log::info;
 
 mod ps7_init;
 
@@ -38,7 +47,13 @@ pub fn main_core0() {
     libboard_zynq::logger::init().unwrap();
     log::set_max_level(log::LevelFilter::Trace);
 
-    info!("Boot mode: {:?}", zynq::slcr::RegisterBlock::new().boot_mode.read().boot_mode_pins());
+    info!(
+        "Boot mode: {:?}",
+        zynq::slcr::RegisterBlock::new()
+            .boot_mode
+            .read()
+            .boot_mode_pins()
+    );
 
     #[cfg(feature = "target_zc706")]
     const CPU_FREQ: u32 = 800_000_000;
@@ -60,7 +75,13 @@ pub fn main_core0() {
     }
     info!("PLLs set up");
     let clocks = zynq::clocks::Clocks::get();
-    info!("CPU Clocks: {}/{}/{}/{}", clocks.cpu_6x4x(), clocks.cpu_3x2x(), clocks.cpu_2x(), clocks.cpu_1x());
+    info!(
+        "CPU Clocks: {}/{}/{}/{}",
+        clocks.cpu_6x4x(),
+        clocks.cpu_3x2x(),
+        clocks.cpu_2x(),
+        clocks.cpu_1x()
+    );
 
     let mut sd = libboard_zynq::sdio::SDIO::sdio0(true);
     // only test SD card if it is inserted
@@ -202,29 +223,31 @@ pub fn main_core0() {
     const TCP_PORT: u16 = 19;
     async fn handle_connection(stream: TcpStream) -> smoltcp::Result<()> {
         stream.send("Enter your name: ".bytes()).await?;
-        let name = stream.recv(|buf| {
-            for (i, b) in buf.iter().enumerate() {
-                if *b == '\n' as u8 {
-                    return match core::str::from_utf8(&buf[0..i]) {
-                        Ok(name) =>
-                            Poll::Ready((i + 1, Some(name.to_owned()))),
-                        Err(_) =>
-                            Poll::Ready((i + 1, None))
-                    };
+        let name = stream
+            .recv(|buf| {
+                for (i, b) in buf.iter().enumerate() {
+                    if *b == '\n' as u8 {
+                        return match core::str::from_utf8(&buf[0..i]) {
+                            Ok(name) => Poll::Ready((i + 1, Some(name.to_owned()))),
+                            Err(_) => Poll::Ready((i + 1, None)),
+                        };
+                    }
                 }
-            }
-            if buf.len() > 100 {
-                // Too much input, consume all
-                Poll::Ready((buf.len(), None))
-            } else {
-                Poll::Pending
-            }
-        }).await?;
+                if buf.len() > 100 {
+                    // Too much input, consume all
+                    Poll::Ready((buf.len(), None))
+                } else {
+                    Poll::Pending
+                }
+            })
+            .await?;
         match name {
-            Some(name) =>
-                stream.send(format!("Hello {}!\n", name).bytes()).await?,
-            None =>
-                stream.send("I had trouble reading your name.\n".bytes()).await?,
+            Some(name) => stream.send(format!("Hello {}!\n", name).bytes()).await?,
+            None => {
+                stream
+                    .send("I had trouble reading your name.\n".bytes())
+                    .await?
+            }
         }
         let _ = stream.flush().await;
         Ok(())
@@ -252,8 +275,8 @@ pub fn main_core0() {
             delay(&mut countdown, Milliseconds(1000)).await;
 
             let timestamp = timer.get_us();
-            let seconds   = timestamp / 1_000_000;
-            let micros    = timestamp % 1_000_000;
+            let seconds = timestamp / 1_000_000;
+            let micros = timestamp % 1_000_000;
             info!("time: {:6}.{:06}s", seconds, micros);
         }
     });
