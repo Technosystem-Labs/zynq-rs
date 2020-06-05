@@ -94,7 +94,7 @@ pub struct RegisterBlock {
     pub gem1_clk_ctrl: GemClkCtrl,
     pub smc_clk_ctrl: RW<u32>,
     pub lqspi_clk_ctrl: LqspiClkCtrl,
-    pub sdio_clk_ctrl: RW<u32>,
+    pub sdio_clk_ctrl: SdioClkCtrl,
     pub uart_clk_ctrl: UartClkCtrl,
     pub spi_clk_ctrl: RW<u32>,
     pub can_clk_ctrl: RW<u32>,
@@ -127,7 +127,7 @@ pub struct RegisterBlock {
     pub dmac_rst_ctrl: RW<u32>,
     pub usb_rst_ctrl: RW<u32>,
     pub gem_rst_ctrl: RW<u32>,
-    pub sdio_rst_ctrl: RW<u32>,
+    pub sdio_rst_ctrl: SdioRstCtrl,
     pub spi_rst_ctrl: RW<u32>,
     pub can_rst_ctrl: RW<u32>,
     pub i2c_rst_ctrl: RW<u32>,
@@ -391,6 +391,8 @@ register_bit!(clk_621_true, clk_621_true, 0);
 register!(aper_clk_ctrl, AperClkCtrl, RW, u32);
 register_bit!(aper_clk_ctrl, uart1_cpu_1xclkact, 21);
 register_bit!(aper_clk_ctrl, uart0_cpu_1xclkact, 20);
+register_bit!(aper_clk_ctrl, sdio1_cpu_1xclkact, 11);
+register_bit!(aper_clk_ctrl, sdio0_cpu_1xclkact, 10);
 impl AperClkCtrl {
     pub fn enable_uart0(&mut self) {
         self.modify(|_, w| w.uart0_cpu_1xclkact(true));
@@ -398,6 +400,14 @@ impl AperClkCtrl {
 
     pub fn enable_uart1(&mut self) {
         self.modify(|_, w| w.uart1_cpu_1xclkact(true));
+    }
+
+    pub fn enable_sdio0(&mut self) {
+        self.modify(|_, w| w.sdio0_cpu_1xclkact(true));
+    }
+
+    pub fn enable_sdio1(&mut self) {
+        self.modify(|_, w| w.sdio1_cpu_1xclkact(true));
     }
 }
 
@@ -422,6 +432,24 @@ register_bits_typed!(gem_clk_ctrl,
 register_bit!(gem_clk_ctrl,
               /// SMC reference clock control
               clkact, 0);
+
+register!(sdio_clk_ctrl, SdioClkCtrl, RW, u32);
+register_bit!(sdio_clk_ctrl, clkact0, 0);
+register_bit!(sdio_clk_ctrl, clkact1, 1);
+register_bits!(sdio_clk_ctrl, divisor, u8, 8, 13);
+register_bits_typed!(sdio_clk_ctrl, srcsel, u8, PllSource, 4, 5);
+impl SdioClkCtrl {
+    pub fn enable_sdio0(&mut self) {
+        self.modify(|_, w| {
+            w.divisor(0x14).srcsel(PllSource::IoPll).clkact0(true)
+        })
+    }
+    pub fn enable_sdio1(&mut self) {
+        self.modify(|_, w| {
+            w.divisor(0x14).srcsel(PllSource::IoPll).clkact1(true)
+        })
+    }
+}
 
 register!(uart_clk_ctrl, UartClkCtrl, RW, u32);
 register_bit!(uart_clk_ctrl, clkact0, 0);
@@ -450,6 +478,34 @@ impl UartClkCtrl {
              .srcsel(PllSource::IoPll)
              .clkact1(true)
         })
+    }
+}
+
+register!(sdio_rst_ctrl, SdioRstCtrl, RW, u32);
+register_bit!(sdio_rst_ctrl, sdio1_ref_rst, 5);
+register_bit!(sdio_rst_ctrl, sdio0_ref_rst, 4);
+register_bit!(sdio_rst_ctrl, sdio1_cpu1x_rst, 1);
+register_bit!(sdio_rst_ctrl, sdio0_cpu1x_rst, 0);
+impl SdioRstCtrl {
+    pub fn reset_sdio0(&mut self) {
+        self.modify(|_, w|
+            w.sdio0_ref_rst(true)
+             .sdio0_cpu1x_rst(true)
+        );
+        self.modify(|_, w|
+            w.sdio0_ref_rst(false)
+             .sdio0_cpu1x_rst(false)
+        );
+    }
+    pub fn reset_sdio1(&mut self) {
+        self.modify(|_, w|
+            w.sdio1_ref_rst(true)
+             .sdio1_cpu1x_rst(true)
+        );
+        self.modify(|_, w|
+            w.sdio1_ref_rst(false)
+             .sdio1_cpu1x_rst(false)
+        );
     }
 }
 

@@ -1,7 +1,8 @@
-use volatile_register::{RO, RW, WO};
-
+use core::fmt;
 use libregister::{register, register_at, register_bit, register_bits, register_bits_typed};
+use volatile_register::{RO, RW};
 
+#[allow(unused)]
 #[repr(C)]
 pub struct RegisterBlock {
     pub sdma_system_address: RW<u32>,
@@ -14,19 +15,24 @@ pub struct RegisterBlock {
     /// Host. power, block gap, wakeup control
     pub control: Control,
     /// Clock and timeout control, and software reset register.
-    pub timing_control: TimingControl,
+    pub clock_control: ClockControl,
     pub interrupt_status: InterruptStatus,
     pub interrupt_status_en: InterruptStatusEn,
     pub interrupt_signal_en: InterruptSignalEn,
     pub auto_cmd12_error_status: AutoCmd12ErrorStatus,
     pub capabilities: Capabilities,
+    pub unused0: RO<u32>,
     pub max_current_capabilities: MaxCurrentCapabilities,
+    pub unused1: RO<u32>,
     pub force_event: ForceEvent,
     pub adma_error_status: AdmaErrorStatus,
     pub adma_system_address: RW<u32>,
+    pub unused2: RO<u32>,
     pub boot_data_timeout_counter: RW<u32>,
     pub debug_selection: DebugSelection,
+    pub unused3: [RO<u32>; 34],
     pub spi_interrupt_support: SpiInterruptSupport,
+    pub unused4: [RO<u32>; 2],
     pub misc_reg: MiscReg,
 }
 
@@ -50,6 +56,7 @@ pub enum ResponseTypeSelect {
 
 #[allow(unused)]
 #[repr(u8)]
+#[derive(PartialEq, Debug)]
 pub enum BusVoltage {
     /// 3.3V
     V33 = 0b111,
@@ -57,6 +64,8 @@ pub enum BusVoltage {
     V30 = 0b110,
     /// 1.8V, typ.
     V18 = 0b101,
+    /// No power,
+    V0 = 0b000,
 }
 
 #[allow(unused)]
@@ -64,23 +73,8 @@ pub enum BusVoltage {
 pub enum DmaSelect {
     SDMA = 0b00,
     ADMA1 = 0b01,
-    ADMA2 = 0b10,
-    ADMA3 = 0b11,
-}
-
-#[allow(unused)]
-#[repr(u8)]
-/// SDCLK Frequency divisor, d(number) means baseclock divided by (number).
-pub enum SdclkFreqDivisor {
-    D256 = 0x80,
-    D128 = 0x40,
-    D64 = 0x20,
-    D32 = 0x10,
-    D16 = 0x08,
-    D8 = 0x04,
-    D4 = 0x02,
-    D2 = 0x01,
-    D1 = 0x00,
+    ADMA2_32 = 0b10,
+    ADMA2_64 = 0b11,
 }
 
 #[allow(unused)]
@@ -93,13 +87,15 @@ pub enum AdmaErrorState {
 
 #[allow(unused)]
 #[repr(u8)]
+#[derive(PartialEq)]
 pub enum SpecificationVersion {
     V1 = 0,
     V2 = 1,
+    V3 = 2,
 }
 
-register_at!(RegisterBlock, 0xE0100000, sd0);
-register_at!(RegisterBlock, 0xE0101000, sd1);
+register_at!(RegisterBlock, 0xE0100000, sdio0);
+register_at!(RegisterBlock, 0xE0101000, sdio1);
 
 register!(block_size_block_count, BlockSizeBlockCount, RW, u32);
 register_bits!(
@@ -328,27 +324,27 @@ register_bit!(
     0
 );
 
-register!(timing_control, TimingControl, RW, u32);
+register!(clock_control, ClockControl, RW, u32);
 register_bit!(
-    timing_control,
+    clock_control,
     /// Software reset for DAT line.
     software_reset_dat,
     26
 );
 register_bit!(
-    timing_control,
+    clock_control,
     /// Software reset for CMD line.
     software_reset_cmd,
     25
 );
 register_bit!(
-    timing_control,
+    clock_control,
     /// Software reset for ALL.
     software_reset_all,
     24
 );
 register_bits!(
-    timing_control,
+    clock_control,
     /// Determines the interval by which DAT line time-outs are detected.
     /// Interval = TMCLK * 2^(13 + val)
     /// Note: 0b1111 is reserved.
@@ -357,27 +353,26 @@ register_bits!(
     16,
     19
 );
-register_bits_typed!(
-    timing_control,
+register_bits!(
+    clock_control,
     /// Selects the frequency divisor, thus the clock frequency for SDCLK.
     /// Choose the smallest possible divisor which results in a clock frequency
     /// that is less than or equal to the target frequency.
     sdclk_freq_divisor,
     u8,
-    SdclkFreqDivisor,
     8,
     15
 );
-register_bit!(timing_control, sd_clk_en, 2);
+register_bit!(clock_control, sd_clk_en, 2);
 register_bit!(
-    timing_control,
+    clock_control,
     /// 1 when SD clock is stable.
     /// Note that this field is read-only.
     internal_clk_stable,
     1,
     RO
 );
-register_bit!(timing_control, internal_clk_en, 0);
+register_bit!(clock_control, internal_clk_en, 0);
 
 register!(interrupt_status, InterruptStatus, RW, u32, 1 << 15 | 1 << 8);
 register_bit!(interrupt_status, ceata_error, 29, WTC);
@@ -545,3 +540,9 @@ register_bits!(
     0,
     7
 );
+
+impl fmt::Debug for interrupt_status::Read {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        fmt.write_fmt(format_args!("status: {:0X}", self.inner))
+    }
+}

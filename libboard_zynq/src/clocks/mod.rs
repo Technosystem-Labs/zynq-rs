@@ -104,4 +104,18 @@ impl Clocks {
         };
         pll / u32::from(uart_clk_ctrl.divisor())
     }
+
+    pub fn sdio_ref_clk(&self) -> u32 {
+        let regs = slcr::RegisterBlock::new();
+        let sdio_clk_ctrl = regs.sdio_clk_ctrl.read();
+        let pll = match sdio_clk_ctrl.srcsel() {
+            slcr::PllSource::ArmPll =>
+                self.arm,
+            slcr::PllSource::DdrPll =>
+                self.ddr,
+            slcr::PllSource::IoPll =>
+                self.io,
+        };
+        pll / u32::from(sdio_clk_ctrl.divisor())
+    }
 }
