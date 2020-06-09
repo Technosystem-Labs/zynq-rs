@@ -91,17 +91,17 @@ pub fn main_core0() {
             Ok(_) => info!("OK!"),
             Err(a) => info!("{:?}", a),
         };
-        const SIZE: usize = 512 / 2;
+        const SIZE: usize = 512 * 2 + 1;
         let mut sd_card = result.unwrap();
-        let mut buffer: [u32; SIZE] = [0; SIZE];
+        let mut buffer: [u8; SIZE] = [0; SIZE];
         for i in 0..buffer.len() {
-            buffer[i] = (i % 16) as u32;
+            buffer[i] = (i % 16) as u8;
         }
         sd_card.write_block(0x0, 2, &mut buffer).unwrap();
         for i in 0..buffer.len() {
             buffer[i] = 0;
         }
-        sd_card.read_block(0x1, 2, &mut buffer).unwrap();
+        sd_card.read_block(0x1, 2, &mut buffer[1..]).unwrap();
         for i in 0..buffer.len() {
             info!("buffer[{}] = {}", i, buffer[i]);
         }

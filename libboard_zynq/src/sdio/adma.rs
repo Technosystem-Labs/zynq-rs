@@ -62,7 +62,7 @@ impl Adma2Desc32 {
     }
 }
 
-pub fn setup_adma2_descr32(sdio: &mut SDIO, blk_cnt: u32, buffer: &mut [u32]) {
+pub fn setup_adma2_descr32(sdio: &mut SDIO, blk_cnt: u32, buffer: &mut [u8]) {
     let descr_table = unsafe { &mut ADMA2_DESCR32_TABLE };
     let blk_size = sdio
         .regs

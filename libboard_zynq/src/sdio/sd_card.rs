@@ -143,7 +143,7 @@ impl SdCard {
         self.sdio.cmd_transfer(CMD55, self.rel_card_addr, 0)?;
         self.sdio.cmd_transfer(ACMD42, 0, 0)?;
 
-        let mut scr: [u32; 8] = [0; 8];
+        let mut scr: [u8; 32] = [0; 32];
         self.get_bus_width(&mut scr)?;
         debug!("{:?}", scr);
         if scr[1] & 0x4 != 0 {
@@ -188,9 +188,9 @@ impl SdCard {
         &mut self,
         address: u32,
         block_cnt: u16,
-        buffer: &mut [u32],
+        buffer: &mut [u8],
     ) -> Result<(), CmdTransferError> {
-        assert!(buffer.len() >= (block_cnt as usize) * (512 / 4));
+        assert!(buffer.len() >= (block_cnt as usize) * 512);
         // set block size if not set already
         if self
             .sdio
@@ -241,9 +241,9 @@ impl SdCard {
         &mut self,
         address: u32,
         block_cnt: u16,
-        buffer: &mut [u32],
+        buffer: &mut [u8],
     ) -> Result<(), CmdTransferError> {
-        assert!(buffer.len() >= (block_cnt as usize) * (512 / 4));
+        assert!(buffer.len() >= (block_cnt as usize) * 512);
         // set block size if not set already
         if self
             .sdio
@@ -287,7 +287,7 @@ impl SdCard {
         Ok(())
     }
 
-    fn get_bus_width(&mut self, buf: &mut [u32]) -> Result<(), CmdTransferError> {
+    fn get_bus_width(&mut self, buf: &mut [u8]) -> Result<(), CmdTransferError> {
         use cmd::SdCmd::*;
         debug!("Getting bus width");
         for i in 0..8 {
