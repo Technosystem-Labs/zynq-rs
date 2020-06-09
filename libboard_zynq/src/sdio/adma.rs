@@ -3,7 +3,7 @@ use super::SDIO;
 use libcortex_a9::cache;
 use libregister::RegisterR;
 
-#[repr(C, packed)]
+#[repr(C, align(4))]
 #[derive(Clone, Copy)]
 pub struct Adma2Desc32 {
     attribute: u16,
