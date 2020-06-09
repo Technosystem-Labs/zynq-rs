@@ -1,22 +1,18 @@
 /// ADMA library
+use core::mem::MaybeUninit;
 use super::SDIO;
 use libcortex_a9::cache;
-use libregister::RegisterR;
+use libregister::{RegisterR, VolatileCell};
 
 #[repr(C, align(4))]
-#[derive(Clone, Copy)]
 pub struct Adma2Desc32 {
-    attribute: u16,
-    length: u16,
-    address: u32,
+    attribute: VolatileCell<u16>,
+    length: VolatileCell<u16>,
+    address: VolatileCell<u32>,
 }
 
 // Default::default() cannot be used as it is not a constant function...
-static mut ADMA2_DESCR32_TABLE: [Adma2Desc32; 32] = [Adma2Desc32 {
-    attribute: 0,
-    length: 0,
-    address: 0,
-}; 32];
+static mut ADMA2_DESCR32_TABLE: MaybeUninit<[Adma2Desc32; 32]> = MaybeUninit::uninit();
 
 #[allow(unused)]
 const DESC_MAX_LENGTH: u32 = 65536;
@@ -32,26 +28,21 @@ const DESC_VALID: u16 = 0x1 << 0;
 #[allow(unused)]
 impl Adma2Desc32 {
     pub fn set_attribute(&mut self, attribute: u16) {
-        unsafe {
-            core::ptr::write_volatile(&mut self.attribute as *mut u16, attribute);
-        }
+        self.attribute.set(attribute)
     }
 
     pub fn set_length(&mut self, length: u16) {
-        unsafe {
-            core::ptr::write_volatile(&mut self.length as *mut u16, length);
-        }
+        self.length.set(length)
     }
 
     pub fn set_address(&mut self, address: u32) {
-        unsafe {
-            core::ptr::write_volatile(&mut self.address as *mut u32, address);
-        }
+        self.address.set(address)
     }
 }
 
+/// Initialize `ADMA2_DESCR32_TABLE` and setup `adma_system_address`
 pub fn setup_adma2_descr32(sdio: &mut SDIO, blk_cnt: u32, buffer: &[u8]) {
-    let descr_table = unsafe { &mut ADMA2_DESCR32_TABLE };
+    let descr_table = unsafe { &mut *ADMA2_DESCR32_TABLE.as_mut_ptr() };
     let blk_size = sdio
         .regs
         .block_size_block_count
