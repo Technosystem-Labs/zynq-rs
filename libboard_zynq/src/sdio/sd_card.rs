@@ -1,4 +1,4 @@
-use super::{adma::setup_adma2_descr32, cmd, CardType, CmdTransferError, SDIO};
+use super::{adma::Adma2DescTable, cmd, CardType, CmdTransferError, SDIO};
 use libcortex_a9::cache;
 use libregister::{RegisterR, RegisterRW, RegisterW};
 use log::debug;
@@ -25,6 +25,7 @@ enum CardVersion {
 
 pub struct SdCard {
     sdio: SDIO,
+    adma2_desc_table: Adma2DescTable,
     card_version: CardVersion,
     hcs: bool,
     card_id: [u32; 4],
@@ -165,6 +166,7 @@ impl SdCard {
         };
         let mut _self = SdCard {
             sdio,
+            adma2_desc_table: Adma2DescTable::new(),
             card_version: CardVersion::SdVer1,
             hcs: false,
             card_id: [0, 0, 0, 0],
@@ -203,7 +205,7 @@ impl SdCard {
             self.sdio.set_block_size(512)?;
         }
 
-        setup_adma2_descr32(&mut self.sdio, block_cnt as u32, buffer);
+        self.adma2_desc_table.setup(&mut self.sdio, block_cnt as u32, buffer);
         // invalidate D cache, required for ZC706, not sure for Cora Z7 10
         cache::dcci_slice(buffer);
 
@@ -256,7 +258,7 @@ impl SdCard {
             self.sdio.set_block_size(512)?;
         }
 
-        setup_adma2_descr32(&mut self.sdio, block_cnt as u32, buffer);
+        self.adma2_desc_table.setup(&mut self.sdio, block_cnt as u32, buffer);
         // invalidate D cache, required for ZC706, not sure for Cora Z7 10
         cache::dcci_slice(buffer);
 
@@ -303,7 +305,7 @@ impl SdCard {
             .block_size_block_count
             .modify(|_, w| w.transfer_block_size(blk_size));
 
-        setup_adma2_descr32(&mut self.sdio, blk_cnt as u32, buf);
+        self.adma2_desc_table.setup(&mut self.sdio, blk_cnt as u32, buf);
         cache::dcci_slice(buf);
         self.sdio.cmd_transfer_with_mode(
             ACMD51,

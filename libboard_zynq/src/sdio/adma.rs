@@ -14,10 +14,6 @@ pub struct Adma2Desc32 {
     address: VolatileCell<u32>,
 }
 
-// Default::default() cannot be used as it is not a constant function...
-static mut ADMA2_DESCR32_TABLE: MaybeUninit<[Adma2Desc32; 32]> = MaybeUninit::uninit();
-
-#[allow(unused)]
 const DESC_MAX_LENGTH: u32 = 65536;
 
 register!(desc32_attribute, Desc32Attribute, VolatileCell, u16);
@@ -26,45 +22,53 @@ register_bit!(desc32_attribute, int, 2);
 register_bit!(desc32_attribute, end, 1);
 register_bit!(desc32_attribute, valid, 0);
 
-/// Initialize `ADMA2_DESCR32_TABLE` and setup `adma_system_address`
-pub fn setup_adma2_descr32(sdio: &mut SDIO, blk_cnt: u32, buffer: &[u8]) {
-    let descr_table = unsafe { &mut *ADMA2_DESCR32_TABLE.as_mut_ptr() };
-    let blk_size = sdio
-        .regs
-        .block_size_block_count
-        .read()
-        .transfer_block_size() as u32;
+pub struct Adma2DescTable(MaybeUninit<[Adma2Desc32; 32]>);
 
-    let total_desc_lines = if blk_size * blk_cnt < DESC_MAX_LENGTH {
-        1
-    } else {
-        blk_size * blk_cnt / DESC_MAX_LENGTH
-            + if (blk_size * blk_cnt) % DESC_MAX_LENGTH == 0 {
-                0
-            } else {
-                1
-            }
-    } as usize;
+impl Adma2DescTable {
+    pub fn new() -> Self {
+        Adma2DescTable(MaybeUninit::uninit())
+    }
 
-    let ptr = buffer.as_ptr() as u32;
-    for desc_num in 0..total_desc_lines {
-        descr_table[desc_num].address.set(ptr + (desc_num as u32) * DESC_MAX_LENGTH);
-        descr_table[desc_num].attribute.write(
-            Desc32Attribute::zeroed()
-                .trans(true)
-                .valid(true)
+    /// Initialize the table and setup `adma_system_address`
+    pub fn setup(&mut self, sdio: &mut SDIO, blk_cnt: u32, buffer: &[u8]) {
+        let descr_table = unsafe { &mut *self.0.as_mut_ptr() };
+        let blk_size = sdio
+            .regs
+            .block_size_block_count
+            .read()
+            .transfer_block_size() as u32;
+
+        let total_desc_lines = if blk_size * blk_cnt < DESC_MAX_LENGTH {
+            1
+        } else {
+            blk_size * blk_cnt / DESC_MAX_LENGTH
+                + if (blk_size * blk_cnt) % DESC_MAX_LENGTH == 0 {
+                    0
+                } else {
+                    1
+                }
+        } as usize;
+
+        let ptr = buffer.as_ptr() as u32;
+        for desc_num in 0..total_desc_lines {
+            descr_table[desc_num].address.set(ptr + (desc_num as u32) * DESC_MAX_LENGTH);
+            descr_table[desc_num].attribute.write(
+                Desc32Attribute::zeroed()
+                    .trans(true)
+                    .valid(true)
+            );
+            // 0 is the max length (65536)
+            descr_table[desc_num].length.set(0);
+        }
+        descr_table[total_desc_lines - 1].attribute.modify(|_, w| w.end(true));
+        descr_table[total_desc_lines - 1].length.set(
+            (blk_cnt * blk_size - ((total_desc_lines as u32) - 1) * DESC_MAX_LENGTH) as u16,
         );
-        // 0 is the max length (65536)
-        descr_table[desc_num].length.set(0);
+        unsafe {
+            sdio.regs
+                .adma_system_address
+                .write(descr_table.as_ptr() as u32);
+        }
+        cache::dcci_slice(descr_table);
     }
-    descr_table[total_desc_lines - 1].attribute.modify(|_, w| w.end(true));
-    descr_table[total_desc_lines - 1].length.set(
-        (blk_cnt * blk_size - ((total_desc_lines as u32) - 1) * DESC_MAX_LENGTH) as u16,
-    );
-    unsafe {
-        sdio.regs
-            .adma_system_address
-            .write(descr_table.as_ptr() as u32);
-    }
-    cache::dcci_slice(descr_table);
 }
