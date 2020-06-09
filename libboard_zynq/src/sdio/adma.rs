@@ -2,11 +2,14 @@
 use core::mem::MaybeUninit;
 use super::SDIO;
 use libcortex_a9::cache;
-use libregister::{RegisterR, VolatileCell};
+use libregister::{
+    register, register_bit,
+    RegisterR, RegisterW, RegisterRW, VolatileCell,
+};
 
 #[repr(C, align(4))]
 pub struct Adma2Desc32 {
-    attribute: VolatileCell<u16>,
+    attribute: Desc32Attribute,
     length: VolatileCell<u16>,
     address: VolatileCell<u32>,
 }
@@ -16,29 +19,12 @@ static mut ADMA2_DESCR32_TABLE: MaybeUninit<[Adma2Desc32; 32]> = MaybeUninit::un
 
 #[allow(unused)]
 const DESC_MAX_LENGTH: u32 = 65536;
-#[allow(unused)]
-const DESC_TRANS: u16 = 0x2 << 4;
-#[allow(unused)]
-const DESC_INT: u16 = 0x1 << 2;
-#[allow(unused)]
-const DESC_END: u16 = 0x1 << 1;
-#[allow(unused)]
-const DESC_VALID: u16 = 0x1 << 0;
 
-#[allow(unused)]
-impl Adma2Desc32 {
-    pub fn set_attribute(&mut self, attribute: u16) {
-        self.attribute.set(attribute)
-    }
-
-    pub fn set_length(&mut self, length: u16) {
-        self.length.set(length)
-    }
-
-    pub fn set_address(&mut self, address: u32) {
-        self.address.set(address)
-    }
-}
+register!(desc32_attribute, Desc32Attribute, VolatileCell, u16);
+register_bit!(desc32_attribute, trans, 5);
+register_bit!(desc32_attribute, int, 2);
+register_bit!(desc32_attribute, end, 1);
+register_bit!(desc32_attribute, valid, 0);
 
 /// Initialize `ADMA2_DESCR32_TABLE` and setup `adma_system_address`
 pub fn setup_adma2_descr32(sdio: &mut SDIO, blk_cnt: u32, buffer: &[u8]) {
@@ -62,13 +48,17 @@ pub fn setup_adma2_descr32(sdio: &mut SDIO, blk_cnt: u32, buffer: &[u8]) {
 
     let ptr = buffer.as_ptr() as u32;
     for desc_num in 0..total_desc_lines {
-        descr_table[desc_num].set_address(ptr + (desc_num as u32) * DESC_MAX_LENGTH);
-        descr_table[desc_num].set_attribute(DESC_TRANS | DESC_VALID);
+        descr_table[desc_num].address.set(ptr + (desc_num as u32) * DESC_MAX_LENGTH);
+        descr_table[desc_num].attribute.write(
+            Desc32Attribute::zeroed()
+                .trans(true)
+                .valid(true)
+        );
         // 0 is the max length (65536)
-        descr_table[desc_num].set_length(0);
+        descr_table[desc_num].length.set(0);
     }
-    descr_table[total_desc_lines - 1].set_attribute(DESC_TRANS | DESC_VALID | DESC_END);
-    descr_table[total_desc_lines - 1].set_length(
+    descr_table[total_desc_lines - 1].attribute.modify(|_, w| w.end(true));
+    descr_table[total_desc_lines - 1].length.set(
         (blk_cnt * blk_size - ((total_desc_lines as u32) - 1) * DESC_MAX_LENGTH) as u16,
     );
     unsafe {
