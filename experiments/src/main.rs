@@ -4,7 +4,7 @@
 extern crate alloc;
 
 use alloc::{borrow::ToOwned, collections::BTreeMap, format};
-use core::{mem::transmute, task::Poll};
+use core::task::Poll;
 use libasync::{
     delay,
     smoltcp::{Sockets, TcpStream},
@@ -30,7 +30,6 @@ use libcortex_a9::{
 };
 use libregister::RegisterR;
 use libsupport_zynq::{
-    alloc::{vec, vec::Vec},
     boot, ram,
 };
 use log::info;
@@ -181,24 +180,11 @@ pub fn main_core0() {
     println!("Eth on");
 
     const RX_LEN: usize = 8;
-    let mut rx_descs = (0..RX_LEN)
-        .map(|_| zynq::eth::rx::DescEntry::zeroed())
-        .collect::<Vec<_>>();
-    let mut rx_buffers = vec![zynq::eth::Buffer::new(); RX_LEN];
     // Number of transmission buffers (minimum is two because with
     // one, duplicate packet transmission occurs)
     const TX_LEN: usize = 8;
-    let mut tx_descs = (0..TX_LEN)
-        .map(|_| zynq::eth::tx::DescEntry::zeroed())
-        .collect::<Vec<_>>();
-    let mut tx_buffers = vec![zynq::eth::Buffer::new(); TX_LEN];
-    let eth = eth.start_rx(&mut rx_descs, &mut rx_buffers);
-    // let mut eth = eth.start_tx(&mut tx_descs, &mut tx_buffers);
-    let mut eth = eth.start_tx(
-        // HACK
-        unsafe { transmute(tx_descs.as_mut_slice()) },
-        unsafe { transmute(tx_buffers.as_mut_slice()) },
-    );
+    let eth = eth.start_rx(RX_LEN);
+    let mut eth = eth.start_tx(TX_LEN);
 
     let ethernet_addr = EthernetAddress(HWADDR);
     // IP stack

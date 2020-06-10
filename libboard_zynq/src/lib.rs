@@ -1,5 +1,7 @@
 #![no_std]
 
+extern crate alloc;
+
 /// Re-export so that dependents can always use the same version
 pub use smoltcp;
 

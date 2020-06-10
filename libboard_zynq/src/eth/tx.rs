@@ -1,4 +1,5 @@
 use core::ops::{Deref, DerefMut};
+use alloc::{vec, vec::Vec};
 use libregister::*;
 use super::{Buffer, regs};
 
@@ -40,14 +41,18 @@ impl DescEntry {
 pub const DESCS: usize = 8;
 
 #[repr(C)]
-pub struct DescList<'a> {
-    list: &'a mut [DescEntry],
-    buffers: &'a mut [Buffer],
+pub struct DescList {
+    list: Vec<DescEntry>,
+    buffers: Vec<Buffer>,
     next: usize,
 }
 
-impl<'a> DescList<'a> {
-    pub fn new(list: &'a mut [DescEntry], buffers: &'a mut [Buffer]) -> Self {
+impl DescList {
+    pub fn new(size: usize) -> Self {
+        let mut list: Vec<_> = (0..size).map(|_| DescEntry::zeroed())
+            .collect();
+        let mut buffers = vec![Buffer::new(); size];
+
         let last = list.len().min(buffers.len()) - 1;
         // Sending seems to not work properly with only one packet
         // buffer (two duplicates get send with every packet), so
@@ -73,8 +78,7 @@ impl<'a> DescList<'a> {
         }
 
         DescList {
-            // Shorten the list of descriptors to the required number.
-            list: &mut list[0..=last],
+            list,
             buffers,
             next: 0,
         }
@@ -142,12 +146,12 @@ impl<'a> DerefMut for PktRef<'a> {
 }
 
 /// TxToken for smoltcp support
-pub struct Token<'a, 'tx: 'a> {
+pub struct Token<'a> {
     pub regs: &'a mut regs::RegisterBlock,
-    pub desc_list: &'a mut DescList<'tx>,
+    pub desc_list: &'a mut DescList,
 }
 
-impl<'a, 'tx: 'a> smoltcp::phy::TxToken for Token<'a, 'tx> {
+impl<'a> smoltcp::phy::TxToken for Token<'a> {
     fn consume<R, F>(self, _timestamp: smoltcp::time::Instant, len: usize, f: F) -> smoltcp::Result<R>
         where F: FnOnce(&mut [u8]) -> smoltcp::Result<R>
     {

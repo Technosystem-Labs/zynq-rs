@@ -263,9 +263,9 @@ impl<'r, RX, TX> Eth<'r, RX, TX> {
         });
     }
 
-    pub fn start_rx<'rx>(self, rx_list: &'rx mut [rx::DescEntry], rx_buffers: &'rx mut [Buffer]) -> Eth<'r, rx::DescList<'rx>, TX> {
+    pub fn start_rx(self, rx_size: usize) -> Eth<'r, rx::DescList, TX> {
         let new_self = Eth {
-            rx: rx::DescList::new(rx_list, rx_buffers),
+            rx: rx::DescList::new(rx_size),
             tx: self.tx,
             inner: self.inner,
             phy: self.phy,
@@ -282,10 +282,10 @@ impl<'r, RX, TX> Eth<'r, RX, TX> {
         new_self
     }
 
-    pub fn start_tx<'tx>(self, tx_list: &'tx mut [tx::DescEntry], tx_buffers: &'tx mut [Buffer]) -> Eth<'r, RX, tx::DescList<'tx>> {
+    pub fn start_tx(self, tx_size: usize) -> Eth<'r, RX, tx::DescList> {
         let new_self = Eth {
             rx: self.rx,
-            tx: tx::DescList::new(tx_list, tx_buffers),
+            tx: tx::DescList::new(tx_size),
             inner: self.inner,
             phy: self.phy,
         };
@@ -302,7 +302,7 @@ impl<'r, RX, TX> Eth<'r, RX, TX> {
     }
 }
 
-impl<'r, 'rx, TX> Eth<'r, rx::DescList<'rx>, TX> {
+impl<'r, TX> Eth<'r, rx::DescList, TX> {
     pub fn recv_next<'s: 'p, 'p>(&'s mut self) -> Result<Option<rx::PktRef<'p>>, rx::Error> {
         let status = self.inner.regs.rx_status.read();
         if status.hresp_not_ok() {
@@ -350,15 +350,15 @@ impl<'r, 'rx, TX> Eth<'r, rx::DescList<'rx>, TX> {
     }
 }
 
-impl<'r, 'tx, RX> Eth<'r, RX, tx::DescList<'tx>> {
+impl<'r, RX> Eth<'r, RX, tx::DescList> {
     pub fn send<'s: 'p, 'p>(&'s mut self, length: usize) -> Option<tx::PktRef<'p>> {
         self.tx.send(self.inner.regs, length)
     }
 }
 
-impl<'r, 'rx, 'tx: 'a, 'a> smoltcp::phy::Device<'a> for &mut Eth<'r, rx::DescList<'rx>, tx::DescList<'tx>> {
+impl<'r, 'a> smoltcp::phy::Device<'a> for &mut Eth<'r, rx::DescList, tx::DescList> {
     type RxToken = rx::PktRef<'a>;
-    type TxToken = tx::Token<'a, 'tx>;
+    type TxToken = tx::Token<'a>;
 
     fn capabilities(&self) -> smoltcp::phy::DeviceCapabilities {
         use smoltcp::phy::{DeviceCapabilities, ChecksumCapabilities, Checksum};

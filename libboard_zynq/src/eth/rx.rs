@@ -1,4 +1,5 @@
 use core::ops::Deref;
+use alloc::{vec, vec::Vec};
 use libregister::*;
 use super::Buffer;
 
@@ -53,14 +54,18 @@ register_bit!(desc_word1, multi_hash_match, 30);
 register_bit!(desc_word1, global_broadcast, 31);
 
 #[repr(C)]
-pub struct DescList<'a> {
-    list: &'a mut [DescEntry],
-    buffers: &'a mut [Buffer],
+pub struct DescList {
+    list: Vec<DescEntry>,
+    buffers: Vec<Buffer>,
     next: usize,
 }
 
-impl<'a> DescList<'a> {
-    pub fn new(list: &'a mut [DescEntry], buffers: &'a mut [Buffer]) -> Self {
+impl DescList {
+    pub fn new(size: usize) -> Self {
+        let mut list: Vec<_> = (0..size).map(|_| DescEntry::zeroed())
+            .collect();
+        let mut buffers = vec![Buffer::new(); size];
+
         let last = list.len().min(buffers.len()) - 1;
         for (i, (entry, buffer)) in list.iter_mut().zip(buffers.iter_mut()).enumerate() {
             let is_last = i == last;
@@ -78,8 +83,7 @@ impl<'a> DescList<'a> {
         }
 
         DescList {
-            // Shorten the list of descriptors to the required number.
-            list: &mut list[0..=last],
+            list,
             buffers,
             next: 0,
         }
