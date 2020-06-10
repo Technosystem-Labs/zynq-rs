@@ -37,28 +37,16 @@ impl Adma2Desc32 {
         }
     }
 
-    pub fn get_attribute(&mut self) -> u16 {
-        unsafe { core::ptr::read_volatile(&mut self.attribute as *mut u16) }
-    }
-
     pub fn set_length(&mut self, length: u16) {
         unsafe {
             core::ptr::write_volatile(&mut self.length as *mut u16, length);
         }
     }
 
-    pub fn get_length(&mut self) -> u16 {
-        unsafe { core::ptr::read_volatile(&mut self.length as *mut u16) }
-    }
-
     pub fn set_address(&mut self, address: u32) {
         unsafe {
             core::ptr::write_volatile(&mut self.address as *mut u32, address);
         }
-    }
-
-    pub fn get_address(&mut self) -> u32 {
-        unsafe { core::ptr::read_volatile(&mut self.address as *mut u32) }
     }
 }
 

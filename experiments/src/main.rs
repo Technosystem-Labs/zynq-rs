@@ -83,7 +83,7 @@ pub fn main_core0() {
         clocks.cpu_1x()
     );
 
-    let mut sd = libboard_zynq::sdio::SDIO::sdio0(true);
+    let sd = libboard_zynq::sdio::SDIO::sdio0(true);
     // only test SD card if it is inserted
     if sd.is_card_inserted() {
         let result = SdCard::from_sdio(sd);
