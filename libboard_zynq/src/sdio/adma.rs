@@ -22,16 +22,18 @@ register_bit!(desc32_attribute, int, 2);
 register_bit!(desc32_attribute, end, 1);
 register_bit!(desc32_attribute, valid, 0);
 
-pub struct Adma2DescTable(MaybeUninit<[Adma2Desc32; 32]>);
+pub struct Adma2DescTable([Adma2Desc32; 32]);
 
 impl Adma2DescTable {
     pub fn new() -> Self {
-        Adma2DescTable(MaybeUninit::uninit())
+        let table = MaybeUninit::zeroed();
+        let table = unsafe { table.assume_init() };
+        Adma2DescTable(table)
     }
 
     /// Initialize the table and setup `adma_system_address`
     pub fn setup(&mut self, sdio: &mut SDIO, blk_cnt: u32, buffer: &[u8]) {
-        let descr_table = unsafe { &mut *self.0.as_mut_ptr() };
+        let descr_table = &mut self.0;
         let blk_size = sdio
             .regs
             .block_size_block_count
