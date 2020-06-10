@@ -112,7 +112,7 @@ pub fn dcci<T>(object: &T) {
     }
 }
 
-pub fn dcci_slice<T>(slice: &mut [T]) {
+pub fn dcci_slice<T>(slice: &[T]) {
     for addr in slice_cache_line_addrs(slice) {
         dccimvac(addr);
     }

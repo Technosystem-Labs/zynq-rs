@@ -241,7 +241,7 @@ impl SdCard {
         &mut self,
         address: u32,
         block_cnt: u16,
-        buffer: &mut [u8],
+        buffer: &[u8],
     ) -> Result<(), CmdTransferError> {
         assert!(buffer.len() >= (block_cnt as usize) * 512);
         // set block size if not set already
