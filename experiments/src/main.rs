@@ -247,7 +247,7 @@ pub fn main_core0() {
                     .await?
             }
         }
-        let _ = stream.flush().await;
+        let _ = stream.close().await;
         Ok(())
     }
 
