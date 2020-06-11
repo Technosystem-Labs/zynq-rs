@@ -205,6 +205,13 @@ impl SdCard {
             self.sdio.set_block_size(512)?;
         }
 
+        let real_addr = if self.hcs {
+            address
+        } else {
+            // standard capacity card uses byte address
+            address * 0x200
+        };
+
         self.adma2_desc_table.setup(&mut self.sdio, block_cnt as u32, buffer);
         // invalidate D cache, required for ZC706, not sure for Cora Z7 10
         cache::dcci_slice(buffer);
@@ -230,7 +237,7 @@ impl SdCard {
         };
 
         self.sdio
-            .cmd_transfer_with_mode(cmd, address, block_cnt, mode)?;
+            .cmd_transfer_with_mode(cmd, real_addr, block_cnt, mode)?;
 
         self.wait_transfer_complete()?;
         cache::dcci_slice(buffer);
@@ -258,6 +265,13 @@ impl SdCard {
             self.sdio.set_block_size(512)?;
         }
 
+        let real_addr = if self.hcs {
+            address
+        } else {
+            // standard capacity card uses byte address
+            address * 0x200
+        };
+
         self.adma2_desc_table.setup(&mut self.sdio, block_cnt as u32, buffer);
         // invalidate D cache, required for ZC706, not sure for Cora Z7 10
         cache::dcci_slice(buffer);
@@ -281,7 +295,7 @@ impl SdCard {
         };
 
         self.sdio
-            .cmd_transfer_with_mode(cmd, address, block_cnt, mode)?;
+            .cmd_transfer_with_mode(cmd, real_addr, block_cnt, mode)?;
         // wait for transfer complete interrupt
         self.wait_transfer_complete()?;
 
