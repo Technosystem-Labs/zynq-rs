@@ -1,7 +1,7 @@
 use super::{adma::Adma2DescTable, cmd, CardType, CmdTransferError, SDIO};
 use libcortex_a9::cache;
 use libregister::{RegisterR, RegisterRW, RegisterW};
-use log::debug;
+use log::{trace, debug};
 
 #[derive(Debug)]
 pub enum CardInitializationError {
@@ -146,7 +146,7 @@ impl SdCard {
 
         let mut scr: [u8; 32] = [0; 32];
         self.get_bus_width(&mut scr)?;
-        debug!("{:?}", scr);
+        trace!("SCR={:?}", scr);
         if scr[1] & 0x4 != 0 {
             // 4bit support
             debug!("4 bit support");
@@ -337,7 +337,7 @@ impl SdCard {
 
     fn change_bus_width(&mut self) -> Result<(), CmdTransferError> {
         use cmd::SdCmd::*;
-        debug!("Changing bus speed");
+        debug!("Changing bus width");
         self.sdio.cmd_transfer(CMD55, self.rel_card_addr, 0)?;
         self.width_4_bit = true;
         self.sdio.cmd_transfer(ACMD6, 0x2, 0)?;

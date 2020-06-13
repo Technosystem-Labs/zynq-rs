@@ -8,7 +8,7 @@ use super::slcr;
 use super::time::Milliseconds;
 use embedded_hal::timer::CountDown;
 use libregister::{RegisterR, RegisterRW, RegisterW};
-use log::debug;
+use log::{trace, debug};
 use nb;
 
 /// Basic SDIO Struct with common low-level functions.
@@ -123,7 +123,7 @@ impl SDIO {
     /// From XSdPs_Change_ClkFreq in xsdps_options.c. SPEC_V3 related code is removed as
     /// our board would only be V1 or V2.
     fn change_clk_freq(&mut self, freq: u32) {
-        debug!("Change clock frequency to {}", freq);
+        debug!("Changing clock frequency to {}", freq);
         self.regs
             .clock_control
             .modify(|_, w| w.sd_clk_en(false).internal_clk_en(false));
@@ -244,7 +244,7 @@ impl SDIO {
         block_cnt: u16,
         transfer_mode: regs::transfer_mode_command::Write,
     ) -> Result<(), CmdTransferError> {
-        debug!("Send Cmd {:?}", cmd);
+        trace!("Send Cmd {:?}", cmd);
         let state = self.regs.present_state.read();
         if state.command_inhibit_cmd() {
             return Err(CmdTransferError::CmdInhibited);
