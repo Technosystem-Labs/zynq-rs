@@ -132,7 +132,7 @@ impl L1Table {
                 domain: 0b1111,
                 exec: true,
                 cacheable: true,
-                bufferable: false,
+                bufferable: true,
             });
         }
         /* 0x40000000 - 0x7fffffff (FPGA slave0) */
