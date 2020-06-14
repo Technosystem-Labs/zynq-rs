@@ -1,5 +1,5 @@
 use bit_field::BitField;
-use super::{regs::*, asm};
+use super::{regs::*, asm, cache};
 use libregister::RegisterW;
 
 #[derive(Copy, Clone)]
@@ -44,6 +44,12 @@ pub enum AccessPermissions {
 }
 
 impl AccessPermissions {
+    fn new(ap: u8, apx: bool) -> Self {
+        unsafe {
+            core::mem::transmute(if apx { 0b100 } else { 0 } | ap)
+        }
+    }
+
     fn ap(&self) -> u8 {
         (*self as u8) & 0b11
     }
@@ -65,31 +71,55 @@ pub struct L1Section {
     pub bufferable: bool,
 }
 
+const ENTRY_TYPE_SECTION: u32 = 0b10;
+pub const L1_PAGE_SIZE: usize = 0x100000;
+
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct L1Entry(u32);
 
 impl L1Entry {
     #[inline(always)]
-    pub fn section(phys_base: u32, section: L1Section) -> Self {
+    pub fn from_section(phys_base: u32, section: L1Section) -> Self {
         // Must be aligned to 1 MB
         assert!(phys_base & 0x000f_ffff == 0);
         let mut entry = L1Entry(phys_base);
 
-        entry.0.set_bits(0..=1, 0b10);
-        entry.0.set_bit(2, section.bufferable);
-        entry.0.set_bit(3, section.cacheable);
-        entry.0.set_bit(4, !section.exec);
-        assert!(section.domain < 16);
-        entry.0.set_bits(5..=8, section.domain.into());
-        entry.0.set_bits(10..=11, section.access.ap().into());
-        assert!(section.tex < 8);
-        entry.0.set_bits(12..=14, section.tex.into());
-        entry.0.set_bit(15, section.access.apx());
-        entry.0.set_bit(16, section.shareable);
-        entry.0.set_bit(17, !section.global);
-
+        entry.set_section(section);
         entry
+    }
+
+    pub fn get_section(&mut self) -> L1Section {
+        assert_eq!(self.0.get_bits(0..=1), ENTRY_TYPE_SECTION);
+        let access = AccessPermissions::new(
+            self.0.get_bits(10..=11) as u8,
+            self.0.get_bit(15)
+        );
+        L1Section {
+            global: !self.0.get_bit(17),
+            shareable: self.0.get_bit(16),
+            access,
+            tex: self.0.get_bits(12..=14) as u8,
+            domain: self.0.get_bits(5..=8) as u8,
+            exec: !self.0.get_bit(4),
+            cacheable: self.0.get_bit(3),
+            bufferable: self.0.get_bit(2),
+        }
+    }
+
+    pub fn set_section(&mut self, section: L1Section) {
+        self.0.set_bits(0..=1, ENTRY_TYPE_SECTION);
+        self.0.set_bit(2, section.bufferable);
+        self.0.set_bit(3, section.cacheable);
+        self.0.set_bit(4, !section.exec);
+        assert!(section.domain < 16);
+        self.0.set_bits(5..=8, section.domain.into());
+        self.0.set_bits(10..=11, section.access.ap().into());
+        assert!(section.tex < 8);
+        self.0.set_bits(12..=14, section.tex.into());
+        self.0.set_bit(15, section.access.apx());
+        self.0.set_bit(16, section.shareable);
+        self.0.set_bit(17, !section.global);
     }
 }
 
@@ -325,7 +355,24 @@ impl L1Table {
         assert!(index < L1_TABLE_SIZE);
 
         let base = (index as u32) << 20;
-        self.table[index] = L1Entry::section(base, section);
+        self.table[index] = L1Entry::from_section(base, section);
+    }
+
+    pub fn update<T, F, R>(&mut self, ptr: *const T, f: F) -> R
+    where
+        F: FnOnce(&'_ mut L1Section) -> R,
+    {
+        let index = (ptr as usize) >> 20;
+        let entry = &mut self.table[index];
+        let mut section = entry.get_section();
+        let result = f(&mut section);
+        entry.set_section(section);
+
+        cache::tlbiall();
+        asm::dsb();
+        asm::isb();
+
+        result
     }
 }
 
