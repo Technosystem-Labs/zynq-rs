@@ -112,7 +112,7 @@ impl SdCard {
         let mut csd: [u32; 4] = [0, 0, 0, 0];
         for i in 0..=3 {
             csd[i] = self.sdio.regs.responses[i].read();
-            debug!("CSD[{}] = {:0X}", i, csd[i]);
+            trace!("CSD[{}] = {:0X}", i, csd[i]);
         }
 
         const CSD_STRUCT_MSK: u32 = 0x00C00000;
@@ -350,13 +350,13 @@ impl SdCard {
     }
 
     fn wait_transfer_complete(&mut self) -> Result<(), CmdTransferError> {
-        debug!("Wait for transfer complete");
+        trace!("Wait for transfer complete");
         let mut status = self.sdio.regs.interrupt_status.read();
         while !status.transfer_complete() {
             self.sdio.check_error(&status)?;
             status = self.sdio.regs.interrupt_status.read();
         }
-        debug!("Clearing transfer complete");
+        trace!("Clearing transfer complete");
         self.sdio
             .regs
             .interrupt_status
