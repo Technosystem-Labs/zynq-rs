@@ -2,12 +2,13 @@ use libregister::{
     register, register_at,
     register_bit, register_bits, register_bits_typed,
 };
+use volatile_register::WO;
 
 #[repr(C)]
 pub struct RegisterBlock {
     pub control: Control,
-    pub cfg: Cfg,
     pub lock: Lock,
+    pub cfg: Cfg,
     pub int_sts: IntSts,
     pub int_mask: IntMask,
     pub status: Status,
@@ -15,9 +16,13 @@ pub struct RegisterBlock {
     pub dma_dest_addr: DmaDestAddr,
     pub dma_src_len: DmaSrcLen,
     pub dma_dest_len: DmaDestLen,
+    unused0: u32,
     pub multiboot_addr: MultibootAddr,
-    pub unlock: Unlock,
+    unused1: u32,
+    pub unlock: WO<u32>,
+    unused2: [u32; 18],
     pub mctrl: MCtrl,
+    unused3: [u32; 31],
     pub xadcif_cfg: XADCIfCfg,
     pub xadcif_int_sts: XADCIfIntSts,
     pub xadcif_int_mask: XADCIfIntMask,
@@ -71,18 +76,18 @@ pub enum WFifoTh {
     ThreeFourthEmpty = 0b10, // Three fourth empty for write
     Empty            = 0b11, // Empty for write
 }
-register_bits_typed!(cfg, wfifo_th, u8, WFifoTh, 10, 11);
+register_bits_typed!(cfg, wfifo_th, u8, WFifoTh, 8, 9);
 register_bit!(cfg, rclk_edge, 7);
 register_bit!(cfg, wclk_edge, 6);
 register_bit!(cfg, disable_src_inc, 5);
 register_bit!(cfg, disable_dst_inc, 4);
 
 register!(int_sts, IntSts, RW, u32);
-register_bit!(int_sts, pps_gts_usr_b_int, 31);
-register_bit!(int_sts, pps_fst_cfg_b_int, 30);
-register_bit!(int_sts, pps_gpwrdwn_b_int, 29);
-register_bit!(int_sts, pps_gts_cfg_b_int, 27);
-register_bit!(int_sts, pps_cfg_reset_b_int, 26);
+register_bit!(int_sts, pss_gts_usr_b_int, 31);
+register_bit!(int_sts, pss_fst_cfg_b_int, 30);
+register_bit!(int_sts, pss_gpwrdwn_b_int, 29);
+register_bit!(int_sts, pss_gts_cfg_b_int, 28);
+register_bit!(int_sts, pss_cfg_reset_b_int, 27);
 register_bit!(int_sts, ixr_axi_wto, 23);
 register_bit!(int_sts, ixr_axi_werr, 22);
 register_bit!(int_sts, ixr_axi_rto, 21);
@@ -148,22 +153,19 @@ register_bit!(status, efuse_sec_en, 2);
 register_bit!(status, efuse_jtag_dis, 1);
 
 register!(dma_src_addr, DmaSrcAddr, RW, u32);
-register_bits!(dma_src_addr, src_addr, u8, 0, 31);
+register_bits!(dma_src_addr, src_addr, u32, 0, 31);
 
 register!(dma_dest_addr, DmaDestAddr, RW, u32);
-register_bits!(dma_dest_addr, dest_addr, u8, 0, 31);
+register_bits!(dma_dest_addr, dest_addr, u32, 0, 31);
 
 register!(dma_src_len, DmaSrcLen, RW, u32);
-register_bits!(dma_src_len, dma_len, u8, 0, 26);
+register_bits!(dma_src_len, dma_len, u32, 0, 26);
 
 register!(dma_dest_len, DmaDestLen, RW, u32);
-register_bits!(dma_dest_len, dma_len, u8, 0, 26);
+register_bits!(dma_dest_len, dma_len, u32, 0, 26);
 
 register!(multiboot_addr, MultibootAddr, RW, u32);
 register_bits!(multiboot_addr, multiboot_addr, u8, 0, 12);
-
-register!(unlock, Unlock, RW, u32);
-register_bits!(unlock, unlock, u8, 0, 31);
 
 register!(mctrl, MCtrl, RW, u32);
 register_bits!(mctrl, ps_version, u8, 28, 31);
