@@ -11,6 +11,19 @@ pub enum CardInitializationError {
     InitializationFailedCmd(CmdTransferError),
 }
 
+impl core::fmt::Display for CardInitializationError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        use CardInitializationError::*;
+        write!(f, "Card initialization error: \n    ")?;
+        match self {
+            AlreadyInitialized => write!(f, "Card already initialized."),
+            NoCardInserted => write!(f, "No card inserted, check if the card is inserted properly."),
+            InitializationFailedOther => write!(f, "Unknown error. Please check the debug messages."),
+            InitializationFailedCmd(x) => write!(f, "{}", x)
+        }
+    }
+}
+
 impl From<CmdTransferError> for CardInitializationError {
     fn from(error: CmdTransferError) -> Self {
         CardInitializationError::InitializationFailedCmd(error)

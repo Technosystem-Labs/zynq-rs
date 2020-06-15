@@ -88,7 +88,7 @@ pub fn main_core0() {
         let result = SdCard::from_sdio(sd);
         match &result {
             Ok(_) => info!("OK!"),
-            Err(a) => info!("{:?}", a),
+            Err(a) => info!("{}", a),
         };
         const SIZE: usize = 512 * 2 + 1;
         let mut sd_card = result.unwrap();

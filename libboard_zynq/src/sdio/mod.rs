@@ -28,6 +28,19 @@ pub enum CmdTransferError {
     Other(regs::interrupt_status::Read),
 }
 
+impl core::fmt::Display for CmdTransferError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        use CmdTransferError::*;
+        write!(f, "Command transfer error: ")?;
+        match self {
+            CmdInhibited => write!(f, "Command line inhibited."),
+            DatLineInhibited => write!(f, "Data line inhibited, possibly due to ongonging data transfer."),
+            CmdTimeout => write!(f, "Command timeout, check if the card is inserted properly."),
+            Other(x) => write!(f, "Unknown Error, interrupt status = 0x{:0X}", x.inner),
+        }
+    }
+}
+
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum CardType {
     CardNone,
