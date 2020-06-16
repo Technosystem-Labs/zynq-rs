@@ -76,7 +76,7 @@ impl DevC {
         DevC {
             regs: regs::RegisterBlock::devc(),
             enabled: false,
-            count_down: super::timer::GlobalTimer::start().countdown(),
+            count_down: unsafe { super::timer::GlobalTimer::get() }.countdown(),
             timeout_ms,
         }
     }

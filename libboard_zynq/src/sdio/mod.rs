@@ -110,7 +110,7 @@ impl SDIO {
         let clocks = Clocks::get();
         let mut self_ = SDIO {
             regs: regs::RegisterBlock::sdio0(),
-            count_down: super::timer::GlobalTimer::start().countdown(),
+            count_down: unsafe { super::timer::GlobalTimer::get() }.countdown(),
             input_clk_hz: clocks.sdio_ref_clk(),
             card_type: CardType::CardNone,
             card_detect,
