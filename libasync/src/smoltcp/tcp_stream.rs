@@ -200,6 +200,24 @@ impl TcpStream {
         Ok(())
     }
 
+    /// Yields to wait for more buffer space
+    pub async fn send_slice(&self, mut data: &'_ [u8]) -> Result<()> {
+        while data.len() > 0 {
+            self.wait_can_send().await?;
+
+            data = self.with_socket(|mut socket| {
+                socket.send(|buf| {
+                    let len = buf.len().min(data.len());
+                    buf[..len].copy_from_slice(&data[..len]);
+                    data = &data[len..];
+                    (len, data)
+                })
+            })?;
+        }
+
+        Ok(())
+    }
+
     /// Wait for all queued data to be sent and ACKed
     ///
     /// **Warning:** this may not work as immediately as expected! The
