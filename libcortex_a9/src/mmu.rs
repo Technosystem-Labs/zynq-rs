@@ -368,6 +368,7 @@ impl L1Table {
         let result = f(&mut section);
         entry.set_section(section);
 
+        asm::dmb();
         cache::tlbiall();
         asm::dsb();
         asm::isb();
