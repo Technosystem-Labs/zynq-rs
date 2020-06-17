@@ -1,5 +1,6 @@
 use core::ops::Deref;
 use alloc::{vec, vec::Vec};
+use libcortex_a9::{asm::*, cache::*, UncachedSlice};
 use libregister::*;
 use super::Buffer;
 
@@ -55,15 +56,15 @@ register_bit!(desc_word1, global_broadcast, 31);
 
 #[repr(C)]
 pub struct DescList {
-    list: Vec<DescEntry>,
+    list: UncachedSlice<DescEntry>,
     buffers: Vec<Buffer>,
     next: usize,
 }
 
 impl DescList {
     pub fn new(size: usize) -> Self {
-        let mut list: Vec<_> = (0..size).map(|_| DescEntry::zeroed())
-            .collect();
+        let mut list = UncachedSlice::new(size, || DescEntry::zeroed())
+            .unwrap();
         let mut buffers = vec![Buffer::new(); size];
 
         let last = list.len().min(buffers.len()) - 1;
@@ -80,6 +81,7 @@ impl DescList {
             entry.word1.write(
                 DescWord1::zeroed()
             );
+            dcci_slice(&buffer[..]);
         }
 
         DescList {
@@ -96,6 +98,7 @@ impl DescList {
     pub fn recv_next<'s: 'p, 'p>(&'s mut self) -> Result<Option<PktRef<'p>>, Error> {
         let list_len = self.list.len();
         let entry = &mut self.list[self.next];
+        dmb();
         if entry.word0.read().used() {
             let word1 = entry.word1.read();
             let len = word1.frame_length_lsbs().into();
@@ -126,7 +129,10 @@ pub struct PktRef<'a> {
 
 impl<'a> Drop for PktRef<'a> {
     fn drop(&mut self) {
+        dcci_slice(self.buffer);
+
         self.entry.word0.modify(|_, w| w.used(false));
+        dmb();
     }
 }
 

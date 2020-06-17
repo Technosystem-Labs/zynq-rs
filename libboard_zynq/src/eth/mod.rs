@@ -20,7 +20,7 @@ const TX_100: u32 = 25_000_000;
 const TX_1000: u32 = 125_000_000;
 
 #[derive(Clone)]
-#[repr(C, align(0x08))]
+#[repr(C, align(0x20))]
 pub struct Buffer(pub [u8; MTU]);
 
 impl Buffer {

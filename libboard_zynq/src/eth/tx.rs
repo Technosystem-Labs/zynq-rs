@@ -1,5 +1,6 @@
 use core::ops::{Deref, DerefMut};
 use alloc::{vec, vec::Vec};
+use libcortex_a9::{cache::dcc_slice, UncachedSlice};
 use libregister::*;
 use super::{Buffer, regs};
 
@@ -42,15 +43,15 @@ pub const DESCS: usize = 8;
 
 #[repr(C)]
 pub struct DescList {
-    list: Vec<DescEntry>,
+    list: UncachedSlice<DescEntry>,
     buffers: Vec<Buffer>,
     next: usize,
 }
 
 impl DescList {
     pub fn new(size: usize) -> Self {
-        let mut list: Vec<_> = (0..size).map(|_| DescEntry::zeroed())
-            .collect();
+        let mut list = UncachedSlice::new(size, || DescEntry::zeroed())
+            .unwrap();
         let mut buffers = vec![Buffer::new(); size];
 
         let last = list.len().min(buffers.len()) - 1;
@@ -123,6 +124,7 @@ pub struct PktRef<'a> {
 
 impl<'a> Drop for PktRef<'a> {
     fn drop(&mut self) {
+        dcc_slice(self.buffer);
         self.entry.word1.modify(|_, w| w.used(false));
         if ! self.regs.tx_status.read().tx_go() {
             self.regs.net_ctrl.modify(|_, w|
