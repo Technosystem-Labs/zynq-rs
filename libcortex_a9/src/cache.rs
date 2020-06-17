@@ -1,3 +1,5 @@
+use super::asm::{dmb, dsb};
+
 /// Invalidate TLBs
 #[inline(always)]
 pub fn tlbiall() {
@@ -107,15 +109,19 @@ pub fn dccimvac(addr: usize) {
 
 /// Data cache clean and invalidate for an object.
 pub fn dcci<T>(object: &T) {
+    dmb();
     for addr in object_cache_line_addrs(object) {
         dccimvac(addr);
     }
+    dsb();
 }
 
 pub fn dcci_slice<T>(slice: &[T]) {
+    dmb();
     for addr in slice_cache_line_addrs(slice) {
         dccimvac(addr);
     }
+    dsb();
 }
 
 /// Data cache clean by memory virtual address.
@@ -128,18 +134,22 @@ pub fn dccmvac(addr: usize) {
 
 /// Data cache clean for an object.
 pub fn dcc<T>(object: &T) {
+    dmb();
     for addr in object_cache_line_addrs(object) {
         dccmvac(addr);
     }
+    dsb();
 }
 
 /// Data cache clean for an object. Panics if not properly
 /// aligned and properly sized to be contained in an exact number of
 /// cache lines.
 pub fn dcc_slice<T>(slice: &[T]) {
+    dmb();
     for addr in slice_cache_line_addrs(slice) {
         dccmvac(addr);
     }
+    dsb();
 }
 
 /// Data cache invalidate by memory virtual address. This and
@@ -158,9 +168,11 @@ pub unsafe fn dci<T>(object: &mut T) {
     assert_eq!(first_addr & CACHE_LINE_MASK, 0, "dci object first_addr must be aligned");
     assert_eq!(beyond_addr & CACHE_LINE_MASK, 0, "dci object beyond_addr must be aligned");
 
+    dmb();
     for addr in (first_addr..beyond_addr).step_by(CACHE_LINE) {
         dcimvac(addr);
     }
+    dsb();
 }
 
 pub unsafe fn dci_slice<T>(slice: &mut [T]) {
@@ -170,7 +182,9 @@ pub unsafe fn dci_slice<T>(slice: &mut [T]) {
     assert_eq!(first_addr & CACHE_LINE_MASK, 0, "dci slice first_addr must be aligned");
     assert_eq!(beyond_addr & CACHE_LINE_MASK, 0, "dci slice beyond_addr must be aligned");
 
+    dmb();
     for addr in (first_addr..beyond_addr).step_by(CACHE_LINE) {
         dcimvac(addr);
     }
+    dsb();
 }
