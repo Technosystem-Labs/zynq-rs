@@ -8,7 +8,7 @@ use libboard_zynq::ddr::DdrRam;
 #[global_allocator]
 static ALLOCATOR: CortexA9Alloc = CortexA9Alloc(Mutex::new(Heap::empty()));
 
-/// LockedHeap doesn't locking properly
+/// LockedHeap doesn't lock properly
 struct CortexA9Alloc(Mutex<Heap>);
 
 unsafe impl Sync for CortexA9Alloc {}
