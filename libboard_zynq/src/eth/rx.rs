@@ -81,6 +81,8 @@ impl DescList {
             entry.word1.write(
                 DescWord1::zeroed()
             );
+            // Flush buffer from cache, to be filled by the peripheral
+            // before next read
             dcci_slice(&buffer[..]);
         }
 
@@ -129,6 +131,8 @@ pub struct PktRef<'a> {
 
 impl<'a> Drop for PktRef<'a> {
     fn drop(&mut self) {
+        // Flush buffer from cache, to be filled by the peripheral
+        // before next read
         dcci_slice(self.buffer);
 
         self.entry.word0.modify(|_, w| w.used(false));

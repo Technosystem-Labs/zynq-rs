@@ -124,12 +124,13 @@ pub struct PktRef<'a> {
 
 impl<'a> Drop for PktRef<'a> {
     fn drop(&mut self) {
+        // Write back all dirty cachelines of this buffer
         dcc_slice(self.buffer);
+
         self.entry.word1.modify(|_, w| w.used(false));
         if ! self.regs.tx_status.read().tx_go() {
-            self.regs.net_ctrl.modify(|_, w|
-                                      w.start_tx(true)
-            );
+            // Start TX if not already running
+            self.regs.net_ctrl.modify(|_, w| w.start_tx(true));
         }
     }
 }
