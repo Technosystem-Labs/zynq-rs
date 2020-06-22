@@ -33,7 +33,7 @@ use libregister::RegisterR;
 use libsupport_zynq::{
     boot, ram,
 };
-use log::info;
+use log::{info, warn};
 
 const HWADDR: [u8; 6] = [0, 0x23, 0xde, 0xea, 0xbe, 0xef];
 
@@ -180,10 +180,10 @@ pub fn main_core0() {
     let eth = zynq::eth::Eth::default(HWADDR.clone());
     println!("Eth on");
 
-    const RX_LEN: usize = 8;
+    const RX_LEN: usize = 4096;
     // Number of transmission buffers (minimum is two because with
     // one, duplicate packet transmission occurs)
-    const TX_LEN: usize = 8;
+    const TX_LEN: usize = 4096;
     let eth = eth.start_rx(RX_LEN);
     let mut eth = eth.start_tx(TX_LEN);
 
@@ -238,18 +238,42 @@ pub fn main_core0() {
         Ok(())
     }
 
-    let counter = alloc::rc::Rc::new(core::cell::RefCell::new(0));
+    // (rx, tx)
+    let stats = alloc::rc::Rc::new(core::cell::RefCell::new((0, 0)));
+    let stats_tx = stats.clone();
     task::spawn(async move {
-        while let Ok(stream) = TcpStream::accept(TCP_PORT, 2048, 2408).await {
-            let counter = counter.clone();
+        while let Ok(stream) = TcpStream::accept(TCP_PORT, 0x10_0000, 0x10_0000).await {
+            let stats_tx = stats_tx.clone();
             task::spawn(async move {
-                *counter.borrow_mut() += 1;
-                println!("Serving {} connections", *counter.borrow());
-                handle_connection(stream)
-                    .await
-                    .unwrap_or_else(|e| println!("Connection: {:?}", e));
-                *counter.borrow_mut() -= 1;
-                println!("Now serving {} connections", *counter.borrow());
+                let tx_data = (0..=255).take(4096).collect::<alloc::vec::Vec<u8>>();
+                loop {
+                    // const CHUNK_SIZE: usize = 65536;
+                    // match stream.send((0..=255).cycle().take(CHUNK_SIZE)).await {
+                    match stream.send_slice(&tx_data[..]).await {
+                        Ok(len) => stats_tx.borrow_mut().1 += tx_data.len(), //CHUNK_SIZE,
+                        Err(e) => {
+                            warn!("tx: {:?}", e);
+                            break
+                        }
+                    }
+                }
+            });
+        }
+    });
+    let stats_rx = stats.clone();
+    task::spawn(async move {
+        while let Ok(stream) = TcpStream::accept(TCP_PORT+1, 0x10_0000, 0x10_0000).await {
+            let stats_rx = stats_rx.clone();
+            task::spawn(async move {
+                loop {
+                    match stream.recv(|buf| Poll::Ready((buf.len(), buf.len()))).await {
+                        Ok(len) => stats_rx.borrow_mut().0 += len,
+                        Err(e) => {
+                            warn!("rx: {:?}", e);
+                            break
+                        }
+                    }
+                }
             });
         }
     });
@@ -262,7 +286,13 @@ pub fn main_core0() {
             let timestamp = timer.get_us();
             let seconds = timestamp / 1_000_000;
             let micros = timestamp % 1_000_000;
-            info!("time: {:6}.{:06}s", seconds, micros);
+            let (rx, tx) = {
+                let mut stats = stats.borrow_mut();
+                let result = *stats;
+                *stats = (0, 0);
+                result
+            };
+            info!("time: {:6}.{:06}s, rx: {}k/s, tx: {}k/s", seconds, micros, rx / 1024, tx / 1024);
         }
     });
 
