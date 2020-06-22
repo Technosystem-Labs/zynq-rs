@@ -25,6 +25,7 @@ impl<T> UncachedSlice<T> {
         for page_start in (start..(start + size)).step_by(L1_PAGE_SIZE) {
             L1Table::get()
                 .update(page_start as *const (), |l1_section| {
+                    l1_section.tex = 0b100;
                     l1_section.cacheable = false;
                     l1_section.bufferable = false;
                 });
