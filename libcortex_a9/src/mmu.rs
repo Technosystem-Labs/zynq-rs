@@ -1,5 +1,5 @@
 use bit_field::BitField;
-use super::{regs::*, asm, cache};
+use super::{regs::*, asm::*, cache::*};
 use libregister::RegisterW;
 
 #[derive(Copy, Clone)]
@@ -368,10 +368,19 @@ impl L1Table {
         let result = f(&mut section);
         entry.set_section(section);
 
-        asm::dmb();
-        cache::tlbiall();
-        asm::dsb();
-        asm::isb();
+        // Flush L1Dcache
+        dcciall();
+        // // TODO: L2?
+
+        // Invalidate TLB
+        tlbiall();
+        // Invalidate all branch predictors
+        bpiall();
+
+        // ensure completion of the BP and TLB invalidation
+        dsb();
+        // synchronize context on this processor
+        isb();
 
         result
     }
@@ -406,9 +415,9 @@ pub fn with_mmu<F: FnMut() -> !>(l1table: &L1Table, mut f: F) -> ! {
 
     // Synchronization barriers
     // Allows MMU to start
-    asm::dsb();
+    dsb();
     // Flushes pre-fetch buffer
-    asm::isb();
+    isb();
 
     f();
 }

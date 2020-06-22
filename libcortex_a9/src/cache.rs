@@ -44,6 +44,15 @@ pub fn dcisw(setway: u32) {
     }
 }
 
+/// Data cache clean by set/way
+#[inline(always)]
+pub fn dccisw(setway: u32) {
+    unsafe {
+        llvm_asm!("mcr p15, 0, $0, c7, c14, 2" :: "r" (setway) :: "volatile");
+    }
+}
+
+
 /// A made-up "instruction": invalidate all of the L1 D-Cache
 #[inline(always)]
 pub fn dciall() {
@@ -67,6 +76,33 @@ pub fn dciall() {
     for set in 0..sets {
         for way in 0..ways {
             dcisw((set << bit_pos_of_set) | (way << bit_pos_of_way));
+        }
+    }
+}
+
+/// A made-up "instruction": flush and invalidate all of the L1 D-Cache
+#[inline(always)]
+pub fn dcciall() {
+    // the cache associativity could be read from a register, but will
+    // always be 4 in L1 data cache of a cortex a9
+    let ways = 4;
+    let bit_pos_of_way = 30; // 32 - log2(ways)
+
+    // the cache sets could be read from a register, but are always
+    // 256 for the cores in the zync-7000; in general, 128 or 512 are
+    // also possible.
+    let sets = 256;
+    let bit_pos_of_set = 5; // for a line size of 8 words = 2^5 bytes
+
+    // select L1 data cache
+    unsafe {
+        llvm_asm!("mcr p15, 2, $0, c0, c0, 0" :: "r" (0) :: "volatile");
+    }
+
+    // Invalidate entire D-Cache by iterating every set and every way
+    for set in 0..sets {
+        for way in 0..ways {
+            dccisw((set << bit_pos_of_set) | (way << bit_pos_of_way));
         }
     }
 }
