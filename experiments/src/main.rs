@@ -42,6 +42,8 @@ const HWADDR: [u8; 6] = [0, 0x23, 0xde, 0xea, 0xbe, 0xef];
 pub fn main_core0() {
     // zynq::clocks::CpuClocks::enable_io(1_250_000_000);
     println!("\nzc706 main");
+    ps7_init::apply();
+    libboard_zynq::stdio::drop_uart();
 
     libboard_zynq::logger::init().unwrap();
     log::set_max_level(log::LevelFilter::Trace);

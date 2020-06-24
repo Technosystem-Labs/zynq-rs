@@ -22,9 +22,17 @@ pub fn report_differences() {
     }
 }
 
+pub fn apply() {
+    for op in target::INIT_DATA {
+        op.apply();
+    }
+}
+
+#[derive(Clone, Debug)]
 pub enum InitOp {
     MaskWrite(usize, usize, usize),
     MaskPoll(usize, usize),
+    MaskDelay(usize, usize),
 }
 
 impl InitOp {
@@ -32,6 +40,7 @@ impl InitOp {
         match self {
             InitOp::MaskWrite(address, _, _) => *address,
             InitOp::MaskPoll(address, _) => *address,
+            InitOp::MaskDelay(address, _) => *address,
         }
     }
 
@@ -40,17 +49,24 @@ impl InitOp {
     }
 
     fn difference(&self) -> Option<(usize, usize)> {
-        let (mask, expected) = match self {
+        let expected = match self {
             InitOp::MaskWrite(_, mask, expected) =>
-                (*mask, *expected),
+                Some((*mask, *expected)),
             InitOp::MaskPoll(_, mask) =>
-                (*mask, *mask),
+                Some((*mask, *mask)),
+            _ => None,
         };
-        let actual = self.read();
-        if actual & mask == expected {
-            None
-        } else {
-            Some((actual & mask, expected))
+        match expected {
+            Some((mask, expected)) => {
+                let actual = self.read();
+                if actual & mask == expected {
+                    None
+                } else {
+                    Some((actual & mask, expected))
+                }
+            }
+            None =>
+                None
         }
     }
 
@@ -65,4 +81,28 @@ impl InitOp {
             );
         }
     }
+
+    pub fn apply(&self) {
+        let reg = self.address() as *mut usize;
+        println!("apply {:?}", self);
+        match self {
+            InitOp::MaskWrite(_, mask, val) =>
+                unsafe {
+                    *reg = (val & mask) | (*reg & !mask);
+                },
+            InitOp::MaskPoll(_, mask) =>
+                while unsafe { *reg } & mask == 0 {},
+            InitOp::MaskDelay(_, mask) => {
+                let delay = get_number_of_cycles_for_delay(*mask);
+                while unsafe { *reg } < delay {
+                    println!("W");
+                }
+            }
+        }
+    }
+}
+
+fn get_number_of_cycles_for_delay(delay: usize) -> usize {
+    const APU_FREQ: usize = 666666687;
+    APU_FREQ * delay/ (2 * 1000)
 }
