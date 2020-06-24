@@ -1,5 +1,5 @@
 use libregister::RegisterR;
-use libcortex_a9::regs::{DFSR, MPIDR, CORE_MASK};
+use libcortex_a9::regs::{DFSR, MPIDR};
 use libboard_zynq::{println, slcr, stdio};
 
 #[no_mangle]
@@ -16,6 +16,7 @@ pub unsafe extern "C" fn PrefetchAbort() {
 pub unsafe extern "C" fn DataAbort() {
     stdio::drop_uart();
 
+    const CORE_MASK: u32 = 0x3;
     println!("DataAbort on core {}", MPIDR.read() & CORE_MASK);
     println!("DFSR: {:03X}", DFSR.read());
 
