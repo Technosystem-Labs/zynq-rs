@@ -1,6 +1,6 @@
 #![cfg(feature = "target_zc706")]
 
-use libboard_zynq::println;
+use crate::println;
 
 mod zc706;
 // mod cora_z7_10;

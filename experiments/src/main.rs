@@ -15,6 +15,7 @@ use libboard_zynq::{
     clocks::source::{ArmPll, ClockSource, IoPll},
     clocks::Clocks,
     print, println,
+    ps7_init,
     sdio::sd_card::SdCard,
     smoltcp::{
         self,
@@ -33,8 +34,6 @@ use libsupport_zynq::{
     boot, ram,
 };
 use log::info;
-
-mod ps7_init;
 
 const HWADDR: [u8; 6] = [0, 0x23, 0xde, 0xea, 0xbe, 0xef];
 
