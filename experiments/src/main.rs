@@ -15,7 +15,6 @@ use libboard_zynq::{
     clocks::source::{ArmPll, ClockSource, IoPll},
     clocks::Clocks,
     print, println,
-    ps7_init,
     sdio::sd_card::SdCard,
     smoltcp::{
         self,
@@ -25,6 +24,8 @@ use libboard_zynq::{
     },
     time::Milliseconds,
 };
+#[cfg(feature = "target_zc706")]
+use libboard_zynq::ps7_init;
 use libcortex_a9::{
     mutex::Mutex,
     sync_channel::{self, sync_channel},
