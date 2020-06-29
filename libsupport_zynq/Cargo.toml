@@ -8,6 +8,9 @@ edition = "2018"
 [features]
 target_zc706 = ["libboard_zynq/target_zc706"]
 target_cora_z7_10 = ["libboard_zynq/target_cora_z7_10"]
+panic_handler = []
+
+default = ["panic_handler"]
 
 [dependencies]
 r0 = "1"
