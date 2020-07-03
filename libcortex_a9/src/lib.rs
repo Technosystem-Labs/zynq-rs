@@ -11,6 +11,8 @@ pub mod mmu;
 pub mod mutex;
 pub mod sync_channel;
 mod uncached;
+mod fpu;
 pub use uncached::UncachedSlice;
+pub use fpu::enable_fpu;
 
 global_asm!(include_str!("exceptions.s"));
