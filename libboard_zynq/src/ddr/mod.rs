@@ -210,7 +210,7 @@ impl DdrRam {
     }
 
     pub fn status(&self) -> regs::ControllerStatus {
-        self.regs.mode_sts_reg.read().operating_mode()
+        self.regs.mode_sts.read().operating_mode()
     }
 
     pub fn ptr<T>(&mut self) -> *mut T {
