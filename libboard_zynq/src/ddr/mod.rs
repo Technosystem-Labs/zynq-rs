@@ -29,6 +29,7 @@ impl DdrRam {
 
         let regs = unsafe { regs::RegisterBlock::new() };
         let mut ddr = DdrRam { regs };
+        ddr.configure();
         ddr.reset_ddrc();
         ddr
     }
@@ -179,6 +180,82 @@ impl DdrRam {
                     .vref_ext_en_upper(false)
             );
         });
+    }
+
+    fn configure(&mut self) {
+        self.regs.dram_param0.write(
+            regs::DramParam0::zeroed()
+                .t_rc(0x1b)
+                .t_rfc_min(0x56)
+                .post_selfref_gap_x32(0x10)
+        );
+
+        self.regs.dram_param2.write(
+            regs::DramParam2::zeroed()
+                .write_latency(0x5)
+                .rd2wr(0x7)
+                .wr2rd(0xe)
+                .t_xp(0x4)
+                .pad_pd(0x0)
+                .rd2pre(0x4)
+                .t_rcd(0x7)
+        );
+
+        self.regs.dram_emr_mr.write(
+            regs::DramEmrMr::zeroed()
+                .mr(0x930)
+                .emr(0x4)
+        );
+
+        self.regs.phy_cmd_timeout_rddata_cpt.modify(
+            |_, w| w
+                .rd_cmd_to_data(0x0)
+                .wr_cmd_to_data(0x0)
+                .we_to_re_delay(0x8)
+                .rdc_fifo_rst_disable(false)
+                .use_fixed_re(true)
+                .rdc_fifo_rst_err_cnt_clr(false)
+                .dis_phy_ctrl_rstn(false)
+                .clk_stall_level(false)
+                .gatelvl_num_of_dq0(0x7)
+                .wrlvl_num_of_dq0(0x7)
+        );
+
+        self.regs.reg_2c.write(
+            regs::Reg2C::zeroed()
+                .wrlvl_max_x1024(0xfff)
+                .rdlvl_max_x1024(0xfff)
+                .twrlvl_max_error(false)
+                .trdlvl_max_error(false)
+                .dfi_wr_level_en(true)
+                .dfi_rd_dqs_gate_level(true)
+                .dfi_rd_data_eye_train(true)
+        );
+
+        self.regs.dfi_timing.write(
+            regs::DfiTiming::zeroed()
+                .rddata_en(0x6)
+                .ctrlup_min(0x3)
+                .ctrlup_max(0x4)
+        );
+
+        self.regs.phy_init_ratio3.write(
+            regs::PhyInitRatio::zeroed()
+                .wrlvl_init_ratio(0x21)
+                .gatelvl_init_ratio(0xee)
+        );
+
+        self.regs.reg_65.write(
+            regs::Reg65::zeroed()
+                .wr_rl_delay(0x2)
+                .rd_rl_delay(0x4)
+                .dll_lock_diff(0xf)
+                .use_wr_level(true)
+                .use_rd_dqs_gate_level(true)
+                .use_rd_data_eye_level(true)
+                .dis_calib_rst(false)
+                .ctrl_slave_delay(0x0)
+        );
     }
 
     /// Reset DDR controller
