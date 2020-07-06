@@ -236,7 +236,7 @@ impl DdrRam {
             regs::DfiTiming::zeroed()
                 .rddata_en(0x6)
                 .ctrlup_min(0x3)
-                .ctrlup_max(0x4)
+                .ctrlup_max(0x40)
         );
 
         self.regs.phy_init_ratio3.write(
