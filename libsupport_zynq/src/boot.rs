@@ -21,7 +21,7 @@ static mut CORE1_ENABLED: VolatileCell<bool> = VolatileCell::new(false);
 #[link_section = ".text.boot"]
 #[no_mangle]
 #[naked]
-pub unsafe extern "C" fn _boot_cores() -> ! {
+pub unsafe extern "C" fn Reset() -> ! {
     const CORE_MASK: u32 = 0x3;
 
     match MPIDR.read() & CORE_MASK {
