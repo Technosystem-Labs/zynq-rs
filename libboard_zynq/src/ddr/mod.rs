@@ -316,7 +316,7 @@ impl DdrRam {
 
             for megabyte in 0..slice.len() / (1024 * 1024) {
                 let start = megabyte * 1024 * 1024 / 4;
-                let end = ((megabyte + 1) * 1024 * 1024 / 4);
+                let end = (megabyte + 1) * 1024 * 1024 / 4;
                 for b in slice[start..end].iter_mut() {
                     expected.map(|expected| {
                         let read: u32 = *b;
