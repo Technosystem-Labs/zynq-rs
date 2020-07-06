@@ -1,6 +1,6 @@
 use libregister::RegisterR;
 use libcortex_a9::regs::{DFSR, MPIDR};
-use libboard_zynq::{println, slcr, stdio};
+use libboard_zynq::{println, stdio};
 
 #[link_section = ".text.boot"]
 #[no_mangle]
