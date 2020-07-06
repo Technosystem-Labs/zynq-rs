@@ -52,7 +52,7 @@ SECTIONS
 
     .stack0 (NOLOAD) : ALIGN(8) {
         __stack0_end = .;
-        . = ORIGIN(OCM) + LENGTH(OCM) - 8;
+        . = ORIGIN(OCM3) + LENGTH(OCM3) - 8;
         __stack0_start = .;
     } > OCM3
 
