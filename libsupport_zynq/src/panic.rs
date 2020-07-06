@@ -14,6 +14,5 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
         println!("");
     }
 
-    slcr::RegisterBlock::unlocked(|slcr| slcr.soft_reset());
     loop {}
 }

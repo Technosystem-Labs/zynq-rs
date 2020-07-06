@@ -8,7 +8,6 @@ pub unsafe extern "C" fn PrefetchAbort() {
 
     println!("PrefetchAbort");
 
-    slcr::RegisterBlock::unlocked(|slcr| slcr.soft_reset());
     loop {}
 }
 
@@ -20,6 +19,5 @@ pub unsafe extern "C" fn DataAbort() {
     println!("DataAbort on core {}", MPIDR.read() & CORE_MASK);
     println!("DFSR: {:03X}", DFSR.read());
 
-    slcr::RegisterBlock::unlocked(|slcr| slcr.soft_reset());
     loop {}
 }

@@ -265,14 +265,6 @@ impl RegisterBlock {
         r
     }
 
-    /// Perform a soft reset
-    pub fn soft_reset(&mut self) {
-        self.pss_rst_ctrl.write(
-            PssRstCtrl::zeroed()
-                .soft_rst(true)
-        );
-    }
-
     pub fn init_preload_fpga(&mut self) {
         // Assert FPGA top level output resets
         self.fpga_rst_ctrl.write(
