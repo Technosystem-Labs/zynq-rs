@@ -102,19 +102,19 @@ pub struct RegisterBlock {
     pub dbg_clk_ctrl: RW<u32>,
     pub pcap_clk_ctrl: RW<u32>,
     pub topsw_clk_ctrl: RW<u32>,
-    pub fpga0_clk_ctrl: RW<u32>,
+    pub fpga0_clk_ctrl: Fpga0ClkCtrl,
     pub fpga0_thr_ctrl: RW<u32>,
     pub fpga0_thr_cnt: RW<u32>,
     pub fpga0_thr_sta: RO<u32>,
-    pub fpga1_clk_ctrl: RW<u32>,
+    pub fpga1_clk_ctrl: Fpga1ClkCtrl,
     pub fpga1_thr_ctrl: RW<u32>,
     pub fpga1_thr_cnt: RW<u32>,
     pub fpga1_thr_sta: RO<u32>,
-    pub fpga2_clk_ctrl: RW<u32>,
+    pub fpga2_clk_ctrl: Fpga2ClkCtrl,
     pub fpga2_thr_ctrl: RW<u32>,
     pub fpga2_thr_cnt: RW<u32>,
     pub fpga2_thr_sta: RO<u32>,
-    pub fpga3_clk_ctrl: RW<u32>,
+    pub fpga3_clk_ctrl: Fpga3ClkCtrl,
     pub fpga3_thr_ctrl: RW<u32>,
     pub fpga3_thr_cnt: RW<u32>,
     pub fpga3_thr_sta: RO<u32>,
@@ -539,6 +539,26 @@ register_bits!(lqspi_clk_ctrl, divisor, u8, 8, 13);
 register!(lqspi_rst_ctrl, LqspiRstCtrl, RW, u32);
 register_bit!(lqspi_rst_ctrl, ref_rst, 1);
 register_bit!(lqspi_rst_ctrl, cpu1x_rst, 0);
+
+register!(fpga0_clk_ctrl, Fpga0ClkCtrl, RW, u32);
+register_bits!(fpga0_clk_ctrl, divisor1, u8, 20, 25);
+register_bits!(fpga0_clk_ctrl, divisor0, u8, 8, 13);
+register_bits_typed!(fpga0_clk_ctrl, src_sel, u8, PllSource, 4, 5);
+
+register!(fpga1_clk_ctrl, Fpga1ClkCtrl, RW, u32);
+register_bits!(fpga1_clk_ctrl, divisor1, u8, 20, 25);
+register_bits!(fpga1_clk_ctrl, divisor0, u8, 8, 13);
+register_bits_typed!(fpga1_clk_ctrl, src_sel, u8, PllSource, 4, 5);
+
+register!(fpga2_clk_ctrl, Fpga2ClkCtrl, RW, u32);
+register_bits!(fpga2_clk_ctrl, divisor1, u8, 20, 25);
+register_bits!(fpga2_clk_ctrl, divisor0, u8, 8, 13);
+register_bits_typed!(fpga2_clk_ctrl, src_sel, u8, PllSource, 4, 5);
+
+register!(fpga3_clk_ctrl, Fpga3ClkCtrl, RW, u32);
+register_bits!(fpga3_clk_ctrl, divisor1, u8, 20, 25);
+register_bits!(fpga3_clk_ctrl, divisor0, u8, 8, 13);
+register_bits_typed!(fpga3_clk_ctrl, src_sel, u8, PllSource, 4, 5);
 
 register!(fpga_rst_ctrl, FpgaRstCtrl, RW, u32);
 register_bit!(fpga_rst_ctrl, fpga0_out_rst, 0);
