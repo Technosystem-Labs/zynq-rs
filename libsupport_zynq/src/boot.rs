@@ -158,7 +158,9 @@ impl Core1 {
     pub fn restart(&self) {
         slcr::RegisterBlock::unlocked(|slcr| {
             slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_rst1(true));
+            slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_clkstop1(true));
             slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_rst1(false));
+            slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_clkstop1(false));
         });
     }
 }
