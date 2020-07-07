@@ -35,8 +35,7 @@ pub unsafe extern "C" fn PrefetchAbort() {
 pub unsafe extern "C" fn DataAbort() {
     stdio::drop_uart();
 
-    const CORE_MASK: u32 = 0x3;
-    println!("DataAbort on core {}", MPIDR.read() & CORE_MASK);
+    println!("DataAbort on core {}", MPIDR.read().cpu_id());
     println!("DFSR: {:03X}", DFSR.read());
 
     loop {}

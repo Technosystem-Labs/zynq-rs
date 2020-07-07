@@ -22,9 +22,7 @@ static mut CORE1_ENABLED: VolatileCell<bool> = VolatileCell::new(false);
 #[no_mangle]
 #[naked]
 pub unsafe extern "C" fn Reset() -> ! {
-    const CORE_MASK: u32 = 0x3;
-
-    match MPIDR.read() & CORE_MASK {
+    match MPIDR.read().cpu_id() {
         0 => {
             SP.write(&mut __stack0_start as *mut _ as u32);
             boot_core0();

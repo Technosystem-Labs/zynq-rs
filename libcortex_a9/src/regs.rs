@@ -91,8 +91,19 @@ pub struct HVBAR;
 def_reg_r!(HVBAR, u32, "mrc p15, 4, $0, c12, c0, 0");
 def_reg_w!(HVBAR, u32, "mcr p15, 4, $0, c12, c0, 0");
 
+/// Multiprocess Affinity Register
 pub struct MPIDR;
-def_reg_r!(MPIDR, u32, "mrc p15, 0, $0, c0, c0, 5");
+def_reg_r!(MPIDR, mpidr::Read, "mrc p15, 0, $0, c0, c0, 5");
+wrap_reg!(mpidr);
+register_bits!(mpidr,
+               /// CPU core index
+               cpu_id, u8, 0, 1);
+register_bits!(mpidr,
+               /// Processor index in "multi-socket" systems
+               cluster_id, u8, 8, 11);
+register_bit!(mpidr,
+              /// true if part of uniprocessor system
+              u, 30);
 
 pub struct DFAR;
 def_reg_r!(DFAR, u32, "mrc p15, 0, $0, c6, c0, 0");
