@@ -48,6 +48,15 @@ impl<T> Mutex<T> {
         MutexGuard { mutex: self }
     }
 
+    pub fn try_lock(&self) -> Option<MutexGuard<T>> {
+        if self.locked.compare_and_swap(UNLOCKED, LOCKED, Ordering::Acquire) != UNLOCKED {
+            None
+        } else {
+            dmb();
+            Some(MutexGuard { mutex: self })
+        }
+    }
+
     fn unlock(&self) {
         dmb();
         self.locked.store(UNLOCKED, Ordering::Release);
