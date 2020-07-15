@@ -85,6 +85,10 @@ impl DescList {
         }
     }
 
+    pub fn len(&self) -> usize {
+        self.list.len().min(self.buffers.len())
+    }
+
     pub fn list_addr(&self) -> u32 {
         &self.list[0] as *const _ as u32
     }

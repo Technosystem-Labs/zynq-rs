@@ -370,6 +370,7 @@ impl<'r, 'a> smoltcp::phy::Device<'a> for &mut Eth<'r, rx::DescList, tx::DescLis
 
         let mut caps = DeviceCapabilities::default();
         caps.max_transmission_unit = MTU;
+        caps.max_burst_size = Some(self.rx.len().min(self.tx.len()));
         caps.checksum = checksum_caps;
 
         caps
