@@ -3,8 +3,7 @@
 
 extern crate alloc;
 
-use alloc::{borrow::ToOwned, collections::BTreeMap, format};
-use core::task::Poll;
+use alloc::collections::BTreeMap;
 use libasync::{
     delay,
     smoltcp::{Sockets, TcpStream},
@@ -17,7 +16,6 @@ use libboard_zynq::{
     print, println,
     sdio::sd_card::SdCard,
     smoltcp::{
-        self,
         iface::{EthernetInterfaceBuilder, NeighborCache, Routes},
         time::Instant,
         wire::{EthernetAddress, IpAddress, IpCidr},
@@ -112,7 +110,7 @@ pub fn main_core0() {
         }
         println!("");
     }
-    let mut flash = flash.stop();
+    let _flash = flash.stop();
 
     let timer = libboard_zynq::timer::GlobalTimer::start();
 

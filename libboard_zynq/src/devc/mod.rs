@@ -1,4 +1,3 @@
-use super::clocks::Clocks;
 use super::time::Milliseconds;
 use crate::slcr;
 use embedded_hal::timer::CountDown;
