@@ -127,6 +127,7 @@ impl TcpStream {
                     socket.recv(|buf| {
                         if buf.len() > 0 {
                             let (amount, result) = (self.f)(buf);
+                            assert!(amount > 0);
                             (amount, Poll::Ready(Ok(result)))
                         } else {
                             (0, Poll::Pending)
