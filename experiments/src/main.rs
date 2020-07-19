@@ -202,40 +202,8 @@ pub fn main_core0() {
     ps7_init::report_differences();
 
     Sockets::init(32);
-    /// `chargen`
-    const TCP_PORT: u16 = 19;
-    async fn handle_connection(stream: TcpStream) -> smoltcp::Result<()> {
-        stream.send("Enter your name: ".bytes()).await?;
-        let name = stream
-            .recv(|buf| {
-                for (i, b) in buf.iter().enumerate() {
-                    if *b == '\n' as u8 {
-                        return match core::str::from_utf8(&buf[0..i]) {
-                            Ok(name) => Poll::Ready((i + 1, Some(name.to_owned()))),
-                            Err(_) => Poll::Ready((i + 1, None)),
-                        };
-                    }
-                }
-                if buf.len() > 100 {
-                    // Too much input, consume all
-                    Poll::Ready((buf.len(), None))
-                } else {
-                    Poll::Pending
-                }
-            })
-            .await?;
-        match name {
-            Some(name) => stream.send(format!("Hello {}!\n", name).bytes()).await?,
-            None => {
-                stream
-                    .send("I had trouble reading your name.\n".bytes())
-                    .await?
-            }
-        }
-        let _ = stream.close().await;
-        Ok(())
-    }
 
+    const TCP_PORT: u16 = 19;
     // (rx, tx)
     let stats = alloc::rc::Rc::new(core::cell::RefCell::new((0, 0)));
     let stats_tx = stats.clone();
@@ -264,7 +232,7 @@ pub fn main_core0() {
             let stats_rx = stats_rx.clone();
             task::spawn(async move {
                 loop {
-                    match stream.recv(|buf| Poll::Ready((buf.len(), buf.len()))).await {
+                    match stream.recv(|buf| (buf.len(), buf.len())).await {
                         Ok(len) => stats_rx.borrow_mut().0 += len,
                         Err(e) => {
                             warn!("rx: {:?}", e);

@@ -103,21 +103,19 @@ impl TcpStream {
 
     /// Probe the receive buffer
     ///
-    /// Instead of handing you the data on the heap all at once,
-    /// smoltcp's read interface is wrapped so that your callback can
-    /// just return `Poll::Pending` if there is not enough data
-    /// yet. Likewise, return the amount of bytes consumed from the
-    /// buffer in the `Poll::Ready` result.
+    /// Your callback will only be called when there is some data available,
+    /// and it must consume at least one byte. It returns a tuple with the
+    /// number of bytes it consumed, and a user-defined return value of type R.
     pub async fn recv<F, R>(&self, f: F) -> Result<R>
     where
-        F: Fn(&[u8]) -> Poll<(usize, R)>,
+        F: Fn(&[u8]) -> (usize, R),
     {
-        struct Recv<'a, F: FnOnce(&[u8]) -> Poll<(usize, R)>, R> {
+        struct Recv<'a, F: FnOnce(&[u8]) -> (usize, R), R> {
             stream: &'a TcpStream,
             f: F,
         }
 
-        impl<'a, F: Fn(&[u8]) -> Poll<(usize, R)>, R> Future for Recv<'a, F, R> {
+        impl<'a, F: Fn(&[u8]) -> (usize, R), R> Future for Recv<'a, F, R> {
             type Output = Result<R>;
 
             fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -128,13 +126,8 @@ impl TcpStream {
 
                     socket.recv(|buf| {
                         if buf.len() > 0 {
-                            match (self.f)(buf) {
-                                Poll::Ready((amount, result)) =>
-                                    (amount, Poll::Ready(Ok(result))),
-                                Poll::Pending =>
-                                    // 0 bytes consumed
-                                    (0, Poll::Pending),
-                            }
+                            let (amount, result) = (self.f)(buf);
+                            (amount, Poll::Ready(Ok(result)))
                         } else {
                             (0, Poll::Pending)
                         }
