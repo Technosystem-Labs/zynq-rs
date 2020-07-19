@@ -12,7 +12,6 @@ stdenv.mkDerivation {
   buildInputs = (with rustPlatform.rust; [
     rustc cargo
     cargo-xbuild rustcSrc
-    gcc
   ]) ++ (with pkgs; [ openocd gdb ]);
 
   # Set Environment Variables
