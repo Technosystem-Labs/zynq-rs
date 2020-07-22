@@ -1,9 +1,10 @@
+use core::ops::Add;
 use void::Void;
 use libregister::{RegisterR, RegisterW};
 use crate::{
     clocks::Clocks,
     mpcore,
-    time::Milliseconds,
+    time::{Milliseconds, Microseconds, TimeSource},
 };
 
 /// "uptime"
@@ -79,41 +80,82 @@ impl GlobalTimer {
     }
 
     /// read with high precision
-    pub fn get_us(&self) -> u64 {
+    pub fn get_us(&self) -> Microseconds {
         let prescaler = self.regs.global_timer_control.read().prescaler() as u64;
         let clocks = Clocks::get();
 
-        1_000_000 * self.get_counter() * (prescaler + 1) / clocks.cpu_3x2x() as u64
+        Microseconds(1_000_000 * self.get_counter() * (prescaler + 1) / clocks.cpu_3x2x() as u64)
     }
 
     /// return a handle that has implements
     /// `embedded_hal::timer::CountDown`
-    pub fn countdown(&self) -> CountDown {
+    pub fn countdown<U>(&self) -> CountDown<U>
+    where
+        Self: TimeSource<U>,
+    {
         CountDown {
             timer: self.clone(),
-            timeout: Milliseconds(0),
+            timeout: self.now(),
         }
+    }
+}
+
+impl TimeSource<Milliseconds> for GlobalTimer {
+    fn now(&self) -> Milliseconds {
+        self.get_time()
+    }
+}
+
+impl TimeSource<Microseconds> for GlobalTimer {
+    fn now(&self) -> Microseconds {
+        self.get_us()
     }
 }
 
 #[derive(Clone)]
-pub struct CountDown {
+pub struct CountDown<U> {
     timer: GlobalTimer,
-    timeout: Milliseconds,
+    timeout: U,
 }
 
-impl embedded_hal::timer::CountDown for CountDown {
-    type Time = Milliseconds;
+/// embedded-hal async API
+impl<U: Add<Output=U> + PartialOrd> embedded_hal::timer::CountDown for CountDown<U>
+where
+    GlobalTimer: TimeSource<U>,
+{
+    type Time = U;
 
     fn start<T: Into<Self::Time>>(&mut self, count: T) {
-        self.timeout = self.timer.get_time() + count.into();
+        self.timeout = self.timer.now() + count.into();
     }
 
     fn wait(&mut self) -> nb::Result<(), Void> {
-        if self.timer.get_time() <= self.timeout {
+        if self.timer.now() <= self.timeout {
             Err(nb::Error::WouldBlock)
         } else {
             Ok(())
         }
+    }
+}
+
+/// embedded-hal sync API
+impl embedded_hal::blocking::delay::DelayMs<u64> for GlobalTimer {
+    fn delay_ms(&mut self, ms: u64) {
+        use embedded_hal::timer::CountDown;
+
+        let mut countdown = self.countdown::<Milliseconds>();
+        countdown.start(Milliseconds(ms));
+        nb::block!(countdown.wait()).unwrap();
+    }
+}
+
+/// embedded-hal sync API
+impl embedded_hal::blocking::delay::DelayUs<u64> for GlobalTimer {
+    fn delay_us(&mut self, us: u64) {
+        use embedded_hal::timer::CountDown;
+
+        let mut countdown = self.countdown::<Microseconds>();
+        countdown.start(Microseconds(us));
+        nb::block!(countdown.wait()).unwrap();
     }
 }

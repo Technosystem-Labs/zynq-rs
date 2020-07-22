@@ -10,7 +10,7 @@ mod regs;
 pub struct DevC {
     regs: &'static mut regs::RegisterBlock,
     enabled: bool,
-    count_down: super::timer::global::CountDown,
+    count_down: super::timer::global::CountDown<Milliseconds>,
     timeout_ms: Milliseconds,
 }
 

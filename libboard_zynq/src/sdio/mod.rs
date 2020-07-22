@@ -14,7 +14,7 @@ use nb;
 /// Basic SDIO Struct with common low-level functions.
 pub struct SDIO {
     regs: &'static mut regs::RegisterBlock,
-    count_down: super::timer::global::CountDown,
+    count_down: super::timer::global::CountDown<Milliseconds>,
     input_clk_hz: u32,
     card_type: CardType,
     card_detect: bool,
