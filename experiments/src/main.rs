@@ -247,7 +247,7 @@ pub fn main_core0() {
         loop {
             delay(&mut countdown, Milliseconds(1000)).await;
 
-            let timestamp = timer.get_us();
+            let timestamp = timer.get_us().0;
             let seconds = timestamp / 1_000_000;
             let micros = timestamp % 1_000_000;
             let (rx, tx) = {
