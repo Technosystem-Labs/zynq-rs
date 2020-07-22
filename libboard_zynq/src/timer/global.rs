@@ -110,7 +110,7 @@ impl embedded_hal::timer::CountDown for CountDown {
     }
 
     fn wait(&mut self) -> nb::Result<(), Void> {
-        if self.timer.get_time() < self.timeout {
+        if self.timer.get_time() <= self.timeout {
             Err(nb::Error::WouldBlock)
         } else {
             Ok(())
