@@ -56,14 +56,35 @@ impl DdrRam {
         clocks
     }
 
+    fn calculate_dci_divisors(clocks: &Clocks) -> (u8, u8) {
+        let target = (DCI_FREQ - 1 + clocks.ddr) / DCI_FREQ;
+
+        let mut best = None;
+        let mut best_error = 0;
+        for divisor0 in 1..63 {
+            for divisor1 in 1..63 {
+                let current = (divisor0 as u32) * (divisor1 as u32);
+                let error = if current > target {
+                    current - target
+                } else {
+                    target - current
+                };
+                if best.is_none() || best_error > error {
+                    best = Some((divisor0, divisor1));
+                    best_error = error;
+                }
+            }
+        }
+        best.unwrap()
+    }
+
     /// Zynq-7000 AP SoC Technical Reference Manual:
     /// 10.6.2 DDR IOB Impedance Calibration
     fn calibrate_iob_impedance(clocks: &Clocks) {
-        let divisor0 = ((DCI_FREQ - 1 + clocks.ddr) / DCI_FREQ)
-            .max(1).min(63) as u8;
-        let divisor1 = ((DCI_FREQ - 1 + clocks.ddr) / DCI_FREQ / u32::from(divisor0))
-            .max(1).min(63) as u8;
-        debug!("DDR DCI clock: {} Hz", clocks.ddr / u32::from(divisor0) / u32::from(divisor1));
+        let (divisor0, divisor1) = Self::calculate_dci_divisors(clocks);
+        debug!("DDR DCI clock: {} Hz (divisors={}*{})",
+               clocks.ddr / u32::from(divisor0) / u32::from(divisor1),
+               divisor0, divisor1);
 
         slcr::RegisterBlock::unlocked(|slcr| {
             // Step 1.
