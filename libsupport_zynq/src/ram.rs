@@ -19,7 +19,7 @@ unsafe impl Sync for CortexA9Alloc {}
 
 unsafe impl GlobalAlloc for CortexA9Alloc {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        if MPIDR.read().cpu_id() == 0 {
+        if cfg!(not(feature = "alloc_core")) || MPIDR.read().cpu_id() == 0 {
             self.0.get().as_mut()
         } else {
             self.1.get().as_mut()
@@ -31,7 +31,7 @@ unsafe impl GlobalAlloc for CortexA9Alloc {
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        if MPIDR.read().cpu_id() == 0 {
+        if cfg!(not(feature = "alloc_core")) || MPIDR.read().cpu_id() == 0 {
             self.0.get().as_mut()
         } else {
             self.1.get().as_mut()
@@ -83,7 +83,7 @@ pub fn init_alloc_core1() {
 fn alloc_error(layout: core::alloc::Layout) -> ! {
     let id = MPIDR.read().cpu_id();
     let heap = unsafe {
-        if id == 0 {
+        if cfg!(not(feature = "alloc_core")) || id == 0 {
             ALLOCATOR.0.get()
         } else {
             ALLOCATOR.1.get()
