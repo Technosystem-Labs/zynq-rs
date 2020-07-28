@@ -32,19 +32,19 @@ SECTIONS
         *(.bss .bss.*);
         . = ALIGN(4);
         __bss_end = .;
-    } > OCM3
+    } > OCM
 
     .stack1 (NOLOAD) : ALIGN(8) {
         __stack1_end = .;
         . += 0x200;
         __stack1_start = .;
-    } > OCM3
+    } > OCM
 
     .stack0 (NOLOAD) : ALIGN(8) {
         __stack0_end = .;
-        . = ORIGIN(OCM3) + LENGTH(OCM3) - 8;
+        . = ORIGIN(OCM) + LENGTH(OCM) - 8;
         __stack0_start = .;
-    } > OCM3
+    } > OCM
 
     /DISCARD/ :
     {

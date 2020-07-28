@@ -83,24 +83,25 @@ pub fn main_core0() {
         clocks.cpu_1x()
     );
 
-    let sd = libboard_zynq::sdio::SDIO::sdio0(true);
-    // only test SD card if it is inserted
-    if sd.is_card_inserted() {
-        let result = SdCard::from_sdio(sd);
-        match &result {
-            Ok(_) => info!("OK!"),
-            Err(a) => info!("{}", a),
-        };
-        const SIZE: usize = 512 * 2 + 1;
-        let mut sd_card = result.unwrap();
-        if false {
-            let buffer: [u8; SIZE] = [5; SIZE];
-            sd_card.write_block(0x0, 2, &buffer).unwrap();
-        }
-        let mut buffer: [u8; SIZE] = [0; SIZE];
-        sd_card.read_block(0 /*0x1*/, 2, &mut buffer[1..]).unwrap();
-        info!("buffer = {:?}", &buffer[..]);
-    }
+    // commented out due to OCM full
+    // let sd = libboard_zynq::sdio::SDIO::sdio0(true);
+    // // only test SD card if it is inserted
+    // if sd.is_card_inserted() {
+    //     let result = SdCard::from_sdio(sd);
+    //     match &result {
+    //         Ok(_) => info!("OK!"),
+    //         Err(a) => info!("{}", a),
+    //     };
+    //     const SIZE: usize = 512 * 2 + 1;
+    //     let mut sd_card = result.unwrap();
+    //     if false {
+    //         let buffer: [u8; SIZE] = [5; SIZE];
+    //         sd_card.write_block(0x0, 2, &buffer).unwrap();
+    //     }
+    //     let mut buffer: [u8; SIZE] = [0; SIZE];
+    //     sd_card.read_block(0 /*0x1*/, 2, &mut buffer[1..]).unwrap();
+    //     info!("buffer = {:?}", &buffer[..]);
+    // }
 
     let mut flash = zynq::flash::Flash::new(200_000_000).linear_addressing_mode();
     let flash_ram: &[u8] = unsafe { core::slice::from_raw_parts(flash.ptr(), flash.size()) };
