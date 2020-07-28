@@ -1,5 +1,6 @@
 #![no_std]
 #![no_main]
+#![feature(const_in_array_repeat_expressions)]
 
 extern crate alloc;
 
@@ -26,7 +27,7 @@ use libboard_zynq::{
 use libboard_zynq::ps7_init;
 use libcortex_a9::{
     mutex::Mutex,
-    sync_channel::{self, sync_channel},
+    sync_channel,
 };
 use libregister::RegisterR;
 use libsupport_zynq::{
@@ -160,9 +161,9 @@ pub fn main_core0() {
 
     let core1 = boot::Core1::start(false);
 
-    let (mut core1_req, rx) = sync_channel(10);
+    let (mut core1_req, rx) = sync_channel!(usize, 10);
     *CORE1_REQ.lock() = Some(rx);
-    let (tx, mut core1_res) = sync_channel(10);
+    let (tx, mut core1_res) = sync_channel!(usize, 10);
     *CORE1_RES.lock() = Some(tx);
     task::block_on(async {
         for i in 0..10 {
@@ -285,7 +286,7 @@ pub fn main_core1() {
     let mut res = res.unwrap();
 
     for i in req {
-        res.send(*i * *i);
+        res.send(i * i);
     }
 
     println!("core1 done!");

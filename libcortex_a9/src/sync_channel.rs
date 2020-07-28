@@ -1,115 +1,75 @@
 use core::{
-    future::Future,
     pin::Pin,
-    ptr::null_mut,
-    sync::atomic::{AtomicPtr, Ordering},
+    future::Future,
+    ptr::drop_in_place,
+    sync::atomic::{AtomicPtr, AtomicUsize, Ordering},
     task::{Context, Poll},
 };
-use alloc::{
-    boxed::Box,
-    sync::Arc,
-    vec::Vec,
-};
+use alloc::boxed::Box;
 use super::asm::*;
 
-
-type Channel<T> = Vec<AtomicPtr<T>>;
-
-/// Create a bounded channel
-///
-/// Returns `(tx, rx)` where one should be used one the local core,
-/// and the other is to be shared with another core.
-pub fn sync_channel<T>(bound: usize) -> (Sender<T>, Receiver<T>) {
-    // allow for bound=0
-    let len = bound + 1;
-    let mut channel = Vec::with_capacity(len);
-    for _ in 0..len {
-        channel.push(AtomicPtr::default());
-    }
-
-    let channel = Arc::new(channel);
-    let sender = Sender {
-        channel: channel.clone(),
-        pos: 0,
-    };
-    let receiver = Receiver {
-        channel: channel,
-        pos: 0,
-    };
-    (sender, receiver)
+pub struct Sender<'a, T> where T: Clone {
+    list: &'a [AtomicPtr<T>],
+    write: &'a AtomicUsize,
+    read: &'a AtomicUsize,
 }
 
-/// Sending half of a channel
-pub struct Sender<T> {
-    channel: Arc<Channel<T>>,
-    pos: usize,
+pub struct Receiver<'a, T> where T: Clone {
+    list: &'a [AtomicPtr<T>],
+    write: &'a AtomicUsize,
+    read: &'a AtomicUsize,
 }
 
-impl<T> Sender<T> {
-    /// Blocking send
-    pub fn send<B: Into<Box<T>>>(&mut self, content: B) {
-        let ptr = Box::into_raw(content.into());
-        let entry = &self.channel[self.pos];
-        // try to write the new pointer if the current pointer is
-        // NULL, retrying while it is not NULL
-        while entry.compare_and_swap(null_mut(), ptr, Ordering::Acquire) != null_mut() {
-            // power-saving
-            wfe();
-        }
-        dsb();
-        // wake power-saving receivers
-        sev();
-
-        // advance
-        self.pos += 1;
-        // wrap
-        if self.pos >= self.channel.len() {
-            self.pos = 0;
-        }
+impl<'a, T> Sender<'a, T> where T: Clone {
+    pub const fn new(list: &'static [AtomicPtr<T>], write: &'static AtomicUsize, read: &'static AtomicUsize) -> Self {
+        Sender {list, write, read}
     }
 
-    /// Non-blocking send, handing you back ownership of the content on **failure**
-    pub fn try_send<B: Into<Box<T>>>(&mut self, content: B) -> Option<Box<T>> {
-        let ptr = Box::into_raw(content.into());
-        let entry = &self.channel[self.pos];
-        // try to write the new pointer if the current pointer is
-        // NULL
-        if entry.compare_and_swap(null_mut(), ptr, Ordering::Acquire) == null_mut() {
-            dsb();
-            // wake power-saving receivers
-            sev();
-
-            // advance
-            self.pos += 1;
-            // wrap
-            if self.pos >= self.channel.len() {
-                self.pos = 0;
-            }
-
-            // success
-            None
+    pub fn try_send<B: Into<Box<T>>>(&mut self, content: B) -> Result<(), B> {
+        let write = self.write.load(Ordering::Relaxed);
+        if (write + 1) % self.list.len() == self.read.load(Ordering::Acquire) {
+            Err(content)
         } else {
-            let content = unsafe { Box::from_raw(ptr) };
-            // failure
-            Some(content)
+            let ptr = Box::into_raw(content.into());
+            let entry = &self.list[write];
+            let prev = entry.swap(ptr, Ordering::Relaxed);
+            // we allow other end get it first
+            self.write.store((write + 1) % self.list.len(), Ordering::Release);
+            // wake up other core, actually I wonder if the dsb is really needed...
+            dsb();
+            sev();
+            if !prev.is_null() {
+                unsafe {
+                    drop_in_place(prev);
+                }
+            }
+            Ok(())
+        }
+    }
+
+    pub fn send<B: Into<Box<T>>>(&mut self, content: B) {
+        let mut content = content;
+        while let Err(back) = self.try_send(content) {
+            content = back;
+            wfe();
         }
     }
 
     pub async fn async_send<B: Into<Box<T>>>(&mut self, content: B) {
-        struct Send<'a, T> {
-            sender: &'a mut Sender<T>,
-            content: Option<Box<T>>,
+        struct Send<'a, 'b, T> where T: Clone, 'b: 'a {
+            sender: &'a mut Sender<'b, T>,
+            content: Result<(), Box<T>>,
         }
 
-        impl<T> Future for Send<'_, T> {
+        impl<T> Future for Send<'_, '_, T> where T: Clone {
             type Output = ();
 
             fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-                match self.content.take() {
-                    Some(content) => {
-                        if let Some(content) = self.sender.try_send(content) {
+                match core::mem::replace(&mut self.content, Ok(())) {
+                    Err(content) => {
+                        if let Err(content) = self.sender.try_send(content) {
                             // failure
-                            self.content = Some(content);
+                            self.content = Err(content);
                             cx.waker().wake_by_ref();
                             Poll::Pending
                         } else {
@@ -117,93 +77,61 @@ impl<T> Sender<T> {
                             Poll::Ready(())
                         }
                     }
-                    None => panic!("Send future polled after success"),
+                    Ok(_) => panic!("Send future polled after success"),
                 }
             }
         }
 
         Send {
             sender: self,
-            content: Some(content.into()),
+            content: Err(content.into()),
         }.await
     }
 }
 
+impl<'a, T> Receiver<'a, T> where T: Clone {
+    pub const fn new(list: &'static [AtomicPtr<T>], write: &'static AtomicUsize, read: &'static AtomicUsize) -> Self {
+        Receiver {list, write, read}
+    }
 
+    pub fn try_recv(&mut self) -> Result<T, ()> {
+        let read = self.read.load(Ordering::Relaxed);
+        if read == self.write.load(Ordering::Acquire) {
+            Err(())
+        } else {
+            let entry = &self.list[read];
+            let data = unsafe {
+                // we cannot deallocate the box
+                Box::leak(Box::from_raw(entry.load(Ordering::Relaxed)))
+            };
+            let result = data.clone();
+            self.read.store((read + 1) % self.list.len(), Ordering::Release);
+            // wake up other core, still idk if the dsb is needed...
+            dsb();
+            sev();
+            Ok(result)
+        }
+    }
 
-
-/// Receiving half of a channel
-pub struct Receiver<T> {
-    channel: Arc<Channel<T>>,
-    pos: usize,
-}
-
-impl<T> Receiver<T> {
-    /// Blocking receive
-    pub fn recv(&mut self) -> Box<T> {
-        let entry = &self.channel[self.pos];
-
+    pub fn recv(&mut self) -> T {
         loop {
-            dmb();
-            let ptr = entry.swap(null_mut(), Ordering::Release);
-            if ptr != null_mut() {
-                dsb();
-                // wake power-saving senders
-                sev();
-
-                let content = unsafe { Box::from_raw(ptr) };
-
-                // advance
-                self.pos += 1;
-                // wrap
-                if self.pos >= self.channel.len() {
-                    self.pos = 0;
-                }
-
-                return content;
+            if let Ok(data) = self.try_recv() {
+                return data;
             }
-
-            // power-saving
             wfe();
         }
     }
 
-    /// Non-blocking receive
-    pub fn try_recv(&mut self) -> Option<Box<T>> {
-        let entry = &self.channel[self.pos];
-
-        dmb();
-        let ptr = entry.swap(null_mut(), Ordering::Release);
-        if ptr != null_mut() {
-            dsb();
-            // wake power-saving senders
-            sev();
-
-            let content = unsafe { Box::from_raw(ptr) };
-
-            // advance
-            self.pos += 1;
-            // wrap
-            if self.pos >= self.channel.len() {
-                self.pos = 0;
-            }
-
-            Some(content)
-        } else {
-            None
-        }
-    }
-
-    pub async fn async_recv(&mut self) -> Box<T> {
-        struct Recv<'a, T> {
-            receiver: &'a mut Receiver<T>,
+    pub async fn async_recv(&mut self) -> T {
+        struct Recv<'a, 'b, T> where T: Clone, 'b: 'a {
+            receiver: &'a mut Receiver<'b, T>,
         }
 
-        impl<T> Future for Recv<'_, T> {
-            type Output = Box<T>;
+        impl<T> Future for Recv<'_, '_, T> where T: Clone {
+            type Output = T;
 
             fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-                if let Some(content) = self.receiver.try_recv() {
+                if let Ok(content) = self.receiver.try_recv() {
                     Poll::Ready(content)
                 } else {
                     cx.waker().wake_by_ref();
@@ -218,10 +146,26 @@ impl<T> Receiver<T> {
     }
 }
 
-impl<T> Iterator for Receiver<T> {
-    type Item = Box<T>;
+impl<'a, T> Iterator for Receiver<'a, T> where T: Clone {
+    type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         Some(self.recv())
     }
+}
+
+#[macro_export]
+/// Macro for initializing the sync_channel with static buffer and indexes.
+/// Note that this requires `#![feature(const_in_array_repeat_expressions)]`
+macro_rules! sync_channel {
+    ($t: ty, $cap: expr) => {
+        {
+            use core::sync::atomic::{AtomicUsize, AtomicPtr};
+            use $crate::sync_channel::{Sender, Receiver};
+            static LIST: [AtomicPtr<$t>; $cap + 1] = [AtomicPtr::new(core::ptr::null_mut()); $cap + 1];
+            static WRITE: AtomicUsize = AtomicUsize::new(0);
+            static READ: AtomicUsize = AtomicUsize::new(0);
+            (Sender::new(&LIST, &WRITE, &READ), Receiver::new(&LIST, &WRITE, &READ))
+        }
+    };
 }
