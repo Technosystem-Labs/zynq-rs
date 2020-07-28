@@ -149,6 +149,8 @@ impl Core1 {
     pub fn disable(&self) {
         unsafe {
             CORE1_ENABLED.set(false);
+            cache::dccmvac(&CORE1_ENABLED  as *const _ as usize);
+            asm::dsb();
         }
         self.restart();
     }
