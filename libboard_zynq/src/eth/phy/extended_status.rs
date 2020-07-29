@@ -16,7 +16,7 @@ impl ExtendedStatus {
         self.0.get_bit(14)
     }
     pub fn cap_1000base_x_full(&self) -> bool {
-        self.0.get_bit(12)
+        self.0.get_bit(15)
     }
 
     pub fn get_link(&self) -> Option<Link> {
