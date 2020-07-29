@@ -1,4 +1,7 @@
-use core::ops::{Deref, DerefMut};
+use core::{
+    marker::PhantomData,
+    ops::{Deref, DerefMut},
+};
 use log::{error, info, warn};
 use libregister::*;
 use super::slcr;
@@ -42,14 +45,109 @@ impl DerefMut for Buffer {
     }
 }
 
-pub struct Eth<'r, RX, TX> {
+/// Gigabit Ethernet Peripheral
+pub trait Gem {
+    fn setup_clock(tx_clock: u32);
+    fn regs() -> &'static mut regs::RegisterBlock;
+}
+
+/// first Gigabit Ethernet peripheral
+pub struct Gem0;
+
+impl Gem for Gem0 {
+    fn setup_clock(tx_clock: u32) {
+        let (divisor0, divisor1) = calculate_tx_divisors(tx_clock);
+
+        slcr::RegisterBlock::unlocked(|slcr| {
+            slcr.gem0_clk_ctrl.write(
+                // 0x0050_0801: 8, 5: 100 Mb/s
+                // ...: 8, 1: 1000 Mb/s
+                slcr::GemClkCtrl::zeroed()
+                    .clkact(true)
+                    .srcsel(slcr::PllSource::IoPll)
+                    .divisor(divisor0 as u8)
+                    .divisor1(divisor1 as u8)
+            );
+            // Enable gem0 recv clock
+            slcr.gem0_rclk_ctrl.write(
+                // 0x0000_0801
+                slcr::RclkCtrl::zeroed()
+                    .clkact(true)
+            );
+        });
+    }
+
+    fn regs() -> &'static mut regs::RegisterBlock {
+        regs::RegisterBlock::gem0()
+    }
+}
+
+/// second Gigabit Ethernet peripheal
+pub struct Gem1;
+
+impl Gem for Gem1 {
+    fn setup_clock(tx_clock: u32) {
+        let (divisor0, divisor1) = calculate_tx_divisors(tx_clock);
+
+        slcr::RegisterBlock::unlocked(|slcr| {
+            slcr.gem1_clk_ctrl.write(
+                slcr::GemClkCtrl::zeroed()
+                    .clkact(true)
+                    .srcsel(slcr::PllSource::IoPll)
+                    .divisor(divisor0 as u8)
+                    .divisor1(divisor1 as u8)
+            );
+            // Enable gem1 recv clock
+            slcr.gem1_rclk_ctrl.write(
+                // 0x0000_0801
+                slcr::RclkCtrl::zeroed()
+                    .clkact(true)
+            );
+        });
+    }
+
+    fn regs() -> &'static mut regs::RegisterBlock {
+        regs::RegisterBlock::gem1()
+    }
+}
+
+fn calculate_tx_divisors(tx_clock: u32) -> (u8, u8) {
+    let io_pll = Clocks::get().io;
+    let target = (tx_clock - 1 + io_pll) / tx_clock;
+
+    let mut best = None;
+    let mut best_error = 0;
+    for divisor0 in 1..63 {
+        for divisor1 in 1..63 {
+            let current = (divisor0 as u32) * (divisor1 as u32);
+            let error = if current > target {
+                current - target
+            } else {
+                target - current
+            };
+            if best.is_none() || best_error > error {
+                best = Some((divisor0, divisor1));
+                best_error = error;
+            }
+        }
+    }
+    let result = best.unwrap();
+    info!("Eth TX clock for {}: {} / {} / {} = {}",
+          tx_clock, io_pll,
+          result.0, result.1,
+          io_pll / result.0 as u32 / result.1 as u32
+    );
+    result
+}
+
+pub struct Eth<GEM: Gem, RX, TX> {
     rx: RX,
     tx: TX,
-    inner: EthInner<'r>,
+    inner: EthInner<GEM>,
     phy: Phy,
 }
 
-impl<'r> Eth<'r, (), ()> {
+impl Eth<Gem0, (), ()> {
     pub fn default(macaddr: [u8; 6]) -> Self {
         slcr::RegisterBlock::unlocked(|slcr| {
             // Manual example: 0x0000_1280
@@ -182,22 +280,23 @@ impl<'r> Eth<'r, (), ()> {
     }
 
     pub fn gem0(macaddr: [u8; 6]) -> Self {
-        Self::setup_gem0_clock(TX_1000);
-
-        let regs = regs::RegisterBlock::gem0();
-        Self::from_regs(regs, macaddr)
+        Self::new(macaddr)
     }
+}
 
+
+impl Eth<Gem1, (), ()> {
     pub fn gem1(macaddr: [u8; 6]) -> Self {
-        Self::setup_gem1_clock(TX_1000);
-
-        let regs = regs::RegisterBlock::gem1();
-        Self::from_regs(regs, macaddr)
+        Self::new(macaddr)
     }
+}
 
-    fn from_regs(regs: &'r mut regs::RegisterBlock, macaddr: [u8; 6]) -> Self {
+impl<GEM: Gem> Eth<GEM, (), ()> {
+    fn new(macaddr: [u8; 6]) -> Self {
+        GEM::setup_clock(TX_1000);
+
         let mut inner = EthInner {
-            regs,
+            gem: PhantomData,
             link: None,
         };
         inner.init();
@@ -216,54 +315,8 @@ impl<'r> Eth<'r, (), ()> {
     }
 }
 
-impl<'r, RX, TX> Eth<'r, RX, TX> {
-    pub fn setup_gem0_clock(tx_clock: u32) {
-        let io_pll = Clocks::get().io;
-        let d0 = ((tx_clock - 1 + io_pll) / tx_clock).max(1).min(63);
-        let d1 = (io_pll / tx_clock / d0).max(1).min(63);
-
-        slcr::RegisterBlock::unlocked(|slcr| {
-            slcr.gem0_clk_ctrl.write(
-                // 0x0050_0801: 8, 5: 100 Mb/s
-                // ...: 8, 1: 1000 Mb/s
-                slcr::GemClkCtrl::zeroed()
-                    .clkact(true)
-                    .srcsel(slcr::PllSource::IoPll)
-                    .divisor(d0 as u8)
-                    .divisor1(d1 as u8)
-            );
-            // Enable gem0 recv clock
-            slcr.gem0_rclk_ctrl.write(
-                // 0x0000_0801
-                slcr::RclkCtrl::zeroed()
-                    .clkact(true)
-            );
-        });
-    }
-
-    pub fn setup_gem1_clock(tx_clock: u32) {
-        let io_pll = Clocks::get().io;
-        let d0 = ((tx_clock - 1 + io_pll) / tx_clock).max(1).min(63);
-        let d1 = (io_pll / tx_clock / d0).max(1).min(63);
-
-        slcr::RegisterBlock::unlocked(|slcr| {
-            slcr.gem1_clk_ctrl.write(
-                slcr::GemClkCtrl::zeroed()
-                    .clkact(true)
-                    .srcsel(slcr::PllSource::IoPll)
-                    .divisor(d0 as u8)
-                    .divisor1(d1 as u8)
-            );
-            // Enable gem1 recv clock
-            slcr.gem1_rclk_ctrl.write(
-                // 0x0000_0801
-                slcr::RclkCtrl::zeroed()
-                    .clkact(true)
-            );
-        });
-    }
-
-    pub fn start_rx(self, rx_size: usize) -> Eth<'r, rx::DescList, TX> {
+impl<GEM: Gem, RX, TX> Eth<GEM, RX, TX> {
+    pub fn start_rx(self, rx_size: usize) -> Eth<GEM, rx::DescList, TX> {
         let new_self = Eth {
             rx: rx::DescList::new(rx_size),
             tx: self.tx,
@@ -272,17 +325,17 @@ impl<'r, RX, TX> Eth<'r, RX, TX> {
         };
         let list_addr = new_self.rx.list_addr();
         assert!(list_addr & 0b11 == 0);
-        new_self.inner.regs.rx_qbar.write(
+        GEM::regs().rx_qbar.write(
             regs::RxQbar::zeroed()
                 .rx_q_baseaddr(list_addr >> 2)
         );
-        new_self.inner.regs.net_ctrl.modify(|_, w|
+        GEM::regs().net_ctrl.modify(|_, w|
             w.rx_en(true)
         );
         new_self
     }
 
-    pub fn start_tx(self, tx_size: usize) -> Eth<'r, RX, tx::DescList> {
+    pub fn start_tx(self, tx_size: usize) -> Eth<GEM, RX, tx::DescList> {
         let new_self = Eth {
             rx: self.rx,
             tx: tx::DescList::new(tx_size),
@@ -291,23 +344,23 @@ impl<'r, RX, TX> Eth<'r, RX, TX> {
         };
         let list_addr = &new_self.tx.list_addr();
         assert!(list_addr & 0b11 == 0);
-        new_self.inner.regs.tx_qbar.write(
+        GEM::regs().tx_qbar.write(
             regs::TxQbar::zeroed()
                 .tx_q_baseaddr(list_addr >> 2)
         );
-        new_self.inner.regs.net_ctrl.modify(|_, w|
+        GEM::regs().net_ctrl.modify(|_, w|
             w.tx_en(true)
         );
         new_self
     }
 }
 
-impl<'r, TX> Eth<'r, rx::DescList, TX> {
+impl<GEM: Gem, TX> Eth<GEM, rx::DescList, TX> {
     pub fn recv_next<'s: 'p, 'p>(&'s mut self) -> Result<Option<rx::PktRef<'p>>, rx::Error> {
-        let status = self.inner.regs.rx_status.read();
+        let status = GEM::regs().rx_status.read();
         if status.hresp_not_ok() {
             // Clear
-            self.inner.regs.rx_status.write(
+            GEM::regs().rx_status.write(
                 regs::RxStatus::zeroed()
                     .hresp_not_ok(true)
             );
@@ -315,7 +368,7 @@ impl<'r, TX> Eth<'r, rx::DescList, TX> {
         }
         if status.rx_overrun() {
             // Clear
-            self.inner.regs.rx_status.write(
+            GEM::regs().rx_status.write(
                 regs::RxStatus::zeroed()
                     .rx_overrun(true)
             );
@@ -323,7 +376,7 @@ impl<'r, TX> Eth<'r, rx::DescList, TX> {
         }
         if status.buffer_not_avail() {
             // Clear
-            self.inner.regs.rx_status.write(
+            GEM::regs().rx_status.write(
                 regs::RxStatus::zeroed()
                     .buffer_not_avail(true)
             );
@@ -335,7 +388,7 @@ impl<'r, TX> Eth<'r, rx::DescList, TX> {
             match result {
                 Ok(None) => {
                     // No packet, clear status bit
-                    self.inner.regs.rx_status.write(
+                    GEM::regs().rx_status.write(
                         regs::RxStatus::zeroed()
                             .frame_recd(true)
                     );
@@ -350,13 +403,13 @@ impl<'r, TX> Eth<'r, rx::DescList, TX> {
     }
 }
 
-impl<'r, RX> Eth<'r, RX, tx::DescList> {
+impl<GEM: Gem, RX> Eth<GEM, RX, tx::DescList> {
     pub fn send<'s: 'p, 'p>(&'s mut self, length: usize) -> Option<tx::PktRef<'p>> {
-        self.tx.send(self.inner.regs, length)
+        self.tx.send(GEM::regs(), length)
     }
 }
 
-impl<'r, 'a> smoltcp::phy::Device<'a> for &mut Eth<'r, rx::DescList, tx::DescList> {
+impl<'a, GEM: Gem> smoltcp::phy::Device<'a> for &mut Eth<GEM, rx::DescList, tx::DescList> {
     type RxToken = rx::PktRef<'a>;
     type TxToken = tx::Token<'a>;
 
@@ -380,7 +433,7 @@ impl<'r, 'a> smoltcp::phy::Device<'a> for &mut Eth<'r, rx::DescList, tx::DescLis
         match self.rx.recv_next() {
             Ok(Some(pktref)) => {
                 let tx_token = tx::Token {
-                    regs: self.inner.regs,
+                    regs: GEM::regs(),
                     desc_list: &mut self.tx,
                 };
                 Some((pktref, tx_token))
@@ -398,33 +451,32 @@ impl<'r, 'a> smoltcp::phy::Device<'a> for &mut Eth<'r, rx::DescList, tx::DescLis
 
     fn transmit(&'a mut self) -> Option<Self::TxToken> {
         Some(tx::Token {
-            regs: self.inner.regs,
+            regs: GEM::regs(),
             desc_list: &mut self.tx,
         })
     }
-
 }
 
 
-struct EthInner<'r> {
-    regs: &'r mut regs::RegisterBlock,
+struct EthInner<GEM: Gem> {
+    gem: PhantomData<GEM>,
     link: Option<phy::Link>,
 }
 
-impl<'r> EthInner<'r> {
+impl<GEM: Gem> EthInner<GEM> {
     fn init(&mut self) {
         // Clear the Network Control register.
-        self.regs.net_ctrl.write(regs::NetCtrl::zeroed());
-        self.regs.net_ctrl.write(regs::NetCtrl::zeroed().clear_stat_regs(true));
+        GEM::regs().net_ctrl.write(regs::NetCtrl::zeroed());
+        GEM::regs().net_ctrl.write(regs::NetCtrl::zeroed().clear_stat_regs(true));
         // Clear the Status registers.
-        self.regs.rx_status.write(
+        GEM::regs().rx_status.write(
             regs::RxStatus::zeroed()
                 .buffer_not_avail(true)
                 .frame_recd(true)
                 .rx_overrun(true)
                 .hresp_not_ok(true)
         );
-        self.regs.tx_status.write(
+        GEM::regs().tx_status.write(
             regs::TxStatus::zeroed()
                 .used_bit_read(true)
                 .collision(true)
@@ -438,7 +490,7 @@ impl<'r> EthInner<'r> {
                 .hresp_not_ok(true)
         );
         // Disable all interrupts.
-        self.regs.intr_dis.write(
+        GEM::regs().intr_dis.write(
             regs::IntrDis::zeroed()
                 .mgmt_done(true)
                 .rx_complete(true)
@@ -468,10 +520,10 @@ impl<'r> EthInner<'r> {
                 .tsu_sec_incr(true)
         );
         // Clear the buffer queues.
-        self.regs.rx_qbar.write(
+        GEM::regs().rx_qbar.write(
             regs::RxQbar::zeroed()
         );
-        self.regs.tx_qbar.write(
+        GEM::regs().tx_qbar.write(
             regs::TxQbar::zeroed()
         );
     }
@@ -480,7 +532,7 @@ impl<'r> EthInner<'r> {
         let clocks = Clocks::get();
         let mdc_clk_div = (clocks.cpu_1x() / MAX_MDC) + 1;
 
-        self.regs.net_cfg.write(
+        GEM::regs().net_cfg.write(
             regs::NetCfg::zeroed()
                 .full_duplex(true)
                 .gige_en(true)
@@ -505,17 +557,17 @@ impl<'r> EthInner<'r> {
             (u32::from(macaddr[3]) << 16) |
             (u32::from(macaddr[4]) << 8) |
             u32::from(macaddr[5]);
-        self.regs.spec_addr1_top.write(
+        GEM::regs().spec_addr1_top.write(
             regs::SpecAddrTop::zeroed()
                 .addr_msbs(macaddr_msbs)
         );
-        self.regs.spec_addr1_bot.write(
+        GEM::regs().spec_addr1_bot.write(
             regs::SpecAddrBot::zeroed()
                 .addr_lsbs(macaddr_lsbs)
         );
 
 
-        self.regs.dma_cfg.write(
+        GEM::regs().dma_cfg.write(
             regs::DmaCfg::zeroed()
                 // 1536 bytes
                 .ahb_mem_rx_buf_size((MTU >> 6) as u8)
@@ -531,7 +583,7 @@ impl<'r> EthInner<'r> {
                 .ahb_fixed_burst_len(0x10)
         );
 
-        self.regs.net_ctrl.write(
+        GEM::regs().net_ctrl.write(
             regs::NetCtrl::zeroed()
                 .mgmt_port_en(true)
         );
@@ -539,7 +591,7 @@ impl<'r> EthInner<'r> {
 
 
     fn wait_phy_idle(&self) {
-        while !self.regs.net_status.read().phy_mgmt_idle() {}
+        while !GEM::regs().net_status.read().phy_mgmt_idle() {}
     }
 
 
@@ -564,10 +616,10 @@ impl<'r> EthInner<'r> {
                         S100 => TX_100,
                         S1000 => TX_1000,
                     };
-                    Eth::<(), ()>::setup_gem0_clock(txclock);
+                    GEM::setup_clock(txclock);
                     /* .full_duplex(false) doesn't work even if
                        half duplex has been negotiated. */
-                    self.regs.net_cfg.modify(|_, w| w
+                    GEM::regs().net_cfg.modify(|_, w| w
                         .full_duplex(true)
                         .gige_en(link.speed == S1000)
                         .speed(link.speed != S10)
@@ -587,10 +639,10 @@ impl<'r> EthInner<'r> {
     }
 }
 
-impl<'r> PhyAccess for EthInner<'r> {
+impl<GEM: Gem> PhyAccess for EthInner<GEM> {
     fn read_phy(&mut self, addr: u8, reg: u8) -> u16 {
         self.wait_phy_idle();
-        self.regs.phy_maint.write(
+        GEM::regs().phy_maint.write(
             regs::PhyMaint::zeroed()
                 .clause_22(true)
                 .operation(regs::PhyOperation::Read)
@@ -599,12 +651,12 @@ impl<'r> PhyAccess for EthInner<'r> {
                 .must_10(0b10)
         );
         self.wait_phy_idle();
-        self.regs.phy_maint.read().data()
+        GEM::regs().phy_maint.read().data()
     }
 
     fn write_phy(&mut self, addr: u8, reg: u8, data: u16) {
         self.wait_phy_idle();
-        self.regs.phy_maint.write(
+        GEM::regs().phy_maint.write(
             regs::PhyMaint::zeroed()
                 .clause_22(true)
                 .operation(regs::PhyOperation::Write)
