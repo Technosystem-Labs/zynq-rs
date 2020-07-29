@@ -39,11 +39,11 @@ pub struct Phy {
 
 #[derive(Clone, Copy)]
 pub enum PhyDevice {
-    Marvel88E1116R,
+    Marvell88E1116R,
     Rtl8211E,
 }
 
-const OUI_MARVEL: u32 = 0x005043;
+const OUI_MARVELL: u32 = 0x005043;
 const OUI_REALTEK: u32 = 0x000732;
 
 impl Phy {
@@ -52,10 +52,10 @@ impl Phy {
         for addr in 1..32 {
             let device = match identify_phy(pa, addr) {
                 Some(PhyIdentifier {
-                    oui: OUI_MARVEL,
+                    oui: OUI_MARVELL,
                     model: 36,
                     ..
-                }) => Some(PhyDevice::Marvel88E1116R),
+                }) => Some(PhyDevice::Marvell88E1116R),
                 Some(PhyIdentifier {
                     oui: OUI_REALTEK,
                     model: 0b010001,
@@ -75,7 +75,7 @@ impl Phy {
 
     pub fn name(&self) -> &'static str {
         match self.device {
-            PhyDevice::Marvel88E1116R => &"Marvel 88E1116R",
+            PhyDevice::Marvell88E1116R => &"Marvell 88E1116R",
             PhyDevice::Rtl8211E => &"RTL8211E",
         }
     }
