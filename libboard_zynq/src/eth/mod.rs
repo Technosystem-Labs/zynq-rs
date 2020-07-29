@@ -610,17 +610,15 @@ impl<GEM: Gem> EthInner<GEM> {
                 Some(link) => {
                     info!("eth: got {:?}", link);
 
-                    use phy::LinkSpeed::*;
+                    use phy::{LinkDuplex::Full, LinkSpeed::*};
                     let txclock = match link.speed {
                         S10 => TX_10,
                         S100 => TX_100,
                         S1000 => TX_1000,
                     };
                     GEM::setup_clock(txclock);
-                    /* .full_duplex(false) doesn't work even if
-                       half duplex has been negotiated. */
                     GEM::regs().net_cfg.modify(|_, w| w
-                        .full_duplex(true)
+                        .full_duplex(link.duplex == Full)
                         .gige_en(link.speed == S1000)
                         .speed(link.speed != S10)
                     );

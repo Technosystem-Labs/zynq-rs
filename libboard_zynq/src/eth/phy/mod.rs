@@ -2,10 +2,10 @@ pub mod id;
 use id::{identify_phy, PhyIdentifier};
 mod status;
 pub use status::Status;
-mod extended_status;
-pub use extended_status::ExtendedStatus;
 mod control;
 pub use control::Control;
+mod pssr;
+pub use pssr::PSSR;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Link {
@@ -49,8 +49,8 @@ const OUI_REALTEK: u32 = 0x000732;
 impl Phy {
     /// Probe all addresses on MDIO for a known PHY
     pub fn find<PA: PhyAccess>(pa: &mut PA) -> Option<Phy> {
-        for addr in 1..32 {
-            let device = match identify_phy(pa, addr) {
+        (1..32).filter_map(|addr| {
+            match identify_phy(pa, addr) {
                 Some(PhyIdentifier {
                     oui: OUI_MARVELL,
                     model: 36,
@@ -62,15 +62,8 @@ impl Phy {
                     rev: 0b0101,
                 }) => Some(PhyDevice::Rtl8211E),
                 _ => None,
-            };
-            match device {
-                Some(device) =>
-                    return Some(Phy { addr, device }),
-                None => {}
-            }
-        }
-
-        None
+            }.map(|device| Phy { addr, device })
+        }).next()
     }
 
     pub fn name(&self) -> &'static str {
@@ -120,12 +113,8 @@ impl Phy {
         if !status.link_status() {
             None
         } else if status.cap_1000base_t_extended_status() {
-            let ext_status: ExtendedStatus = self.read_reg(pa);
-            if let Some(link) = ext_status.get_link() {
-                Some(link)
-            } else {
-                status.get_link()
-            }
+            let phy_status: PSSR = self.read_reg(pa);
+            phy_status.get_link()
         } else {
             status.get_link()
         }
