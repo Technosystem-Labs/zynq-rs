@@ -1,12 +1,6 @@
-use libregister::{RegisterR, RegisterW};
-use libcortex_a9::regs::{DFSR, MPIDR, SP};
-use libcortex_a9::asm;
-use libboard_zynq::{println, stdio, gic, mpcore};
-
-extern "C" {
-    fn main_core1();
-    static mut __stack1_start: u32;
-}
+use libregister::RegisterR;
+use libcortex_a9::regs::{DFSR, MPIDR};
+use libboard_zynq::{println, stdio};
 
 #[link_section = ".text.boot"]
 #[no_mangle]
@@ -59,19 +53,8 @@ pub unsafe extern "C" fn ReservedException() {
 #[link_section = ".text.boot"]
 #[no_mangle]
 #[naked]
+#[cfg(feature = "dummy_irq_handler")]
 pub unsafe extern "C" fn IRQ() {
-    if MPIDR.read().cpu_id() == 1{
-        let mpcore = mpcore::RegisterBlock::new();
-        let mut gic = gic::InterruptController::new(mpcore);
-        let id = gic.get_interrupt_id();
-        if id.0 == 0 {
-            gic.end_interrupt(id);
-            asm::exit_irq();
-            SP.write(&mut __stack1_start as *mut _ as u32);
-            asm::enable_irq();
-            main_core1();
-        }
-    }
     stdio::drop_uart();
     println!("IRQ");
     loop {}

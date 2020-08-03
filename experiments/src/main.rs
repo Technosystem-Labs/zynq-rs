@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 #![feature(const_in_array_repeat_expressions)]
+#![feature(naked_functions)]
 
 extern crate alloc;
 
@@ -14,7 +15,7 @@ use libboard_zynq::{
     self as zynq,
     clocks::source::{ArmPll, ClockSource, IoPll},
     clocks::Clocks,
-    print, println,
+    print, println, stdio,
     mpcore,
     gic,
     smoltcp::{
@@ -28,22 +29,65 @@ use libcortex_a9::{
     mutex::Mutex,
     sync_channel::{Sender, Receiver},
     sync_channel,
+    regs::{MPIDR, SP},
+    asm
 };
-use libregister::RegisterR;
+use libregister::{RegisterR, RegisterW};
 use libsupport_zynq::{
     boot, ram,
 };
 use log::{info, warn};
+use core::sync::atomic::{AtomicBool, Ordering};
 
 const HWADDR: [u8; 6] = [0, 0x23, 0xde, 0xea, 0xbe, 0xef];
 
 static mut CORE1_REQ: (Sender<usize>, Receiver<usize>) = sync_channel!(usize, 10);
 static mut CORE1_RES: (Sender<usize>, Receiver<usize>) = sync_channel!(usize, 10);
 
+extern "C" {
+    static mut __stack1_start: u32;
+}
+
+static CORE1_RESTART: AtomicBool = AtomicBool::new(false);
+
+#[link_section = ".text.boot"]
+#[no_mangle]
+#[naked]
+pub unsafe extern "C" fn IRQ() {
+    if MPIDR.read().cpu_id() == 1{
+        let mpcore = mpcore::RegisterBlock::new();
+        let mut gic = gic::InterruptController::new(mpcore);
+        let id = gic.get_interrupt_id();
+        if id.0 == 0 {
+            gic.end_interrupt(id);
+            asm::exit_irq();
+            SP.write(&mut __stack1_start as *mut _ as u32);
+            asm::enable_irq();
+            CORE1_RESTART.store(false, Ordering::Relaxed);
+            asm::sev();
+            main_core1();
+        }
+    }
+    stdio::drop_uart();
+    println!("IRQ");
+    loop {}
+}
+
+pub fn restart_core1() {
+    let mut interrupt_controller = gic::InterruptController::new(mpcore::RegisterBlock::new());
+    CORE1_RESTART.store(true, Ordering::Relaxed);
+    interrupt_controller.send_sgi(gic::InterruptId(0), gic::CPUCore::Core1.into());
+    while CORE1_RESTART.load(Ordering::Relaxed) {
+        asm::wfe();
+    }
+}
+
 #[no_mangle]
 pub fn main_core0() {
     // zynq::clocks::CpuClocks::enable_io(1_250_000_000);
     println!("\nzc706 main");
+    let mut interrupt_controller = gic::InterruptController::new(mpcore::RegisterBlock::new());
+    interrupt_controller.enable_interrupts();
     // ps7_init::apply();
     libboard_zynq::stdio::drop_uart();
 
@@ -147,12 +191,9 @@ pub fn main_core0() {
 
     let core1_req = unsafe { &mut CORE1_REQ.0 };
     let core1_res = unsafe { &mut CORE1_RES.1 };
-    let mut interrupt_controller = gic::InterruptController::new(mpcore::RegisterBlock::new());
-    interrupt_controller.enable_interrupts();
     task::block_on(async {
         for i in 0..10 {
-            // this interrupt would cause core1 to reset.
-            interrupt_controller.send_sgi(gic::InterruptId(0), gic::CPUCore::Core1.into());
+            restart_core1();
             core1_req.async_send(i).await;
             let j = core1_res.async_recv().await;
             println!("{} -> {}", i, j);

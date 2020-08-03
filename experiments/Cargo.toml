@@ -16,5 +16,5 @@ embedded-hal = "0.2"
 libregister = { path = "../libregister" }
 libcortex_a9 = { path = "../libcortex_a9" }
 libboard_zynq = { path = "../libboard_zynq" }
-libsupport_zynq = { path = "../libsupport_zynq" }
+libsupport_zynq = { path = "../libsupport_zynq", default-features = false, features = ["panic_handler"]}
 libasync = { path = "../libasync" }
