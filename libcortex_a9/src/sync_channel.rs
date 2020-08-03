@@ -87,6 +87,16 @@ impl<'a, T> Sender<'a, T> where T: Clone {
             content: Err(content.into()),
         }.await
     }
+
+    /// Reset the `sync_channel`, *forget* all items in the queue. Affects both the sender and
+    /// receiver.
+    pub unsafe fn reset(&mut self) {
+        self.write.store(0, Ordering::Relaxed);
+        self.read.store(0, Ordering::Relaxed);
+        for v in self.list.iter() {
+            v.store(core::ptr::null_mut(), Ordering::Relaxed);
+        }
+    }
 }
 
 impl<'a, T> Receiver<'a, T> where T: Clone {
