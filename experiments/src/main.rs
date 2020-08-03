@@ -15,7 +15,8 @@ use libboard_zynq::{
     clocks::source::{ArmPll, ClockSource, IoPll},
     clocks::Clocks,
     print, println,
-    sdio::sd_card::SdCard,
+    mpcore,
+    gic,
     smoltcp::{
         iface::{EthernetInterfaceBuilder, NeighborCache, Routes},
         time::Instant,
@@ -23,10 +24,9 @@ use libboard_zynq::{
     },
     time::Milliseconds,
 };
-#[cfg(feature = "target_zc706")]
-use libboard_zynq::ps7_init;
 use libcortex_a9::{
     mutex::Mutex,
+    sync_channel::{Sender, Receiver},
     sync_channel,
 };
 use libregister::RegisterR;
@@ -36,6 +36,9 @@ use libsupport_zynq::{
 use log::{info, warn};
 
 const HWADDR: [u8; 6] = [0, 0x23, 0xde, 0xea, 0xbe, 0xef];
+
+static mut CORE1_REQ: (Sender<usize>, Receiver<usize>) = sync_channel!(usize, 10);
+static mut CORE1_RES: (Sender<usize>, Receiver<usize>) = sync_channel!(usize, 10);
 
 #[no_mangle]
 pub fn main_core0() {
@@ -82,26 +85,6 @@ pub fn main_core0() {
         clocks.cpu_2x(),
         clocks.cpu_1x()
     );
-
-    // commented out due to OCM full
-    // let sd = libboard_zynq::sdio::SDIO::sdio0(true);
-    // // only test SD card if it is inserted
-    // if sd.is_card_inserted() {
-    //     let result = SdCard::from_sdio(sd);
-    //     match &result {
-    //         Ok(_) => info!("OK!"),
-    //         Err(a) => info!("{}", a),
-    //     };
-    //     const SIZE: usize = 512 * 2 + 1;
-    //     let mut sd_card = result.unwrap();
-    //     if false {
-    //         let buffer: [u8; SIZE] = [5; SIZE];
-    //         sd_card.write_block(0x0, 2, &buffer).unwrap();
-    //     }
-    //     let mut buffer: [u8; SIZE] = [0; SIZE];
-    //     sd_card.read_block(0 /*0x1*/, 2, &mut buffer[1..]).unwrap();
-    //     info!("buffer = {:?}", &buffer[..]);
-    // }
 
     let mut flash = zynq::flash::Flash::new(200_000_000).linear_addressing_mode();
     let flash_ram: &[u8] = unsafe { core::slice::from_raw_parts(flash.ptr(), flash.size()) };
@@ -160,20 +143,21 @@ pub fn main_core0() {
         flash = flash_io.stop();
     }
 
-    let core1 = boot::Core1::start(false);
+    boot::Core1::start(false);
 
-    let (mut core1_req, rx) = sync_channel!(usize, 10);
-    *CORE1_REQ.lock() = Some(rx);
-    let (tx, mut core1_res) = sync_channel!(usize, 10);
-    *CORE1_RES.lock() = Some(tx);
+    let core1_req = unsafe { &mut CORE1_REQ.0 };
+    let core1_res = unsafe { &mut CORE1_RES.1 };
+    let mut interrupt_controller = gic::InterruptController::new(mpcore::RegisterBlock::new());
+    interrupt_controller.enable_interrupts();
     task::block_on(async {
         for i in 0..10 {
+            // this interrupt would cause core1 to reset.
+            interrupt_controller.send_sgi(gic::InterruptId(0), gic::CPUCore::Core1.into());
             core1_req.async_send(i).await;
             let j = core1_res.async_recv().await;
             println!("{} -> {}", i, j);
         }
     });
-    core1.disable();
 
     let eth = zynq::eth::Eth::default(HWADDR.clone());
     println!("Eth on");
@@ -197,9 +181,6 @@ pub fn main_core0() {
         .routes(routes)
         .neighbor_cache(neighbor_cache)
         .finalize();
-
-    #[cfg(feature = "target_zc706")]
-    ps7_init::report_differences();
 
     Sockets::init(32);
 
@@ -267,24 +248,15 @@ pub fn main_core0() {
     })
 }
 
-static CORE1_REQ: Mutex<Option<sync_channel::Receiver<usize>>> = Mutex::new(None);
-static CORE1_RES: Mutex<Option<sync_channel::Sender<usize>>> = Mutex::new(None);
 static DONE: Mutex<bool> = Mutex::new(false);
 
 #[no_mangle]
 pub fn main_core1() {
     println!("Hello from core1!");
-
-    let mut req = None;
-    while req.is_none() {
-        req = CORE1_REQ.lock().take();
-    }
-    let req = req.unwrap();
-    let mut res = None;
-    while res.is_none() {
-        res = CORE1_RES.lock().take();
-    }
-    let mut res = res.unwrap();
+    let mut interrupt_controller = gic::InterruptController::new(mpcore::RegisterBlock::new());
+    interrupt_controller.enable_interrupts();
+    let req = unsafe { &mut CORE1_REQ.1 };
+    let res = unsafe { &mut CORE1_RES.0 };
 
     for i in req {
         res.send(i * i);
