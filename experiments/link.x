@@ -44,6 +44,10 @@ SECTIONS
         __stack0_end = .;
         . = ORIGIN(OCM) + LENGTH(OCM) - 8;
         __stack0_start = .;
+
+        /* unused heap0 to prevent the linker from complaining*/
+        __heap0_start = .;
+        __heap0_end = .;
     } > OCM
 
     /DISCARD/ :
