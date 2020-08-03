@@ -33,3 +33,9 @@ pub fn dsb() {
 pub fn isb() {
     unsafe { llvm_asm!("isb" :::: "volatile") }
 }
+
+/// Enable IRQ
+#[inline]
+pub unsafe fn enable_irq() {
+    llvm_asm!("cpsie i":::: "volatile");
+}
