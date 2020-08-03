@@ -39,3 +39,12 @@ pub fn isb() {
 pub unsafe fn enable_irq() {
     llvm_asm!("cpsie i":::: "volatile");
 }
+
+/// Exiting IRQ
+#[inline]
+pub unsafe fn exit_irq() {
+    llvm_asm!("
+        mrs r0, SPSR
+        msr CPSR, r0
+        " ::: "r0");
+}
