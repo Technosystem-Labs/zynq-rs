@@ -41,19 +41,26 @@ impl<T> Mutex<T> {
 
     /// Lock the Mutex, blocks when already locked
     pub fn lock(&self) -> MutexGuard<T> {
+        let mut irq = unsafe { enter_critical() };
         while self.locked.compare_and_swap(UNLOCKED, LOCKED, Ordering::Acquire) != UNLOCKED {
-            wait_for_update();
+            unsafe {
+                exit_critical(irq);
+                wait_for_update();
+                irq = enter_critical();
+            }
         }
         dmb();
-        MutexGuard { mutex: self }
+        MutexGuard { mutex: self, irq }
     }
 
     pub fn try_lock(&self) -> Option<MutexGuard<T>> {
+        let irq = unsafe { enter_critical() };
         if self.locked.compare_and_swap(UNLOCKED, LOCKED, Ordering::Acquire) != UNLOCKED {
+            unsafe { exit_critical(irq) };
             None
         } else {
             dmb();
-            Some(MutexGuard { mutex: self })
+            Some(MutexGuard { mutex: self, irq })
         }
     }
 
@@ -69,6 +76,7 @@ impl<T> Mutex<T> {
 /// `Deref`/`DerefMutx`
 pub struct MutexGuard<'a, T> {
     mutex: &'a Mutex<T>,
+    irq: bool,
 }
 
 impl<'a, T> Deref for MutexGuard<'a, T> {
@@ -88,5 +96,6 @@ impl<'a, T> DerefMut for MutexGuard<'a, T> {
 impl<'a, T> Drop for MutexGuard<'a, T> {
     fn drop(&mut self) {
         self.mutex.unlock();
+        unsafe { exit_critical(self.irq) };
     }
 }
