@@ -11,6 +11,7 @@ pub mod cache;
 pub mod mmu;
 pub mod mutex;
 pub mod sync_channel;
+pub mod semaphore;
 mod uncached;
 mod fpu;
 pub use uncached::UncachedSlice;

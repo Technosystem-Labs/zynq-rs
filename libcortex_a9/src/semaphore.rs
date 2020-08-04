@@ -1,0 +1,71 @@
+use super::asm::{sev, wfe};
+use core::{
+    task::{Context, Poll},
+    pin::Pin,
+    future::Future
+};
+use core::sync::atomic::{AtomicI32, Ordering};
+
+pub struct Semaphore {
+    value: AtomicI32,
+    max: i32
+}
+
+impl Semaphore {
+    pub fn new(value: i32, max: i32) -> Self {
+        Semaphore { value: AtomicI32::new(value), max}
+    }
+
+    pub fn try_wait(&self) -> Option<()> {
+        loop {
+            let value = self.value.load(Ordering::Relaxed);
+            if value > 0 {
+                if self.value.compare_and_swap(value, value - 1, Ordering::SeqCst) == value {
+                    return Some(());
+                }
+            } else {
+                return None;
+            }
+        }
+    }
+
+    pub fn wait(&self) {
+        while self.try_wait().is_none() {
+            wfe();
+        }
+    }
+
+    pub async fn async_wait(&self) {
+        struct Fut<'a>(&'a Semaphore);
+
+        impl Future for Fut<'_> {
+            type Output = ();
+            fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+                match self.0.try_wait() {
+                    Some(_) => Poll::Ready(()),
+                    None => {
+                        cx.waker().wake_by_ref();
+                        Poll::Pending
+                    }
+                }
+            }
+        }
+
+        Fut(&self).await
+    }
+
+    pub fn signal(&self) {
+        loop {
+            let value = self.value.load(Ordering::Relaxed);
+            if value < self.max {
+                if self.value.compare_and_swap(value, value + 1, Ordering::SeqCst) == value {
+                    sev();
+                    return;
+                }
+            } else {
+                return;
+            }
+        }
+    }
+}
+
