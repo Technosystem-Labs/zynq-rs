@@ -18,3 +18,19 @@ pub use uncached::UncachedSlice;
 pub use fpu::enable_fpu;
 
 global_asm!(include_str!("exceptions.s"));
+
+#[inline]
+pub fn spin_lock_yield() {
+    #[cfg(feature = "power_saving")]
+    asm::wfe();
+}
+
+#[inline]
+pub fn notify_spin_lock() {
+    #[cfg(feature = "power_saving")]
+    {
+        asm::dsb();
+        asm::sev();
+    }
+}
+

@@ -1,10 +1,10 @@
-use super::asm::{sev, wfe};
+use super::{spin_lock_yield, notify_spin_lock};
 use core::{
     task::{Context, Poll},
     pin::Pin,
-    future::Future
+    future::Future,
+    sync::atomic::{AtomicI32, Ordering}
 };
-use core::sync::atomic::{AtomicI32, Ordering};
 
 pub struct Semaphore {
     value: AtomicI32,
@@ -31,7 +31,7 @@ impl Semaphore {
 
     pub fn wait(&self) {
         while self.try_wait().is_none() {
-            wfe();
+            spin_lock_yield();
         }
     }
 
@@ -59,7 +59,7 @@ impl Semaphore {
             let value = self.value.load(Ordering::Relaxed);
             if value < self.max {
                 if self.value.compare_and_swap(value, value + 1, Ordering::SeqCst) == value {
-                    sev();
+                    notify_spin_lock();
                     return;
                 }
             } else {

@@ -6,7 +6,7 @@ use core::{
     task::{Context, Poll},
 };
 use alloc::boxed::Box;
-use super::asm::*;
+use super::{spin_lock_yield, notify_spin_lock};
 
 pub struct Sender<'a, T> where T: Clone {
     list: &'a [AtomicPtr<T>],
@@ -35,9 +35,7 @@ impl<'a, T> Sender<'a, T> where T: Clone {
             let prev = entry.swap(ptr, Ordering::Relaxed);
             // we allow other end get it first
             self.write.store((write + 1) % self.list.len(), Ordering::Release);
-            // wake up other core, actually I wonder if the dsb is really needed...
-            dsb();
-            sev();
+            notify_spin_lock();
             if !prev.is_null() {
                 unsafe {
                     drop_in_place(prev);
@@ -51,7 +49,7 @@ impl<'a, T> Sender<'a, T> where T: Clone {
         let mut content = content;
         while let Err(back) = self.try_send(content) {
             content = back;
-            wfe();
+            spin_lock_yield();
         }
     }
 
@@ -116,9 +114,7 @@ impl<'a, T> Receiver<'a, T> where T: Clone {
             };
             let result = data.clone();
             self.read.store((read + 1) % self.list.len(), Ordering::Release);
-            // wake up other core, still idk if the dsb is needed...
-            dsb();
-            sev();
+            notify_spin_lock();
             Ok(result)
         }
     }
@@ -128,7 +124,7 @@ impl<'a, T> Receiver<'a, T> where T: Clone {
             if let Ok(data) = self.try_recv() {
                 return data;
             }
-            wfe();
+            spin_lock_yield();
         }
     }
 

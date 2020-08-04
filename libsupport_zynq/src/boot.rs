@@ -4,7 +4,7 @@ use libregister::{
     VolatileCell,
     RegisterR, RegisterW, RegisterRW,
 };
-use libcortex_a9::{asm, regs::*, cache, mmu};
+use libcortex_a9::{asm, regs::*, cache, mmu, spin_lock_yield, notify_spin_lock};
 use libboard_zynq::{slcr, mpcore};
 
 extern "C" {
@@ -29,7 +29,7 @@ pub unsafe extern "C" fn Reset() -> ! {
         }
         1 => {
             while !CORE1_ENABLED.get() {
-                asm::wfe();
+                spin_lock_yield();
             }
             SP.write(&mut __stack1_start as *mut _ as u32);
             boot_core1();
@@ -144,6 +144,7 @@ impl Core1 {
             slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_rst1(false));
             slcr.a9_cpu_rst_ctrl.modify(|_, w| w.a9_clkstop1(false));
         });
+        notify_spin_lock();
 
         Core1 {}
     }

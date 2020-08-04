@@ -1,20 +1,10 @@
 use core::ops::{Deref, DerefMut};
 use core::sync::atomic::{AtomicU32, Ordering};
 use core::cell::UnsafeCell;
-use super::asm::*;
-
-/// [Power-saving features](http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dht0008a/ch01s03s02.html)
-#[inline]
-fn wait_for_update() {
-    wfe();
-}
-
-/// [Power-saving features](http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dht0008a/ch01s03s02.html)
-#[inline]
-fn signal_update() {
-    dsb();
-    sev();
-}
+use super::{
+    spin_lock_yield, notify_spin_lock,
+    asm::{dmb, enter_critical, exit_critical}
+};
 
 const LOCKED: u32 = 1;
 const UNLOCKED: u32 = 0;
@@ -45,7 +35,7 @@ impl<T> Mutex<T> {
         while self.locked.compare_and_swap(UNLOCKED, LOCKED, Ordering::Acquire) != UNLOCKED {
             unsafe {
                 exit_critical(irq);
-                wait_for_update();
+                spin_lock_yield();
                 irq = enter_critical();
             }
         }
@@ -68,7 +58,7 @@ impl<T> Mutex<T> {
         dmb();
         self.locked.store(UNLOCKED, Ordering::Release);
 
-        signal_update();
+        notify_spin_lock();
     }
 }
 

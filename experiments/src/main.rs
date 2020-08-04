@@ -30,6 +30,7 @@ use libcortex_a9::{
     sync_channel::{Sender, Receiver},
     sync_channel,
     regs::{MPIDR, SP},
+    spin_lock_yield, notify_spin_lock,
     asm
 };
 use libregister::{RegisterR, RegisterW};
@@ -64,7 +65,7 @@ pub unsafe extern "C" fn IRQ() {
             SP.write(&mut __stack1_start as *mut _ as u32);
             asm::enable_irq();
             CORE1_RESTART.store(false, Ordering::Relaxed);
-            asm::sev();
+            notify_spin_lock();
             main_core1();
         }
     }
@@ -78,7 +79,7 @@ pub fn restart_core1() {
     CORE1_RESTART.store(true, Ordering::Relaxed);
     interrupt_controller.send_sgi(gic::InterruptId(0), gic::CPUCore::Core1.into());
     while CORE1_RESTART.load(Ordering::Relaxed) {
-        asm::wfe();
+        spin_lock_yield();
     }
 }
 
