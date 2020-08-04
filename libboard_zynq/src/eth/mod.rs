@@ -2,7 +2,7 @@ use core::{
     marker::PhantomData,
     ops::{Deref, DerefMut},
 };
-use log::{error, info, warn};
+use log::{debug, info, warn, error};
 use libregister::*;
 use super::slcr;
 use super::clocks::Clocks;
@@ -132,10 +132,10 @@ fn calculate_tx_divisors(tx_clock: u32) -> (u8, u8) {
         }
     }
     let result = best.unwrap();
-    info!("Eth TX clock for {}: {} / {} / {} = {}",
-          tx_clock, io_pll,
-          result.0, result.1,
-          io_pll / result.0 as u32 / result.1 as u32
+    debug!("Eth TX clock for {}: {} / {} / {} = {}",
+           tx_clock, io_pll,
+           result.0, result.1,
+           io_pll / result.0 as u32 / result.1 as u32
     );
     result
 }
