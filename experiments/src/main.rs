@@ -200,6 +200,9 @@ pub fn main_core0() {
             println!("{} -> {}", i, j);
         }
     });
+    unsafe {
+        core1_req.drop_elements();
+    }
 
     let eth = zynq::eth::Eth::default(HWADDR.clone());
     println!("Eth on");

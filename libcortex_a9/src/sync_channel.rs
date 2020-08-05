@@ -86,6 +86,17 @@ impl<'a, T> Sender<'a, T> where T: Clone {
         }.await
     }
 
+    /// free all items in the queue. It is the user's responsibility to
+    /// ensure no reader is trying to copy the data.
+    pub unsafe fn drop_elements(&mut self) {
+        for v in self.list.iter() {
+            let original = v.swap(core::ptr::null_mut(), Ordering::Relaxed);
+            if !original.is_null() {
+                drop_in_place(original);
+            }
+        }
+    }
+
     /// Reset the `sync_channel`, *forget* all items in the queue. Affects both the sender and
     /// receiver.
     pub unsafe fn reset(&mut self) {
