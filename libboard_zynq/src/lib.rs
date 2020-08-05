@@ -20,5 +20,6 @@ pub mod flash;
 pub mod time;
 pub mod timer;
 pub mod sdio;
+pub mod i2c;
 pub mod logger;
 pub mod ps7_init;
