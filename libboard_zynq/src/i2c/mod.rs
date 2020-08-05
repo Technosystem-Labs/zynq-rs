@@ -1,8 +1,7 @@
 //! I2C Bit-banging Controller
 
 mod regs;
-use log::{error, info, warn};
-use crate::{print, println};
+pub mod eeprom;
 use super::clocks::Clocks;
 use super::slcr;
 use super::time::Microseconds;

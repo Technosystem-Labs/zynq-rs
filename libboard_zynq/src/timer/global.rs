@@ -138,6 +138,15 @@ where
     }
 }
 
+impl<U: PartialOrd> CountDown<U>
+where
+    GlobalTimer: TimeSource<U>,
+{
+    pub fn waiting(&self) -> bool {
+        self.timer.now() <= self.timeout
+    }
+}
+
 /// embedded-hal sync API
 impl embedded_hal::blocking::delay::DelayMs<u64> for GlobalTimer {
     fn delay_ms(&mut self, ms: u64) {
