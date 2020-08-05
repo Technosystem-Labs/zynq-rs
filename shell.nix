@@ -19,6 +19,6 @@ stdenv.mkDerivation {
   XARGO_RUST_SRC = "${rustcSrc}/src";
 
   shellHook = ''
-    echo "Run 'cargo xbuild --release' to build."
+    echo "Run 'cargo xbuild --release -p experiments' to build."
   '';
 }
