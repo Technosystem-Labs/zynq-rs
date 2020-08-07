@@ -32,23 +32,23 @@ SECTIONS
         *(.bss .bss.*);
         . = ALIGN(4);
         __bss_end = .;
-    } > OCM
+    } > OCM3
 
     .stack1 (NOLOAD) : ALIGN(8) {
         __stack1_end = .;
         . += 0x200;
         __stack1_start = .;
-    } > OCM
+    } > OCM3
 
     .stack0 (NOLOAD) : ALIGN(8) {
         __stack0_end = .;
-        . = ORIGIN(OCM) + LENGTH(OCM) - 8;
+        . = ORIGIN(OCM3) + LENGTH(OCM3) - 8;
         __stack0_start = .;
 
         /* unused heap0 to prevent the linker from complaining*/
         __heap0_start = .;
         __heap0_end = .;
-    } > OCM
+    } > OCM3
 
     /DISCARD/ :
     {

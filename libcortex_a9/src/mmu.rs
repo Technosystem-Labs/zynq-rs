@@ -338,7 +338,7 @@ impl L1Table {
         /* 0xfff00000 - 0xffffffff (256K OCM when mapped to high address space) */
         self.direct_mapped_section(0xfff, L1Section {
             global: true,
-            shareable: false,
+            shareable: true,
             access: AccessPermissions::FullAccess,
             tex: 0b100,
             domain: 0,
