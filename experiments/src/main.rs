@@ -203,6 +203,36 @@ pub fn main_core0() {
     unsafe {
         core1_req.drop_elements();
     }
+    
+    // Test I2C
+    let mut i2c = zynq::i2c::I2C::i2c();
+    i2c.init();
+    println!("I2C bit-banging enabled");
+    let mut eeprom = zynq::i2c::eeprom::EEPROM::new(&mut i2c, 16);
+    // Write to 0x00 and 0x08
+    let eeprom_buffer: [u8; 22] = [
+        0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 
+        0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 
+        0xef, 0xcd, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01,
+    ];
+    eeprom.write(0x00, &eeprom_buffer[0..6]);
+    eeprom.write(0x08, &eeprom_buffer[6..22]);
+    println!("Data written to EEPROM");
+    let mut eeprom_buffer = [0u8; 24];
+    // Read from 0x00
+    eeprom.read(0x00, &mut eeprom_buffer);
+    print!("Data read from EEPROM @ 0x00: (hex) ");
+    for i in 0..6 {
+        print!("{:02x} ", eeprom_buffer[i]);
+    }
+    println!("");
+    // Read from 0x08
+    eeprom.read(0x08, &mut eeprom_buffer);
+    print!("Data read from EEPROM @ 0x08: (hex) ");
+    for i in 0..16 {
+        print!("{:02x} ", eeprom_buffer[i]);
+    }
+    println!("");
 
     let eth = zynq::eth::Eth::default(HWADDR.clone());
     println!("Eth on");
