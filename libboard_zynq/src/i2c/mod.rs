@@ -10,9 +10,6 @@ use libregister::{RegisterR, RegisterRW, RegisterW};
 
 const INVALID_BUS: &'static str = "Invalid I2C bus";
 
-#[cfg(feature = "target_zc706")]
-const GPIO_OUTPUT_MASK: u16 = 0xFFFF - 0x000C;
-
 pub struct I2C {
     regs: regs::RegisterWrapper,
     count_down: super::timer::global::CountDown<Microseconds>
@@ -43,10 +40,10 @@ impl I2C {
             slcr.gpio_rst_ctrl.reset_gpio();
         });
 
-        Self::ctor_common()
+        Self::ctor_common(0xFFFF - 0x000C)
     }
 
-    fn ctor_common() -> Self {
+    fn ctor_common(gpio_output_mask: u16) -> Self {
         // Setup register block
         let clocks = Clocks::get();
         let self_ = Self {
@@ -56,7 +53,7 @@ impl I2C {
 
         // Setup GPIO output mask
         self_.regs.gpio_output_mask.modify(|_, w| {
-            w.mask(GPIO_OUTPUT_MASK)
+            w.mask(gpio_output_mask)
         });
         // Setup GPIO driver direction
         self_.regs.gpio_direction.modify(|_, w| {
