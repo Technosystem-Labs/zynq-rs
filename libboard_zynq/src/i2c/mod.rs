@@ -10,8 +10,11 @@ use libregister::{RegisterR, RegisterRW, RegisterW};
 
 const INVALID_BUS: &'static str = "Invalid I2C bus";
 
+#[cfg(feature = "target_zc706")]
+const GPIO_OUTPUT_MASK: u16 = 0xFFFF - 0x000C;
+
 pub struct I2C {
-    regs: regs::RegisterBlock,
+    regs: regs::RegisterWrapper,
     count_down: super::timer::global::CountDown<Microseconds>
 }
 
@@ -23,17 +26,21 @@ impl I2C {
             // SCL
             slcr.mio_pin_50.write(
                 slcr::MioPin50::zeroed()
-                    .l3_sel(0b000)  // GPIO 50
-                    .io_type(slcr::IoBufferType::Lvcmos25)
+                    .l3_sel(0b000)  // as GPIO 50
+                    .io_type(slcr::IoBufferType::Lvcmos18)
                     .pullup(true)
+                    .disable_rcvr(true)
             );
             // SDA
             slcr.mio_pin_51.write(
                 slcr::MioPin51::zeroed()
-                    .l3_sel(0b00)  // GPIO 51
-                    .io_type(slcr::IoBufferType::Lvcmos25)
+                    .l3_sel(0b000)  // as GPIO 51
+                    .io_type(slcr::IoBufferType::Lvcmos18)
                     .pullup(true)
+                    .disable_rcvr(true)
             );
+            // Reset
+            slcr.gpio_rst_ctrl.reset_gpio();
         });
 
         Self::ctor_common()
@@ -42,27 +49,30 @@ impl I2C {
     fn ctor_common() -> Self {
         // Setup register block
         let clocks = Clocks::get();
-        let mut self_ = Self {
-            regs: unsafe { regs::RegisterBlock::new() },
+        let self_ = Self {
+            regs: regs::RegisterWrapper::new(),
             count_down: unsafe { super::timer::GlobalTimer::get() }.countdown()
         };
 
         // Setup GPIO output mask
         self_.regs.gpio_output_mask.modify(|_, w| {
-             w.scl_m(true).sda_m(true)
+            w.mask(GPIO_OUTPUT_MASK)
+        });
+        // Setup GPIO driver direction
+        self_.regs.gpio_direction.modify(|_, w| {
+            w.scl(true).sda(true)
         });
 
-        self_.init();
         self_
     }
 
     /// Delay for I2C operations, simple wrapper for nb.
-    fn delay(&mut self, us: u64) {
+    fn delay_us(&mut self, us: u64) {
         self.count_down.start(Microseconds(us));
         nb::block!(self.count_down.wait()).unwrap();
     }
 
-    fn half_period(&mut self) { self.delay(100) }
+    fn half_period(&mut self) { self.delay_us(100) }
 
     fn sda_i(&mut self) -> bool {
         self.regs.gpio_input.read().sda()
@@ -171,7 +181,7 @@ impl I2C {
         for bit in (0..8).rev() {
             self.sda_oe(data & (1 << bit) == 0);
             self.half_period();
-            self.scl_o(false);
+            self.scl_oe(false);
             self.half_period();
             self.scl_oe(true);
         }

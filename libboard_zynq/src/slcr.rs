@@ -132,7 +132,7 @@ pub struct RegisterBlock {
     pub can_rst_ctrl: RW<u32>,
     pub i2c_rst_ctrl: RW<u32>,
     pub uart_rst_ctrl: UartRstCtrl,
-    pub gpio_rst_ctrl: RW<u32>,
+    pub gpio_rst_ctrl: GpioRstCtrl,
     pub lqspi_rst_ctrl: LqspiRstCtrl,
     pub smc_rst_ctrl: RW<u32>,
     pub ocm_rst_ctrl: RW<u32>,
@@ -527,6 +527,20 @@ impl UartRstCtrl {
         self.modify(|_, w|
             w.uart1_ref_rst(false)
              .uart1_cpu1x_rst(false)
+        );
+    }
+}
+
+register!(gpio_rst_ctrl, GpioRstCtrl, RW, u32);
+register_bit!(gpio_rst_ctrl, gpio_cpu1x_rst, 0);
+register_at!(GpioRstCtrl, 0xF800022C, new);
+impl GpioRstCtrl {
+    pub fn reset_gpio(&mut self) {
+        self.modify(|_, w|
+            w.gpio_cpu1x_rst(true)
+        );
+        self.modify(|_, w|
+            w.gpio_cpu1x_rst(false)
         );
     }
 }
