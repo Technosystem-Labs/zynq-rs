@@ -1,7 +1,7 @@
 # Build
 
 ```shell
-nix-shell --command "cargo xbuild --release"
+nix-shell --command "cargo xbuild --release -p experiments"
 ```
 
 Currently the ELF output is placed at `target/armv7-none-eabihf/release/experiments`
@@ -41,7 +41,7 @@ Proceed using gdb with `load`, `c`
 ### Running on the ZC706
 
 ```shell
-nix-shell --command "cargo xbuild --release"
+nix-shell --command "cargo xbuild --release -p experiments"
 cd openocd
 openocd -f zc706.cfg
 ```
@@ -57,23 +57,26 @@ openocd -f cora-z7-10.cfg
 ### Loading a bitstream into volatile memory
 
 ```shell
-  openocd -f zc706.cfg -c "pld load 0 blinker_migen.bit; exit"
+openocd -f zc706.cfg -c "pld load 0 blinker_migen.bit; exit"
 ```
 
 ### Development Process
 
 Clone this repo onto your development/build machine and the raspberry pi that controls the Xilinx 7000 board
 
-On the dev machine, the below script builds zc706 and secure copies it to the target pi (in your pi $HOME directory)
+On the dev machine, the below script builds zc706 and secure copies it to the target pi (in your pi $HOME directory):
 ```shell
-cd ~/zc706
-./build.sh $your_user/ssh_id
+cd ~/zynq-rs
+./build.sh $your_user_or_ssh_id
 ```
 
 On the pi, we need an information rich environment that includes a relatively reliable `gdb` experience (that includes `ctrl-p` and `ctrl-n` command history that persists across `cgdb` executions), run:
 ```shell
 ssh pi4
-cd zc706
+cd zynq-rs
+# For ZC706, run:
+./tmux.sh 0
+# For Cora Z7, run:
 ./tmux.sh
 ```
 
