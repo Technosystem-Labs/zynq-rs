@@ -148,7 +148,7 @@ pub struct Eth<GEM: Gem, RX, TX> {
 }
 
 impl Eth<Gem0, (), ()> {
-    pub fn default(macaddr: [u8; 6]) -> Self {
+    pub fn eth0(macaddr: [u8; 6]) -> Self {
         slcr::RegisterBlock::unlocked(|slcr| {
             // Manual example: 0x0000_1280
             // MDIO
@@ -280,19 +280,22 @@ impl Eth<Gem0, (), ()> {
     }
 
     pub fn gem0(macaddr: [u8; 6]) -> Self {
-        Self::new(macaddr)
+        Self::gem_common(macaddr)
     }
 }
 
 
 impl Eth<Gem1, (), ()> {
+    // TODO: Add a `eth1()`
+
     pub fn gem1(macaddr: [u8; 6]) -> Self {
-        Self::new(macaddr)
+        Self::gem_common(macaddr)
     }
 }
 
+
 impl<GEM: Gem> Eth<GEM, (), ()> {
-    fn new(macaddr: [u8; 6]) -> Self {
+    fn gem_common(macaddr: [u8; 6]) -> Self {
         GEM::setup_clock(TX_1000);
 
         let mut inner = EthInner {

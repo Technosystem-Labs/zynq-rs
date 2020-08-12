@@ -1,9 +1,9 @@
-use super::I2C;
+use super::I2c;
 use crate::time::Milliseconds;
 use embedded_hal::timer::CountDown;
 
 pub struct EEPROM<'a> {
-    i2c: &'a mut I2C,
+    i2c: &'a mut I2c,
     port: u8,
     address: u8,
     page_size: u8,
@@ -12,7 +12,7 @@ pub struct EEPROM<'a> {
 
 impl<'a> EEPROM<'a> {
     #[cfg(feature = "target_zc706")]
-    pub fn new(i2c: &'a mut I2C, page_size: u8) -> Self {
+    pub fn new(i2c: &'a mut I2c, page_size: u8) -> Self {
         EEPROM {
             i2c: i2c,
             port: 2,

@@ -7,14 +7,14 @@ use super::time::Microseconds;
 use embedded_hal::timer::CountDown;
 use libregister::{RegisterR, RegisterRW, RegisterW};
 
-pub struct I2C {
+pub struct I2c {
     regs: regs::RegisterWrapper,
     count_down: super::timer::global::CountDown<Microseconds>
 }
 
-impl I2C {
+impl I2c {
     #[cfg(feature = "target_zc706")]
-    pub fn i2c() -> Self {
+    pub fn i2c0() -> Self {
         // Route I2C 0 SCL / SDA Signals to MIO Pins 50 / 51
         slcr::RegisterBlock::unlocked(|slcr| {
             // SCL
@@ -37,10 +37,10 @@ impl I2C {
             slcr.gpio_rst_ctrl.reset_gpio();
         });
 
-        Self::ctor_common(0xFFFF - 0x000C)
+        Self::i2c_common(0xFFFF - 0x000C)
     }
 
-    fn ctor_common(gpio_output_mask: u16) -> Self {
+    fn i2c_common(gpio_output_mask: u16) -> Self {
         // Setup register block
         let self_ = Self {
             regs: regs::RegisterWrapper::new(),

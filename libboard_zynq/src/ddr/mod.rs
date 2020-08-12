@@ -22,7 +22,7 @@ pub struct DdrRam {
 }
 
 impl DdrRam {
-    pub fn new() -> Self {
+    pub fn ddrram() -> Self {
         let clocks = Self::clock_setup();
         Self::calibrate_iob_impedance(&clocks);
         Self::configure_iob();

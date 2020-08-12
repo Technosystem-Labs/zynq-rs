@@ -116,7 +116,7 @@ impl<MODE> Flash<MODE> {
 }
 
 impl Flash<()> {
-    pub fn new(clock: u32) -> Self {
+    pub fn flash(clock: u32) -> Self {
         Self::enable_clocks(clock);
         Self::setup_signals();
         Self::reset();
