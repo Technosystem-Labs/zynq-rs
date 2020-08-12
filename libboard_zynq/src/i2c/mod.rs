@@ -2,13 +2,10 @@
 
 mod regs;
 pub mod eeprom;
-use super::clocks::Clocks;
 use super::slcr;
 use super::time::Microseconds;
 use embedded_hal::timer::CountDown;
 use libregister::{RegisterR, RegisterRW, RegisterW};
-
-const INVALID_BUS: &'static str = "Invalid I2C bus";
 
 pub struct I2C {
     regs: regs::RegisterWrapper,
@@ -45,7 +42,6 @@ impl I2C {
 
     fn ctor_common(gpio_output_mask: u16) -> Self {
         // Setup register block
-        let clocks = Clocks::get();
         let self_ = Self {
             regs: regs::RegisterWrapper::new(),
             count_down: unsafe { super::timer::GlobalTimer::get() }.countdown()
