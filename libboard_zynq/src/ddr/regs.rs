@@ -1,6 +1,6 @@
 use volatile_register::{RO, RW};
 
-use libregister::{register, register_bit, register_bits, register_bits_typed};
+use libregister::{register, register_at, register_bit, register_bits, register_bits_typed};
 
 #[allow(unused)]
 #[derive(Clone, Copy)]
@@ -158,11 +158,7 @@ pub struct RegisterBlock {
     pub lpddr_ctrl3: RW<u32>,
 }
 
-impl RegisterBlock {
-    pub unsafe fn new() -> &'static mut Self {
-        &mut *(0xF8006000 as *mut _)
-    }
-}
+register_at!(RegisterBlock, 0xF8006000, ddrc);
 
 register!(ddrc_ctrl, DdrcCtrl, RW, u32);
 register_bit!(ddrc_ctrl,

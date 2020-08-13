@@ -56,7 +56,7 @@ static CORE1_RESTART: AtomicBool = AtomicBool::new(false);
 #[naked]
 pub unsafe extern "C" fn IRQ() {
     if MPIDR.read().cpu_id() == 1{
-        let mpcore = mpcore::RegisterBlock::new();
+        let mpcore = mpcore::RegisterBlock::mpcore();
         let mut gic = gic::InterruptController::gic(mpcore);
         let id = gic.get_interrupt_id();
         if id.0 == 0 {
@@ -75,7 +75,7 @@ pub unsafe extern "C" fn IRQ() {
 }
 
 pub fn restart_core1() {
-    let mut interrupt_controller = gic::InterruptController::gic(mpcore::RegisterBlock::new());
+    let mut interrupt_controller = gic::InterruptController::gic(mpcore::RegisterBlock::mpcore());
     CORE1_RESTART.store(true, Ordering::Relaxed);
     interrupt_controller.send_sgi(gic::InterruptId(0), gic::CPUCore::Core1.into());
     while CORE1_RESTART.load(Ordering::Relaxed) {
@@ -87,7 +87,7 @@ pub fn restart_core1() {
 pub fn main_core0() {
     // zynq::clocks::CpuClocks::enable_io(1_250_000_000);
     println!("\nzc706 main");
-    let mut interrupt_controller = gic::InterruptController::gic(mpcore::RegisterBlock::new());
+    let mut interrupt_controller = gic::InterruptController::gic(mpcore::RegisterBlock::mpcore());
     interrupt_controller.enable_interrupts();
     // ps7_init::apply();
     libboard_zynq::stdio::drop_uart();
@@ -97,7 +97,7 @@ pub fn main_core0() {
 
     info!(
         "Boot mode: {:?}",
-        zynq::slcr::RegisterBlock::new()
+        zynq::slcr::RegisterBlock::slcr()
             .boot_mode
             .read()
             .boot_mode_pins()
@@ -331,7 +331,7 @@ static DONE: Mutex<bool> = Mutex::new(false);
 #[no_mangle]
 pub fn main_core1() {
     println!("Hello from core1!");
-    let mut interrupt_controller = gic::InterruptController::gic(mpcore::RegisterBlock::new());
+    let mut interrupt_controller = gic::InterruptController::gic(mpcore::RegisterBlock::mpcore());
     interrupt_controller.enable_interrupts();
     let req = unsafe { &mut CORE1_REQ.1 };
     let res = unsafe { &mut CORE1_RES.0 };

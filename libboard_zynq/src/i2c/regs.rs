@@ -21,15 +21,15 @@ use libregister::{
 // Current compatibility:
 // zc706: GPIO 50, 51 == SCL, SDA
 
-pub struct RegisterWrapper {
+pub struct RegisterBlock {
     pub gpio_output_mask: &'static mut GPIOOutputMask,
     pub gpio_input: &'static mut GPIOInput,
     pub gpio_direction: &'static mut GPIODirection,
     pub gpio_output_enable: &'static mut GPIOOutputEnable,
 }
 
-impl RegisterWrapper {
-    pub fn new() -> Self {
+impl RegisterBlock {
+    pub fn i2c() -> Self {
         Self {
             gpio_output_mask: GPIOOutputMask::new(),
             gpio_input: GPIOInput::new(),

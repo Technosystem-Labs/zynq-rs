@@ -44,7 +44,7 @@ pub trait ClockSource {
 
     /// get configured frequency
     fn freq() -> u32 {
-        let mut slcr = slcr::RegisterBlock::new();
+        let mut slcr = slcr::RegisterBlock::slcr();
         let (pll_ctrl, _, _) = Self::pll_regs(&mut slcr);
         u32::from(pll_ctrl.read().pll_fdiv()) * PS_CLK
     }

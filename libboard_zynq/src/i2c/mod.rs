@@ -8,7 +8,7 @@ use embedded_hal::timer::CountDown;
 use libregister::{RegisterR, RegisterRW, RegisterW};
 
 pub struct I2c {
-    regs: regs::RegisterWrapper,
+    regs: regs::RegisterBlock,
     count_down: super::timer::global::CountDown<Microseconds>
 }
 
@@ -43,7 +43,7 @@ impl I2c {
     fn i2c_common(gpio_output_mask: u16) -> Self {
         // Setup register block
         let self_ = Self {
-            regs: regs::RegisterWrapper::new(),
+            regs: regs::RegisterBlock::i2c(),
             count_down: unsafe { super::timer::GlobalTimer::get() }.countdown()
         };
 

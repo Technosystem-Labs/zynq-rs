@@ -43,7 +43,7 @@ pub unsafe extern "C" fn Reset() -> ! {
 unsafe fn boot_core0() -> ! {
     l1_cache_init();
 
-    let mpcore = mpcore::RegisterBlock::new();
+    let mpcore = mpcore::RegisterBlock::mpcore();
     mpcore.scu_invalidate.invalidate_all_cores();
 
     zero_bss(&mut __bss_start, &mut __bss_end);
@@ -68,7 +68,7 @@ unsafe fn boot_core0() -> ! {
 unsafe fn boot_core1() -> ! {
     l1_cache_init();
 
-    let mpcore = mpcore::RegisterBlock::new();
+    let mpcore = mpcore::RegisterBlock::mpcore();
     mpcore.scu_invalidate.invalidate_core1();
 
     let mmu_table = mmu::L1Table::get();

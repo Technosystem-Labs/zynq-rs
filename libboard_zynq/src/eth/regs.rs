@@ -1,6 +1,6 @@
 use volatile_register::{RO, WO, RW};
 
-use libregister::{register, register_bit, register_bits, register_bits_typed};
+use libregister::{register, register_at, register_bit, register_bits, register_bits_typed};
 
 #[repr(C)]
 pub struct RegisterBlock {
@@ -110,18 +110,8 @@ pub struct RegisterBlock {
     pub design_cfg5: RO<u32>,
 }
 
-impl RegisterBlock {
-    const GEM0: *mut Self = 0xE000B000 as *mut _;
-    const GEM1: *mut Self = 0xE000C000 as *mut _;
-
-    pub fn gem0() -> &'static mut Self {
-        unsafe { &mut *Self::GEM0 }
-    }
-
-    pub fn gem1() -> &'static mut Self {
-        unsafe { &mut *Self::GEM1 }
-    }
-}
+register_at!(RegisterBlock, 0xE000B000, gem0);
+register_at!(RegisterBlock, 0xE000C000, gem1);
 
 register!(net_ctrl, NetCtrl, RW, u32);
 register_bit!(net_ctrl, loopback_local, 1);
