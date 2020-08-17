@@ -1,4 +1,4 @@
-use super::{adma::Adma2DescTable, cmd, CardType, CmdTransferError, SDIO};
+use super::{adma::Adma2DescTable, cmd, CardType, CmdTransferError, Sdio};
 use libcortex_a9::cache;
 use libregister::{RegisterR, RegisterRW, RegisterW};
 use log::{trace, debug};
@@ -37,7 +37,7 @@ enum CardVersion {
 }
 
 pub struct SdCard {
-    sdio: SDIO,
+    sdio: Sdio,
     adma2_desc_table: Adma2DescTable,
     card_version: CardVersion,
     hcs: bool,
@@ -171,8 +171,8 @@ impl SdCard {
         Ok(())
     }
 
-    /// Convert SDIO into SdCard struct, error if no card inserted or it is not an SD card.
-    pub fn from_sdio(mut sdio: SDIO) -> Result<Self, CardInitializationError> {
+    /// Convert Sdio into SdCard struct, error if no card inserted or it is not an SD card.
+    pub fn from_sdio(mut sdio: Sdio) -> Result<Self, CardInitializationError> {
         match sdio.identify_card()? {
             CardType::CardSd => (),
             _ => return Err(CardInitializationError::NoCardInserted),
@@ -192,8 +192,8 @@ impl SdCard {
         Ok(_self)
     }
 
-    /// Convert SdCard struct back to SDIO struct.
-    pub fn to_sdio(self) -> SDIO {
+    /// Convert SdCard struct back to Sdio struct.
+    pub fn to_sdio(self) -> Sdio {
         self.sdio
     }
 

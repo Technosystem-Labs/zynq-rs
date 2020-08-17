@@ -1,6 +1,6 @@
 /// ADMA library
 use core::mem::MaybeUninit;
-use super::SDIO;
+use super::Sdio;
 use libcortex_a9::cache;
 use libregister::{
     register, register_bit,
@@ -32,7 +32,7 @@ impl Adma2DescTable {
     }
 
     /// Initialize the table and setup `adma_system_address`
-    pub fn setup(&mut self, sdio: &mut SDIO, blk_cnt: u32, buffer: &[u8]) {
+    pub fn setup(&mut self, sdio: &mut Sdio, blk_cnt: u32, buffer: &[u8]) {
         let descr_table = &mut self.0;
         let blk_size = sdio
             .regs

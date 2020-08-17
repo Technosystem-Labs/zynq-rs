@@ -16,13 +16,13 @@ pub struct GlobalTimer {
 impl GlobalTimer {
     /// Get the potentially uninitialized timer
     pub unsafe fn get() -> GlobalTimer {
-        let regs = mpcore::RegisterBlock::new();
+        let regs = mpcore::RegisterBlock::mpcore();
         GlobalTimer { regs }
     }
 
     /// Get the timer with a reset
     pub fn start() -> GlobalTimer {
-        let mut regs = mpcore::RegisterBlock::new();
+        let mut regs = mpcore::RegisterBlock::mpcore();
         Self::reset(&mut regs);
         GlobalTimer { regs }
     }

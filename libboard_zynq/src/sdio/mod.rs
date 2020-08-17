@@ -12,7 +12,7 @@ use log::{trace, debug};
 use nb;
 
 /// Basic SDIO Struct with common low-level functions.
-pub struct SDIO {
+pub struct Sdio {
     regs: &'static mut regs::RegisterBlock,
     count_down: super::timer::global::CountDown<Milliseconds>,
     input_clk_hz: u32,
@@ -48,7 +48,7 @@ pub enum CardType {
     CardMmc,
 }
 
-impl SDIO {
+impl Sdio {
     /// Initialize SDIO0
     /// card_detect means if we would use the card detect pin,
     /// false to disable card detection (assume there is card inserted)
@@ -121,7 +121,7 @@ impl SDIO {
             slcr.sdio_clk_ctrl.enable_sdio0();
         });
         let clocks = Clocks::get();
-        let mut self_ = SDIO {
+        let mut self_ = Sdio {
             regs: regs::RegisterBlock::sdio0(),
             count_down: unsafe { super::timer::GlobalTimer::get() }.countdown(),
             input_clk_hz: clocks.sdio_ref_clk(),

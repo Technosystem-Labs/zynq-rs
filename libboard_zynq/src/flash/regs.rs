@@ -1,6 +1,6 @@
 use volatile_register::{RO, WO, RW};
 
-use libregister::{register, register_bit, register_bits};
+use libregister::{register, register_at, register_bit, register_bits};
 
 #[repr(C)]
 pub struct RegisterBlock {
@@ -30,13 +30,9 @@ pub struct RegisterBlock {
     pub mod_id: RW<u32>,
 }
 
-impl RegisterBlock {
-    const BASE_ADDRESS: *mut Self = 0xE000D000 as *mut _;
+const BASE_ADDRESS: u32 = 0xE000D000;
 
-    pub fn qspi() -> &'static mut Self {
-        unsafe { &mut *Self::BASE_ADDRESS }
-    }
-}
+register_at!(RegisterBlock, 0xE000D000, qspi);
 
 register!(config, Config, RW, u32);
 register_bit!(config,

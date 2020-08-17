@@ -14,7 +14,7 @@ enum CpuClockMode {
 
 impl CpuClockMode {
     pub fn get() -> Self {
-        let regs = slcr::RegisterBlock::new();
+        let regs = slcr::RegisterBlock::slcr();
         if regs.clk_621_true.read().clk_621_true() {
             CpuClockMode::C621
         } else {
@@ -59,7 +59,7 @@ impl Clocks {
     }
 
     pub fn cpu_6x4x(&self) -> u32 {
-        let slcr = slcr::RegisterBlock::new();
+        let slcr = slcr::RegisterBlock::slcr();
         let arm_clk_ctrl = slcr.arm_clk_ctrl.read();
         let pll = match arm_clk_ctrl.srcsel() {
             ArmPllSource::ArmPll => self.arm,
@@ -92,7 +92,7 @@ impl Clocks {
     }
 
     pub fn uart_ref_clk(&self) -> u32 {
-        let regs = slcr::RegisterBlock::new();
+        let regs = slcr::RegisterBlock::slcr();
         let uart_clk_ctrl = regs.uart_clk_ctrl.read();
         let pll = match uart_clk_ctrl.srcsel() {
             slcr::PllSource::ArmPll =>
@@ -106,7 +106,7 @@ impl Clocks {
     }
 
     pub fn sdio_ref_clk(&self) -> u32 {
-        let regs = slcr::RegisterBlock::new();
+        let regs = slcr::RegisterBlock::slcr();
         let sdio_clk_ctrl = regs.sdio_clk_ctrl.read();
         let pll = match sdio_clk_ctrl.srcsel() {
             slcr::PllSource::ArmPll =>

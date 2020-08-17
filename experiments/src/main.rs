@@ -56,8 +56,8 @@ static CORE1_RESTART: AtomicBool = AtomicBool::new(false);
 #[naked]
 pub unsafe extern "C" fn IRQ() {
     if MPIDR.read().cpu_id() == 1{
-        let mpcore = mpcore::RegisterBlock::new();
-        let mut gic = gic::InterruptController::new(mpcore);
+        let mpcore = mpcore::RegisterBlock::mpcore();
+        let mut gic = gic::InterruptController::gic(mpcore);
         let id = gic.get_interrupt_id();
         if id.0 == 0 {
             gic.end_interrupt(id);
@@ -75,7 +75,7 @@ pub unsafe extern "C" fn IRQ() {
 }
 
 pub fn restart_core1() {
-    let mut interrupt_controller = gic::InterruptController::new(mpcore::RegisterBlock::new());
+    let mut interrupt_controller = gic::InterruptController::gic(mpcore::RegisterBlock::mpcore());
     CORE1_RESTART.store(true, Ordering::Relaxed);
     interrupt_controller.send_sgi(gic::InterruptId(0), gic::CPUCore::Core1.into());
     while CORE1_RESTART.load(Ordering::Relaxed) {
@@ -87,7 +87,7 @@ pub fn restart_core1() {
 pub fn main_core0() {
     // zynq::clocks::CpuClocks::enable_io(1_250_000_000);
     println!("\nzc706 main");
-    let mut interrupt_controller = gic::InterruptController::new(mpcore::RegisterBlock::new());
+    let mut interrupt_controller = gic::InterruptController::gic(mpcore::RegisterBlock::mpcore());
     interrupt_controller.enable_interrupts();
     // ps7_init::apply();
     libboard_zynq::stdio::drop_uart();
@@ -97,7 +97,7 @@ pub fn main_core0() {
 
     info!(
         "Boot mode: {:?}",
-        zynq::slcr::RegisterBlock::new()
+        zynq::slcr::RegisterBlock::slcr()
             .boot_mode
             .read()
             .boot_mode_pins()
@@ -131,7 +131,7 @@ pub fn main_core0() {
         clocks.cpu_1x()
     );
 
-    let mut flash = zynq::flash::Flash::new(200_000_000).linear_addressing_mode();
+    let mut flash = zynq::flash::Flash::flash(200_000_000).linear_addressing_mode();
     let flash_ram: &[u8] = unsafe { core::slice::from_raw_parts(flash.ptr(), flash.size()) };
     for i in 0..=1 {
         print!("Flash {}:", i);
@@ -144,7 +144,7 @@ pub fn main_core0() {
 
     let timer = libboard_zynq::timer::GlobalTimer::start();
 
-    let mut ddr = zynq::ddr::DdrRam::new();
+    let mut ddr = zynq::ddr::DdrRam::ddrram();
     #[cfg(not(feature = "target_zc706"))]
     ddr.memtest();
     ram::init_alloc_ddr(&mut ddr);
@@ -207,7 +207,7 @@ pub fn main_core0() {
     // Test I2C
     #[cfg(feature = "target_zc706")]
     {
-        let mut i2c = zynq::i2c::I2C::i2c();
+        let mut i2c = zynq::i2c::I2c::i2c0();
         i2c.init();
         println!("I2C bit-banging enabled");
         let mut eeprom = zynq::i2c::eeprom::EEPROM::new(&mut i2c, 16);
@@ -237,7 +237,7 @@ pub fn main_core0() {
         println!("");
     }
 
-    let eth = zynq::eth::Eth::default(HWADDR.clone());
+    let eth = zynq::eth::Eth::eth0(HWADDR.clone());
     println!("Eth on");
 
     const RX_LEN: usize = 4096;
@@ -331,7 +331,7 @@ static DONE: Mutex<bool> = Mutex::new(false);
 #[no_mangle]
 pub fn main_core1() {
     println!("Hello from core1!");
-    let mut interrupt_controller = gic::InterruptController::new(mpcore::RegisterBlock::new());
+    let mut interrupt_controller = gic::InterruptController::gic(mpcore::RegisterBlock::mpcore());
     interrupt_controller.enable_interrupts();
     let req = unsafe { &mut CORE1_REQ.1 };
     let res = unsafe { &mut CORE1_RES.0 };

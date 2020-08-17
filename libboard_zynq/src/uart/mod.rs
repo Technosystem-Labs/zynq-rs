@@ -13,31 +13,8 @@ pub struct Uart {
 }
 
 impl Uart {
-    #[cfg(feature = "target_zc706")]
-    pub fn serial(baudrate: u32) -> Self {
-        slcr::RegisterBlock::unlocked(|slcr| {
-            // Route UART 1 RxD/TxD Signals to MIO Pins
-            // TX pin
-            slcr.mio_pin_48.write(
-                slcr::MioPin48::zeroed()
-                    .l3_sel(0b111)
-                    .io_type(slcr::IoBufferType::Lvcmos18)
-                    .pullup(true)
-            );
-            // RX pin
-            slcr.mio_pin_49.write(
-                slcr::MioPin49::zeroed()
-                    .tri_enable(true)
-                    .l3_sel(0b111)
-                    .io_type(slcr::IoBufferType::Lvcmos18)
-                    .pullup(true)
-            );
-        });
-        Self::uart1(baudrate)
-    }
-
     #[cfg(feature = "target_cora_z7_10")]
-    pub fn serial(baudrate: u32) -> Self {
+    pub fn uart0(baudrate: u32) -> Self {
         slcr::RegisterBlock::unlocked(|slcr| {
             // Route UART 0 RxD/TxD Signals to MIO Pins
             // TX pin
@@ -56,10 +33,7 @@ impl Uart {
                     .pullup(true)
             );
         });
-        Self::uart0(baudrate)
-    }
 
-    pub fn uart0(baudrate: u32) -> Self {
         slcr::RegisterBlock::unlocked(|slcr| {
             slcr.uart_rst_ctrl.reset_uart0();
             slcr.aper_clk_ctrl.enable_uart0();
@@ -72,7 +46,27 @@ impl Uart {
         self_
     }
 
+    #[cfg(feature = "target_zc706")]
     pub fn uart1(baudrate: u32) -> Self {
+        slcr::RegisterBlock::unlocked(|slcr| {
+            // Route UART 1 RxD/TxD Signals to MIO Pins
+            // TX pin
+            slcr.mio_pin_48.write(
+                slcr::MioPin48::zeroed()
+                    .l3_sel(0b111)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
+            );
+            // RX pin
+            slcr.mio_pin_49.write(
+                slcr::MioPin49::zeroed()
+                    .tri_enable(true)
+                    .l3_sel(0b111)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
+            );
+        });
+
         slcr::RegisterBlock::unlocked(|slcr| {
             slcr.uart_rst_ctrl.reset_uart1();
             slcr.aper_clk_ctrl.enable_uart1();

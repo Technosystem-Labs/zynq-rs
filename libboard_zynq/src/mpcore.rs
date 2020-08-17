@@ -138,7 +138,7 @@ pub struct RegisterBlock {
     pub icdsgir: ICDSGIR,
 }
 
-register_at!(RegisterBlock, 0xF8F00000, new);
+register_at!(RegisterBlock, 0xF8F00000, mpcore);
 
 register!(value_register, ValueRegister, RW, u32);
 register_bits!(value_register, value, u32, 0, 31);

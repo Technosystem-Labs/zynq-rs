@@ -253,12 +253,12 @@ pub struct RegisterBlock {
     pub ddriob_dci_ctrl: DdriobDciCtrl,
     pub ddriob_dci_status: DdriobDciStatus,
 }
-register_at!(RegisterBlock, 0xF8000000, new);
+register_at!(RegisterBlock, 0xF8000000, slcr);
 
 impl RegisterBlock {
     /// Required to modify any sclr register
     pub fn unlocked<F: FnMut(&mut Self) -> R, R>(mut f: F) -> R {
-        let mut self_ = Self::new();
+        let mut self_ = Self::slcr();
         self_.slcr_unlock.unlock();
         let r = f(&mut self_);
         self_.slcr_lock.lock();

@@ -62,7 +62,7 @@ pub struct InterruptController {
 }
 
 impl InterruptController {
-    pub fn new(mpcore: &'static mut mpcore::RegisterBlock) -> Self {
+    pub fn gic(mpcore: &'static mut mpcore::RegisterBlock) -> Self {
         InterruptController { mpcore }
     }
 
