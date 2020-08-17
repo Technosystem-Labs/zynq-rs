@@ -1,5 +1,5 @@
 use core::ops::{Deref, DerefMut};
-use libcortex_a9::mutex::{Mutex, MutexGuard};
+use libcortex_a9::{asm, mutex::{Mutex, MutexGuard}};
 use crate::uart::Uart;
 
 const UART_RATE: u32 = 115_200;
@@ -10,7 +10,15 @@ pub fn get_uart<'a>() -> MutexGuard<'a, LazyUart> {
     unsafe { UART.lock() }
 }
 
+/// Deinitialize so that the Uart will be reinitialized on next
+/// output.
+///
+/// Delays so that an outstanding transmission can finish.
 pub fn drop_uart() {
+    for _ in 0..1_000_000 {
+        asm::nop();
+    }
+
     unsafe { UART = Mutex::new(LazyUart::Uninitialized); }
 }
 
