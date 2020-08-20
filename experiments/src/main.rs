@@ -27,6 +27,7 @@ use libboard_zynq::{
 };
 use libcortex_a9::{
     mutex::Mutex,
+    l2c::enable_l2_cache,
     sync_channel::{Sender, Receiver},
     sync_channel,
     regs::{MPIDR, SP},
@@ -86,6 +87,7 @@ pub fn restart_core1() {
 #[no_mangle]
 pub fn main_core0() {
     // zynq::clocks::CpuClocks::enable_io(1_250_000_000);
+    enable_l2_cache();
     println!("\nzc706 main");
     let mut interrupt_controller = gic::InterruptController::gic(mpcore::RegisterBlock::mpcore());
     interrupt_controller.enable_interrupts();
@@ -203,7 +205,7 @@ pub fn main_core0() {
     unsafe {
         core1_req.drop_elements();
     }
-    
+
     // Test I2C
     #[cfg(feature = "target_zc706")]
     {
@@ -213,8 +215,8 @@ pub fn main_core0() {
         let mut eeprom = zynq::i2c::eeprom::EEPROM::new(&mut i2c, 16);
         // Write to 0x00 and 0x08
         let eeprom_buffer: [u8; 22] = [
-            0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 
-            0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 
+            0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb,
+            0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee,
             0xef, 0xcd, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01,
         ];
         eeprom.write(0x00, &eeprom_buffer[0..6]);
