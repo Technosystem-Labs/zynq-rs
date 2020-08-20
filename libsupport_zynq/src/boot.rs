@@ -4,7 +4,7 @@ use libregister::{
     VolatileCell,
     RegisterR, RegisterW, RegisterRW,
 };
-use libcortex_a9::{asm, regs::*, cache, mmu, spin_lock_yield, notify_spin_lock};
+use libcortex_a9::{asm, l2c, regs::*, cache, mmu, spin_lock_yield, notify_spin_lock};
 use libboard_zynq::{slcr, mpcore};
 
 extern "C" {
@@ -101,7 +101,7 @@ fn l1_cache_init() {
     //       for all of the L1 data cache rather than a (previously
     //       unspecified) combination of one cache set and one cache
     //       way.
-    dciall();
+    dciall_l1();
 }
 
 pub struct Core1 {
@@ -131,12 +131,13 @@ impl Core1 {
         unsafe {
             CORE1_ENABLED.set(true);
         }
-        // Ensure values have been written to cache
-        asm::dmb();
         // Flush cache-line
-        cache::dccmvac(unsafe { &CORE1_ENABLED } as *const _ as usize);
+        cache::dcc(unsafe { &CORE1_ENABLED });
         if sdram {
             cache::dccmvac(0);
+            asm::dsb();
+            l2c::l2_cache_clean(0);
+            l2c::l2_cache_sync();
         }
 
         // wake up core1
