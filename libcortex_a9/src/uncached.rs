@@ -23,10 +23,11 @@ impl<T> UncachedSlice<T> {
         assert_eq!(start & (L1_PAGE_SIZE - 1), 0);
 
         for page_start in (start..(start + size)).step_by(L1_PAGE_SIZE) {
+            // non-shareable device
             L1Table::get()
                 .update(page_start as *const (), |l1_section| {
-                    l1_section.tex = 0b100;
-                    l1_section.cacheable = false;
+                    l1_section.tex = 0b10;
+                    l1_section.cacheable = true;
                     l1_section.bufferable = false;
                 });
         }
