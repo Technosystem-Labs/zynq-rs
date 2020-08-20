@@ -12,4 +12,5 @@ default = ["target_zc706"]
 
 [dependencies]
 bit_field = "0.10"
+volatile-register = "0.2"
 libregister = { path = "../libregister" }

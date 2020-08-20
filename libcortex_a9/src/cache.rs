@@ -1,4 +1,5 @@
 use super::asm::{dmb, dsb};
+use super::l2c::*;
 
 /// Invalidate TLBs
 #[inline(always)]
@@ -52,10 +53,9 @@ pub fn dccisw(setway: u32) {
     }
 }
 
-
 /// A made-up "instruction": invalidate all of the L1 D-Cache
 #[inline(always)]
-pub fn dciall() {
+pub fn dciall_l1() {
     // the cache associativity could be read from a register, but will
     // always be 4 in L1 data cache of a cortex a9
     let ways = 4;
@@ -80,9 +80,17 @@ pub fn dciall() {
     }
 }
 
+/// A made-up "instruction": invalidate all of the L1 L2 D-Cache
+#[inline(always)]
+pub fn dciall() {
+    dmb();
+    l2_cache_invalidate_all();
+    dciall_l1();
+}
+
 /// A made-up "instruction": flush and invalidate all of the L1 D-Cache
 #[inline(always)]
-pub fn dcciall() {
+pub fn dcciall_l1() {
     // the cache associativity could be read from a register, but will
     // always be 4 in L1 data cache of a cortex a9
     let ways = 4;
@@ -107,6 +115,15 @@ pub fn dcciall() {
     }
 }
 
+#[inline(always)]
+pub  fn dcciall() {
+    dmb();
+    dcciall_l1();
+    dsb();
+    l2_cache_clean_invalidate_all();
+    dcciall_l1();
+    dsb();
+}
 
 const CACHE_LINE: usize = 0x20;
 const CACHE_LINE_MASK: usize = CACHE_LINE - 1;
@@ -145,7 +162,16 @@ pub fn dccimvac(addr: usize) {
 
 /// Data cache clean and invalidate for an object.
 pub fn dcci<T>(object: &T) {
+    // ref: L2C310 TRM 3.3.10
     dmb();
+    for addr in object_cache_line_addrs(object) {
+        dccmvac(addr);
+    }
+    dsb();
+    for addr in object_cache_line_addrs(object) {
+        l2_cache_clean_invalidate(addr);
+    }
+    l2_cache_sync();
     for addr in object_cache_line_addrs(object) {
         dccimvac(addr);
     }
@@ -154,6 +180,14 @@ pub fn dcci<T>(object: &T) {
 
 pub fn dcci_slice<T>(slice: &[T]) {
     dmb();
+    for addr in slice_cache_line_addrs(slice) {
+        dccmvac(addr);
+    }
+    dsb();
+    for addr in slice_cache_line_addrs(slice) {
+        l2_cache_clean_invalidate(addr);
+    }
+    l2_cache_sync();
     for addr in slice_cache_line_addrs(slice) {
         dccimvac(addr);
     }
@@ -175,17 +209,28 @@ pub fn dcc<T>(object: &T) {
         dccmvac(addr);
     }
     dsb();
+    for addr in object_cache_line_addrs(object) {
+        l2_cache_clean(addr);
+    }
+    l2_cache_sync();
 }
 
 /// Data cache clean for an object. Panics if not properly
 /// aligned and properly sized to be contained in an exact number of
 /// cache lines.
 pub fn dcc_slice<T>(slice: &[T]) {
+    if slice.len() == 0 {
+        return;
+    }
     dmb();
     for addr in slice_cache_line_addrs(slice) {
         dccmvac(addr);
     }
     dsb();
+    for addr in slice_cache_line_addrs(slice) {
+        l2_cache_clean(addr);
+    }
+    l2_cache_sync();
 }
 
 /// Data cache invalidate by memory virtual address. This and
@@ -206,6 +251,10 @@ pub unsafe fn dci<T>(object: &mut T) {
 
     dmb();
     for addr in (first_addr..beyond_addr).step_by(CACHE_LINE) {
+        l2_cache_invalidate(addr);
+    }
+    l2_cache_sync();
+    for addr in (first_addr..beyond_addr).step_by(CACHE_LINE) {
         dcimvac(addr);
     }
     dsb();
@@ -219,6 +268,10 @@ pub unsafe fn dci_slice<T>(slice: &mut [T]) {
     assert_eq!(beyond_addr & CACHE_LINE_MASK, 0, "dci slice beyond_addr must be aligned");
 
     dmb();
+    for addr in (first_addr..beyond_addr).step_by(CACHE_LINE) {
+        l2_cache_invalidate(addr);
+    }
+    l2_cache_sync();
     for addr in (first_addr..beyond_addr).step_by(CACHE_LINE) {
         dcimvac(addr);
     }
