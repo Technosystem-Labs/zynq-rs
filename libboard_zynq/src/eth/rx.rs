@@ -108,6 +108,20 @@ impl DescList {
         if entry.word0.read().used() {
             let word1 = entry.word1.read();
             let len = word1.frame_length_lsbs().into();
+            let padding = {
+                let diff = len % 0x20;
+                if diff == 0 {
+                    0
+                } else {
+                    0x20 - diff
+                }
+            };
+            unsafe {
+                // invalidate the buffer
+                // we cannot do it in the drop function, as L2 cache data prefetch would prefetch
+                // the data, and there is no way for us to prevent that unless changing MMU table.
+                dci_slice(&mut self.buffers[self.next][0..len + padding]);
+            }
             let buffer = &mut self.buffers[self.next][0..len];
 
             self.next += 1;
@@ -135,10 +149,6 @@ pub struct PktRef<'a> {
 
 impl<'a> Drop for PktRef<'a> {
     fn drop(&mut self) {
-        // Flush buffer from cache, to be filled by the peripheral
-        // before next read
-        dcci_slice(self.buffer);
-
         self.entry.word0.modify(|_, w| w.used(false));
         dmb();
     }

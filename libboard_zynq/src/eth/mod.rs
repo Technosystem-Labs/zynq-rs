@@ -27,7 +27,7 @@ const TX_1000: u32 = 125_000_000;
 pub struct Buffer(pub [u8; MTU]);
 
 impl Buffer {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Buffer([0; MTU])
     }
 }
@@ -224,48 +224,48 @@ impl Eth<Gem0, (), ()> {
             // RX_CLK
             slcr.mio_pin_22.write(
                 slcr::MioPin22::zeroed()
-                    .tri_enable(true)
                     .l0_sel(true)
+                    .speed(true)
                     .io_type(slcr::IoBufferType::Hstl)
                     .pullup(true)
             );
             // RX_CTRL
             slcr.mio_pin_27.write(
                 slcr::MioPin27::zeroed()
-                    .tri_enable(true)
                     .l0_sel(true)
+                    .speed(true)
                     .io_type(slcr::IoBufferType::Hstl)
                     .pullup(true)
             );
             // RXD3
             slcr.mio_pin_26.write(
                 slcr::MioPin26::zeroed()
-                    .tri_enable(true)
                     .l0_sel(true)
+                    .speed(true)
                     .io_type(slcr::IoBufferType::Hstl)
                     .pullup(true)
             );
             // RXD2
             slcr.mio_pin_25.write(
                 slcr::MioPin25::zeroed()
-                    .tri_enable(true)
                     .l0_sel(true)
+                    .speed(true)
                     .io_type(slcr::IoBufferType::Hstl)
                     .pullup(true)
             );
             // RXD1
             slcr.mio_pin_24.write(
                 slcr::MioPin24::zeroed()
-                    .tri_enable(true)
                     .l0_sel(true)
+                    .speed(true)
                     .io_type(slcr::IoBufferType::Hstl)
                     .pullup(true)
             );
             // RXD0
             slcr.mio_pin_23.write(
                 slcr::MioPin23::zeroed()
-                    .tri_enable(true)
                     .l0_sel(true)
+                    .speed(true)
                     .io_type(slcr::IoBufferType::Hstl)
                     .pullup(true)
             );
@@ -533,7 +533,10 @@ impl<GEM: Gem> EthInner<GEM> {
 
     fn configure(&mut self, macaddr: [u8; 6]) {
         let clocks = Clocks::get();
-        let mdc_clk_div = (clocks.cpu_1x() / MAX_MDC) + 1;
+        let mut mdc_clk_div = clocks.cpu_1x() / MAX_MDC;
+        if clocks.cpu_1x() % MAX_MDC > 0 {
+            mdc_clk_div += 1;
+        }
 
         GEM::regs().net_cfg.write(
             regs::NetCfg::zeroed()
@@ -542,10 +545,10 @@ impl<GEM: Gem> EthInner<GEM> {
                 .speed(true)
                 .no_broadcast(false)
                 .multi_hash_en(true)
-                // Promiscuous mode (TODO?)
-                .copy_all(true)
+                .rx_1536_byte_frames(true)
                 // Remove 4-byte Frame CheckSum
                 .fcs_remove(true)
+                .dis_cp_pause_frame(true)
                 // RX checksum offload
                 .rx_chksum_offld_en(true)
                 // One of the slower speeds
@@ -553,22 +556,23 @@ impl<GEM: Gem> EthInner<GEM> {
         );
 
         let macaddr_msbs =
-            (u16::from(macaddr[0]) << 8) |
-            u16::from(macaddr[1]);
+            (u16::from(macaddr[5]) << 8) |
+            u16::from(macaddr[4]);
         let macaddr_lsbs =
-            (u32::from(macaddr[2]) << 24) |
-            (u32::from(macaddr[3]) << 16) |
-            (u32::from(macaddr[4]) << 8) |
-            u32::from(macaddr[5]);
-        GEM::regs().spec_addr1_top.write(
-            regs::SpecAddrTop::zeroed()
-                .addr_msbs(macaddr_msbs)
-        );
+            (u32::from(macaddr[3]) << 24) |
+            (u32::from(macaddr[2]) << 16) |
+            (u32::from(macaddr[1]) << 8) |
+            u32::from(macaddr[0]);
+        // writing to bot would disable the specific address
         GEM::regs().spec_addr1_bot.write(
             regs::SpecAddrBot::zeroed()
                 .addr_lsbs(macaddr_lsbs)
         );
-
+        // writing to top would enable it again
+        GEM::regs().spec_addr1_top.write(
+            regs::SpecAddrTop::zeroed()
+                .addr_msbs(macaddr_msbs)
+        );
 
         GEM::regs().dma_cfg.write(
             regs::DmaCfg::zeroed()
