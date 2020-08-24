@@ -3,7 +3,7 @@ use core::sync::atomic::{AtomicU32, Ordering};
 use core::cell::UnsafeCell;
 use super::{
     spin_lock_yield, notify_spin_lock,
-    asm::{dmb, enter_critical, exit_critical}
+    asm::{enter_critical, exit_critical}
 };
 
 const LOCKED: u32 = 1;
@@ -32,30 +32,27 @@ impl<T> Mutex<T> {
     /// Lock the Mutex, blocks when already locked
     pub fn lock(&self) -> MutexGuard<T> {
         let mut irq = unsafe { enter_critical() };
-        while self.locked.compare_and_swap(UNLOCKED, LOCKED, Ordering::Acquire) != UNLOCKED {
+        while self.locked.compare_and_swap(UNLOCKED, LOCKED, Ordering::AcqRel) != UNLOCKED {
             unsafe {
                 exit_critical(irq);
                 spin_lock_yield();
                 irq = enter_critical();
             }
         }
-        dmb();
         MutexGuard { mutex: self, irq }
     }
 
     pub fn try_lock(&self) -> Option<MutexGuard<T>> {
         let irq = unsafe { enter_critical() };
-        if self.locked.compare_and_swap(UNLOCKED, LOCKED, Ordering::Acquire) != UNLOCKED {
+        if self.locked.compare_and_swap(UNLOCKED, LOCKED, Ordering::AcqRel) != UNLOCKED {
             unsafe { exit_critical(irq) };
             None
         } else {
-            dmb();
             Some(MutexGuard { mutex: self, irq })
         }
     }
 
     fn unlock(&self) {
-        dmb();
         self.locked.store(UNLOCKED, Ordering::Release);
 
         notify_spin_lock();
