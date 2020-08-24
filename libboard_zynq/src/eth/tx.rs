@@ -132,7 +132,7 @@ impl<'a> Drop for PktRef<'a> {
         dcc_slice(self.buffer);
 
         self.entry.word1.modify(|_, w| w.used(false));
-        // start tcp transfer
+        // Start the TX engine
         self.regs.net_ctrl.modify(|_, w| w.start_tx(true));
     }
 }
