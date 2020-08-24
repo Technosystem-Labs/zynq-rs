@@ -30,7 +30,7 @@ impl Sockets {
         let sockets = RefCell::new(SocketSet::new(sockets_storage));
 
         let wakers = RefCell::new(Vec::new());
-        
+
         let instance = Sockets {
             sockets,
             wakers,
@@ -57,7 +57,7 @@ impl Sockets {
     pub(crate) fn instance() -> &'static Self {
         unsafe { SOCKETS.as_ref().expect("Sockets") }
     }
-    
+
     fn poll<'b, 'c, 'e, D: for<'d> Device<'d>>(
         &self,
         iface: &mut EthernetInterface<'b, 'c, 'e, D>,
@@ -81,7 +81,14 @@ impl Sockets {
     /// TODO: this was called through eg. TcpStream, another poll()
     /// might want to send packets before sleeping for an interrupt.
     pub(crate) fn register_waker(waker: Waker) {
-        Self::instance().wakers.borrow_mut()
-            .push(waker);
+        let mut wakers = Self::instance().wakers.borrow_mut();
+        for (i, w) in wakers.iter().enumerate() {
+            if w.will_wake(&waker) {
+                let last = wakers.len() - 1;
+                wakers.swap(i, last);
+                return;
+            }
+        }
+        wakers.push(waker);
     }
 }
