@@ -132,10 +132,8 @@ impl<'a> Drop for PktRef<'a> {
         dcc_slice(self.buffer);
 
         self.entry.word1.modify(|_, w| w.used(false));
-        if ! self.regs.tx_status.read().tx_go() {
-            // Start TX if not already running
-            self.regs.net_ctrl.modify(|_, w| w.start_tx(true));
-        }
+        // start tcp transfer
+        self.regs.net_ctrl.modify(|_, w| w.start_tx(true));
     }
 }
 
@@ -166,10 +164,7 @@ impl<'a> smoltcp::phy::TxToken for Token<'a> {
             None =>
                 Err(smoltcp::Error::Exhausted),
             Some(mut pktref) => {
-                let result = f(pktref.deref_mut());
-                // TODO: on result.is_err() don;t send
-                drop(pktref);
-                result
+                f(pktref.deref_mut())
             }
         }
     }
