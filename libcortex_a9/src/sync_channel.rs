@@ -1,7 +1,6 @@
 use core::{
     pin::Pin,
     future::Future,
-    ptr::drop_in_place,
     sync::atomic::{AtomicPtr, AtomicUsize, Ordering},
     task::{Context, Poll},
 };
@@ -38,7 +37,7 @@ impl<'a, T> Sender<'a, T> where T: Clone {
             notify_spin_lock();
             if !prev.is_null() {
                 unsafe {
-                    drop_in_place(prev);
+                    Box::from_raw(prev);
                 }
             }
             Ok(())
@@ -92,7 +91,7 @@ impl<'a, T> Sender<'a, T> where T: Clone {
         for v in self.list.iter() {
             let original = v.swap(core::ptr::null_mut(), Ordering::Relaxed);
             if !original.is_null() {
-                drop_in_place(original);
+                Box::from_raw(original);
             }
         }
     }
