@@ -8,6 +8,7 @@ edition = "2018"
 [features]
 target_zc706 = []
 target_cora_z7_10 = []
+ipv6 = [ "smoltcp/proto-ipv6" ]
 
 [dependencies]
 volatile-register = "0.2"
@@ -21,5 +22,5 @@ libcortex_a9 = { path = "../libcortex_a9" }
 
 [dependencies.smoltcp]
 version = "0.6"
-features = ["ethernet", "proto-ipv4", "proto-ipv6", "socket-tcp"]
+features = ["ethernet", "proto-ipv4", "socket-tcp"]
 default-features = false
