@@ -590,16 +590,19 @@ register_bit!(a9_cpu_rst_ctrl, a9_rst0, 0);
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[repr(u8)]
 pub enum BootModePins {
+    // CAUTION!
+    // The BOOT_MODE bits table 6-4 in UG585 are *out of order*.
     Jtag = 0b000,
-    Nor = 0b001,
-    Nand = 0b010,
-    QuadSpi = 0b100,
-    SdCard = 0b110,
+    Nor = 0b010,
+    Nand = 0b100,
+    QuadSpi = 0b001,
+    SdCard = 0b101,
 }
 
 register!(boot_mode, BootMode, RO, u32);
 register_bit!(boot_mode, pll_bypass, 4);
-register_bits_typed!(boot_mode, boot_mode_pins, u8, BootModePins, 0, 3);
+register_bit!(boot_mode, jtag_routing, 3);
+register_bits_typed!(boot_mode, boot_mode_pins, u8, BootModePins, 0, 2);
 
 register!(pss_rst_ctrl, PssRstCtrl, RW, u32);
 register_bit!(pss_rst_ctrl, soft_rst, 1);
