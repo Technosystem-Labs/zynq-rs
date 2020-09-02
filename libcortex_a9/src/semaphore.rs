@@ -12,7 +12,7 @@ pub struct Semaphore {
 }
 
 impl Semaphore {
-    pub fn new(value: i32, max: i32) -> Self {
+    pub const fn new(value: i32, max: i32) -> Self {
         Semaphore { value: AtomicI32::new(value), max}
     }
 
