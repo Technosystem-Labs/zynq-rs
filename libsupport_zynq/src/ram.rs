@@ -34,7 +34,10 @@ unsafe impl GlobalAlloc for CortexA9Alloc {
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        if cfg!(not(feature = "alloc_core")) || MPIDR.read().cpu_id() == 0 {
+        if cfg!(not(feature = "alloc_core"))
+            || ((&__heap0_start as *const usize as usize <= ptr as usize)
+                && ((ptr as usize) < &__heap0_end as *const usize as usize))
+        {
             &self.0
         } else {
             &self.1
