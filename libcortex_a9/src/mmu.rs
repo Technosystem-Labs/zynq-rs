@@ -410,6 +410,7 @@ pub fn with_mmu<F: FnMut() -> !>(l1table: &L1Table, mut f: F) -> ! {
             .a(false)
             .c(true)
             .i(true)
+            .z(true)
             .unaligned(true)
     );
 
