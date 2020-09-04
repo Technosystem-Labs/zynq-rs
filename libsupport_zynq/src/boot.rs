@@ -53,6 +53,7 @@ unsafe fn boot_core0() -> ! {
     mmu::with_mmu(mmu_table, || {
         mpcore.scu_control.start();
         ACTLR.enable_smp();
+        ACTLR.enable_prefetch();
         // TODO: Barriers reqd when core1 is not yet starting?
         asm::dmb();
         asm::dsb();
@@ -74,6 +75,7 @@ unsafe fn boot_core1() -> ! {
     let mmu_table = mmu::L1Table::get();
     mmu::with_mmu(mmu_table, || {
         ACTLR.enable_smp();
+        ACTLR.enable_prefetch();
         // TODO: Barriers reqd when core1 is not yet starting?
         asm::dmb();
         asm::dsb();

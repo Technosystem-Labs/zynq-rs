@@ -156,6 +156,8 @@ register_bit!(actlr, excl, 7);
 register_bit!(actlr, smp, 6);
 register_bit!(actlr, write_full_line_of_zeros, 3);
 register_bit!(actlr, l1_prefetch_enable, 2);
+// L2 cache prefetch hint, in UG585 section 3.4.8
+register_bit!(actlr, l2_prefetch_enable, 1);
 // Cache/TLB maintenance broadcast
 register_bit!(actlr, fw, 0);
 
@@ -172,6 +174,10 @@ impl RegisterRW for ACTLR {
 impl ACTLR {
     pub fn enable_smp(&mut self) {
         self.modify(|_, w| w.smp(true).fw(true));
+    }
+
+    pub fn enable_prefetch(&mut self) {
+        self.modify(|_, w| w.l1_prefetch_enable(true).l2_prefetch_enable(true))
     }
 }
 

@@ -8,6 +8,13 @@ pub fn enable_l2_cache() {
     // disable L2 cache
     regs.reg1_control.modify(|_, w| w.l2_enable(false));
 
+    regs.reg15_prefetch_ctrl.modify(|_, w|
+        w.instr_prefetch_en(true)
+            .data_prefetch_en(true)
+            .double_linefill_en(true)
+            .incr_double_linefill_en(true)
+            .pref_drop_en(true)
+    );
     regs.reg1_aux_control.modify(|_, w| {
         w.early_bresp_en(true)
             .instr_prefetch_en(true)
@@ -190,6 +197,8 @@ struct RegisterBlock {
     /// memory if the line is marked as valid and dirty. The lines are marked as not valid.
     /// Completes as a background task with the way, or ways, locked, preventing allocation.
     pub reg7_clean_inv_way: RW<u32>,
+    unused9: [u32; 0x1D8],
+    pub reg15_prefetch_ctrl: Reg15PrefetechCtrl,
 }
 
 register_at!(RegisterBlock, 0xF8F02000, new);
@@ -311,3 +320,9 @@ register_bits!(reg7_clean_inv_index, way, u8, 28, 30);
 register_bits!(reg7_clean_inv_index, index, u8, 5, 11);
 register_bit!(reg7_clean_inv_index, c, 0);
 
+register!(reg15_prefetch_ctrl, Reg15PrefetechCtrl, RW, u32);
+register_bit!(reg15_prefetch_ctrl, double_linefill_en, 30);
+register_bit!(reg15_prefetch_ctrl, instr_prefetch_en, 29);
+register_bit!(reg15_prefetch_ctrl, data_prefetch_en, 28);
+register_bit!(reg15_prefetch_ctrl, pref_drop_en, 24);
+register_bit!(reg15_prefetch_ctrl, incr_double_linefill_en, 23);
