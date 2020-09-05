@@ -210,7 +210,7 @@ pub fn main_core0() {
     #[cfg(feature = "target_zc706")]
     {
         let mut i2c = zynq::i2c::I2c::i2c0();
-        i2c.init();
+        i2c.init().unwrap();
         println!("I2C bit-banging enabled");
         let mut eeprom = zynq::i2c::eeprom::EEPROM::new(&mut i2c, 16);
         // Write to 0x00 and 0x08
@@ -219,19 +219,19 @@ pub fn main_core0() {
             0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee,
             0xef, 0xcd, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01,
         ];
-        eeprom.write(0x00, &eeprom_buffer[0..6]);
-        eeprom.write(0x08, &eeprom_buffer[6..22]);
+        eeprom.write(0x00, &eeprom_buffer[0..6]).unwrap();
+        eeprom.write(0x08, &eeprom_buffer[6..22]).unwrap();
         println!("Data written to EEPROM");
         let mut eeprom_buffer = [0u8; 24];
         // Read from 0x00
-        eeprom.read(0x00, &mut eeprom_buffer);
+        eeprom.read(0x00, &mut eeprom_buffer).unwrap();
         print!("Data read from EEPROM @ 0x00: (hex) ");
         for i in 0..6 {
             print!("{:02x} ", eeprom_buffer[i]);
         }
         println!("");
         // Read from 0x08
-        eeprom.read(0x08, &mut eeprom_buffer);
+        eeprom.read(0x08, &mut eeprom_buffer).unwrap();
         print!("Data read from EEPROM @ 0x08: (hex) ");
         for i in 0..16 {
             print!("{:02x} ", eeprom_buffer[i]);
