@@ -154,7 +154,7 @@ register_bit!(scu_control, enable, 0);
 
 impl ScuControl {
     pub fn start(&mut self) {
-        self.modify(|_, w| w.enable(true));
+        self.modify(|_, w| w.enable(true).scu_speculative_linefill_enable(true));
     }
 }
 

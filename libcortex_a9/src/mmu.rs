@@ -158,7 +158,7 @@ impl L1Table {
                 global: true,
                 shareable: true,
                 access: AccessPermissions::FullAccess,
-                tex: 0b101,
+                tex: 0b0,
                 domain: 0b1111,
                 exec: true,
                 cacheable: true,
@@ -213,7 +213,7 @@ impl L1Table {
                 access: AccessPermissions::FullAccess,
                 tex: 0,
                 domain: 0,
-                exec: true,
+                exec: false,
                 cacheable: false,
                 bufferable: true,
             });
