@@ -72,6 +72,7 @@ impl Executor {
         pin_mut!(f);
         let ready = AtomicBool::new(true);
         let waker = wrap_waker(&ready);
+        let mut backup = Vec::new();
         let val = loop {
             // advance the main task
             if ready.load(Ordering::Relaxed) {
@@ -86,8 +87,8 @@ impl Executor {
             }
 
             // advance all tasks
-            let next_tasks = self.tasks.replace_with(|tasks| Vec::with_capacity(tasks.len()));
-            for mut task in next_tasks.into_iter() {
+            core::mem::swap(&mut *self.tasks.borrow_mut(), &mut backup);
+            for mut task in backup.drain(..) {
                 // NOTE we don't need a CAS operation here because `wake` invocations that come from
                 // interrupt handlers (the only source of 'race conditions' (!= data races)) are
                 // "oneshot": they'll issue a `wake` and then disable themselves to not run again
