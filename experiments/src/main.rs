@@ -15,7 +15,7 @@ use libboard_zynq::{
     self as zynq,
     clocks::source::{ArmPll, ClockSource, IoPll},
     clocks::Clocks,
-    print, println, stdio,
+    println, stdio,
     mpcore,
     gic,
     smoltcp::{
@@ -140,62 +140,12 @@ pub fn main_core0() {
         clocks.cpu_1x()
     );
 
-    let mut flash = zynq::flash::Flash::flash(200_000_000).linear_addressing_mode();
-    let flash_ram: &[u8] = unsafe { core::slice::from_raw_parts(flash.ptr(), flash.size()) };
-    for i in 0..=1 {
-        print!("Flash {}:", i);
-        for b in &flash_ram[(i * 16 * 1024 * 1024)..][..128] {
-            print!(" {:02X}", *b);
-        }
-        println!("");
-    }
-    let _flash = flash.stop();
-
     let timer = libboard_zynq::timer::GlobalTimer::start();
 
     let mut ddr = zynq::ddr::DdrRam::ddrram();
     #[cfg(not(feature = "target_zc706"))]
     ddr.memtest();
     ram::init_alloc_ddr(&mut ddr);
-
-    #[cfg(dev)]
-    for i in 0..=1 {
-        let mut flash_io = flash.manual_mode(i);
-        // println!("rdcr={:02X}", flash_io.rdcr());
-        print!("Flash {} ID:", i);
-        for b in flash_io.rdid() {
-            print!(" {:02X}", b);
-        }
-        println!("");
-        print!("Flash {} I/O:", i);
-        for o in 0..8 {
-            const CHUNK: u32 = 8;
-            for b in flash_io.read(CHUNK * o, CHUNK as usize) {
-                print!(" {:02X}", b);
-            }
-        }
-        println!("");
-
-        flash_io.dump("Read cr1", 0x35);
-        flash_io.dump("Read Autoboot", 0x14);
-        flash_io.dump("Read Bank", 0x16);
-        flash_io.dump("DLP Bank", 0x16);
-        flash_io.dump("Read ESig", 0xAB);
-        flash_io.dump("OTP Read", 0x4B);
-        flash_io.dump("DYB Read", 0xE0);
-        flash_io.dump("PPB Read", 0xE2);
-        flash_io.dump("ASP Read", 0x2B);
-        flash_io.dump("Password Read", 0xE7);
-
-        flash_io.write_enabled(|flash_io| {
-            flash_io.erase(0);
-        });
-        flash_io.write_enabled(|flash_io| {
-            flash_io.program(0, [0x23054223; 0x100 >> 2].iter().cloned());
-        });
-
-        flash = flash_io.stop();
-    }
 
     boot::Core1::start(false);
 

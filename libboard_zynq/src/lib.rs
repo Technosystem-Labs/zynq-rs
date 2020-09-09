@@ -16,7 +16,6 @@ pub mod axi_gp;
 pub mod ddr;
 pub mod mpcore;
 pub mod gic;
-pub mod flash;
 pub mod time;
 pub mod timer;
 pub mod sdio;
