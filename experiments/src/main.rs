@@ -25,6 +25,8 @@ use libboard_zynq::{
     },
     time::Milliseconds,
 };
+#[cfg(feature = "target_zc706")]
+use libboard_zynq::print;
 use libcortex_a9::{
     mutex::Mutex,
     l2c::enable_l2_cache,
