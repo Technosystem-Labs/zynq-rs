@@ -6,7 +6,7 @@ let
       name = "${crate}";
 
       src = ./.;
-      cargoSha256 = "1gdxrsn58mabqf8yc3xqkrl1qlmlyvpnzcfj4xafpdr1gdhwhdjg";
+      cargoSha256 = "1f2psa1g41pl2j8n60hhik2s2pqdfjhr5capimvajf81kxrnn2ck";
 
       nativeBuildInputs = [ pkgs.cargo-xbuild ];
       buildPhase = ''
@@ -33,4 +33,5 @@ in
     zc706-experiments = build-crate "zc706-experiments" "experiments" "target_zc706";
     cora-experiments = build-crate "cora-experiments" "experiments" "target_cora_z7_10";
     zc706-fsbl = (import ./nix/fsbl.nix { inherit pkgs; });
+    zc706-szl = build-crate "zc706-szl" "szl" "target_zc706";
   }

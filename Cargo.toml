@@ -1,15 +1,24 @@
 [workspace]
 members = [
-  "libregister", "libcortex_a9",
-  "libboard_zynq", "libsupport_zynq",
+  "libregister",
+  "libcortex_a9",
+  "libboard_zynq",
+  "libsupport_zynq",
   "libasync",
+  "libconfig",
+  "libcoreio",
   "experiments",
+  "szl",
 ]
 
 [profile.release]
 panic = "abort"
 debug = true
-# Link-Time Optimization:
-# turn off if you get unusable debug symbols.
+codegen-units = 1
+opt-level = 'z'
 lto = true
-opt-level = 'z'  # Optimize for size.
+debug-assertions = false
+overflow-checks = false
+
+[patch.crates-io]
+core_io = { path = "./libcoreio" }

@@ -19,6 +19,6 @@ in
     XARGO_RUST_SRC = "${rustPlatform.rust.rustc.src}/src";
 
     shellHook = ''
-      echo "Run 'cargo xbuild --release -p experiments' to build."
+      echo "Run 'cargo xbuild --release -p ...' to build."
     '';
   }
