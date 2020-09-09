@@ -2,7 +2,7 @@
 name = "experiments"
 description = "Developing bare-metal Rust on Zynq"
 version = "0.0.0"
-authors = ["Astro <astro@spaceboyz.net>"]
+authors = ["M-Labs"]
 edition = "2018"
 
 [features]

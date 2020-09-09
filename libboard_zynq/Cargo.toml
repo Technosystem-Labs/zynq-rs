@@ -2,7 +2,7 @@
 name = "libboard_zynq"
 description = "Drivers for peripherals in the Zynq PS"
 version = "0.0.0"
-authors = ["Astro <astro@spaceboyz.net>"]
+authors = ["M-Labs"]
 edition = "2018"
 
 [features]
