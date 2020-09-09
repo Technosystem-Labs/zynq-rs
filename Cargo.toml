@@ -6,10 +6,6 @@ members = [
   "experiments",
 ]
 
-[profile.dev]
-panic = "abort"
-lto = false
-
 [profile.release]
 panic = "abort"
 debug = true
