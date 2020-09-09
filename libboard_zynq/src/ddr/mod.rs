@@ -14,6 +14,10 @@ const DDR_FREQ: u32 = 666_666_666;
 /// Micron MT41K256M16HA-125: 800 MHz DDR3L, max supported 533 MHz
 const DDR_FREQ: u32 = 525_000_000;
 
+#[cfg(feature = "target_redpitaya")]
+/// Alliance Memory AS4C256M16D3B: 800 MHz DDR3
+const DDR_FREQ: u32 = 800_000_000;
+
 /// MT41K256M16HA-125
 const DCI_FREQ: u32 = 10_000_000;
 
@@ -149,6 +153,15 @@ impl DdrRam {
             #[cfg(feature = "target_cora_z7_10")]
             let data1_config = slcr::DdriobConfig::zeroed()
                 .pullup_en(true);
+            #[cfg(feature = "target_redpitaya")]
+            let data0_config = slcr::DdriobConfig::zeroed()
+                .inp_type(slcr::DdriobInputType::VrefDifferential)
+                .term_en(true)
+                .dci_type(slcr::DdriobDciType::Termination)
+                .output_en(slcr::DdriobOutputEn::Obuf);
+            #[cfg(feature = "target_redpitaya")]
+            let data1_config = slcr::DdriobConfig::zeroed()
+                .pullup_en(true);
             slcr.ddriob_data0.write(data0_config);
             slcr.ddriob_data1.write(data1_config);
 
@@ -169,7 +182,15 @@ impl DdrRam {
             #[cfg(feature = "target_cora_z7_10")]
             let diff1_config = slcr::DdriobConfig::zeroed()
                 .pullup_en(true);
-
+            #[cfg(feature = "target_redpitaya")]
+            let diff0_config = slcr::DdriobConfig::zeroed()
+                .inp_type(slcr::DdriobInputType::Differential)
+                .term_en(true)
+                .dci_type(slcr::DdriobDciType::Termination)
+                .output_en(slcr::DdriobOutputEn::Obuf);
+            #[cfg(feature = "target_redpitaya")]
+            let diff1_config = slcr::DdriobConfig::zeroed()
+                .pullup_en(true);
             slcr.ddriob_diff0.write(diff0_config);
             slcr.ddriob_diff1.write(diff1_config);
 
@@ -198,6 +219,12 @@ impl DdrRam {
                     .vref_int_en(true)
                     .vref_sel(DdriobVrefSel::Vref0_75V)
                     .vref_ext_en_lower(false)
+                    .vref_ext_en_upper(false)
+            );
+            #[cfg(feature = "target_redpitaya")]
+            slcr.ddriob_ddr_ctrl.modify(|_, w| w
+                    .vref_int_en(false)
+                    .vref_ext_en_lower(true)
                     .vref_ext_en_upper(false)
             );
         });
@@ -293,6 +320,8 @@ impl DdrRam {
         let width = regs::DataBusWidth::Width32bit;
         #[cfg(feature = "target_cora_z7_10")]
         let width = regs::DataBusWidth::Width16bit;
+        #[cfg(feature = "target_redpitaya")]
+        let width = regs::DataBusWidth::Width16bit;
         self.regs.ddrc_ctrl.modify(|_, w| w
             .soft_rstb(false)
             .powerdown_en(false)
@@ -321,6 +350,8 @@ impl DdrRam {
         #[cfg(feature = "target_zc706")]
         let megabytes = 1023;
         #[cfg(feature = "target_cora_z7_10")]
+        let megabytes = 511;
+        #[cfg(feature = "target_redpitaya")]
         let megabytes = 511;
 
         megabytes * 1024 * 1024

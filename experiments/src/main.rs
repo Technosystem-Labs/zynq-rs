@@ -109,6 +109,8 @@ pub fn main_core0() {
     const CPU_FREQ: u32 = 800_000_000;
     #[cfg(feature = "target_cora_z7_10")]
     const CPU_FREQ: u32 = 650_000_000;
+    #[cfg(feature = "target_redpitaya")]
+    const CPU_FREQ: u32 = 800_000_000;
 
     info!("Setup clock sources...");
     ArmPll::setup(2 * CPU_FREQ);
@@ -119,6 +121,11 @@ pub fn main_core0() {
         libboard_zynq::stdio::drop_uart();
     }
     #[cfg(feature = "target_cora_z7_10")]
+    {
+        IoPll::setup(1_000_000_000);
+        libboard_zynq::stdio::drop_uart();
+    }
+    #[cfg(feature = "target_redpitaya")]
     {
         IoPll::setup(1_000_000_000);
         libboard_zynq::stdio::drop_uart();

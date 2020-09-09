@@ -13,7 +13,7 @@ pub struct Uart {
 }
 
 impl Uart {
-    #[cfg(feature = "target_cora_z7_10")]
+    #[cfg(any(feature = "target_cora_z7_10", feature = "target_redpitaya"))]
     pub fn uart0(baudrate: u32) -> Self {
         slcr::RegisterBlock::unlocked(|slcr| {
             // Route UART 0 RxD/TxD Signals to MIO Pins

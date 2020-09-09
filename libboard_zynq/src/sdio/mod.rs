@@ -116,6 +116,18 @@ impl Sdio {
                         .speed(true),
                 );
             }
+            // redpitaya card detect pin
+            #[cfg(feature = "target_redpitaya")]
+            {
+                unsafe {
+                    slcr.sd0_wp_cd_sel.write(46 << 16);
+                }
+                slcr.mio_pin_46.write(
+                    slcr::MioPin46::zeroed()
+                        .io_type(slcr::IoBufferType::Lvcmos25)
+                        .speed(true),
+                );
+            }
             slcr.sdio_rst_ctrl.reset_sdio0();
             slcr.aper_clk_ctrl.enable_sdio0();
             slcr.sdio_clk_ctrl.enable_sdio0();

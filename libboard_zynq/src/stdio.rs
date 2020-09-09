@@ -45,7 +45,7 @@ impl DerefMut for LazyUart {
     fn deref_mut(&mut self) -> &mut Uart {
         match self {
             LazyUart::Uninitialized => {
-                #[cfg(feature = "target_cora_z7_10")]
+                #[cfg(any(feature = "target_cora_z7_10", feature = "target_redpitaya"))]
                 let uart = Uart::uart0(UART_RATE);
                 #[cfg(feature = "target_zc706")]
                 let uart = Uart::uart1(UART_RATE);
