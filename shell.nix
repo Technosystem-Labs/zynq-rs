@@ -1,24 +1,24 @@
 let
-  mozillaOverlay = import (builtins.fetchTarball https://github.com/mozilla/nixpkgs-mozilla/archive/master.tar.gz);
-  pkgs = import <nixpkgs> { overlays = [ mozillaOverlay ]; };
+  pkgs = import <nixpkgs> { overlays = [ (import ./nix/mozilla-overlay.nix) ]; };
+  rustPlatform = (import ./nix/rust-platform.nix { inherit pkgs; });
 in
-with pkgs;
-let
-  project = callPackage ./default.nix {};
-in
-with project;
-stdenv.mkDerivation {
-  name = "zynq-env";
-  buildInputs = (with rustPlatform.rust; [
-    rustc cargo
-    cargo-xbuild rustcSrc
-  ]) ++ (with pkgs; [ openocd gdb ]);
+  pkgs.stdenv.mkDerivation {
+    name = "zynq-env";
+    buildInputs = [
+      rustPlatform.rust.rustc
+      rustPlatform.rust.cargo
+      pkgs.cacert
+      pkgs.cargo-xbuild
 
-  # Set Environment Variables
-  RUST_BACKTRACE = 1;
-  XARGO_RUST_SRC = "${rustcSrc}/src";
+      pkgs.openocd pkgs.gdb
+      pkgs.openssh pkgs.rsync
 
-  shellHook = ''
-    echo "Run 'cargo xbuild --release -p experiments' to build."
-  '';
-}
+      (import ./nix/mkbootimage.nix { inherit pkgs; })
+    ];
+
+    XARGO_RUST_SRC = "${rustPlatform.rust.rustc.src}/src";
+
+    shellHook = ''
+      echo "Run 'cargo xbuild --release -p experiments' to build."
+    '';
+  }
