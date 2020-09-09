@@ -88,7 +88,7 @@ pub fn restart_core1() {
 pub fn main_core0() {
     // zynq::clocks::CpuClocks::enable_io(1_250_000_000);
     enable_l2_cache();
-    println!("\nzc706 main");
+    println!("\nZynq experiments");
     let mut interrupt_controller = gic::InterruptController::gic(mpcore::RegisterBlock::mpcore());
     interrupt_controller.enable_interrupts();
     // ps7_init::apply();
