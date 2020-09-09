@@ -32,6 +32,7 @@ in
   {
     zc706-experiments = build-crate "zc706-experiments" "experiments" "target_zc706";
     cora-experiments = build-crate "cora-experiments" "experiments" "target_cora_z7_10";
+    redpitaya-experiments = build-crate "redpitaya-experiments" "experiments" "target_redpitaya";
     zc706-fsbl = (import ./nix/fsbl.nix { inherit pkgs; });
     zc706-szl = build-crate "zc706-szl" "szl" "target_zc706";
   }
