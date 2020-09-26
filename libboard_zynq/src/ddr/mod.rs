@@ -4,6 +4,9 @@ use crate::{print, println};
 use super::slcr::{self, DdriobVrefSel};
 use super::clocks::{Clocks, source::{DdrPll, ClockSource}};
 
+#[cfg(feature = "target_redpitaya")]
+use super::ps7_init;
+
 mod regs;
 
 #[cfg(feature = "target_zc706")]
@@ -27,15 +30,23 @@ pub struct DdrRam {
 
 impl DdrRam {
     pub fn ddrram() -> Self {
-        let clocks = Self::clock_setup();
-        Self::calibrate_iob_impedance(&clocks);
-        Self::configure_iob();
-
-        let regs = regs::RegisterBlock::ddrc();
-        let mut ddr = DdrRam { regs };
-        ddr.configure();
-        ddr.reset_ddrc();
-        ddr
+        if cfg!(feature = "target_redpitaya") {
+            // We have not yet fixed red pitaya initialization yet.  It seems
+            // that the clock configuration, iob settings and ddr settings are
+            // all problematic
+            ps7_init::apply();
+            let regs = regs::RegisterBlock::ddrc();
+            DdrRam { regs }
+        } else {
+            let clocks = Self::clock_setup();
+            Self::calibrate_iob_impedance(&clocks);
+            Self::configure_iob();
+            let regs = regs::RegisterBlock::ddrc();
+            let mut ddr = DdrRam { regs };
+            ddr.configure();
+            ddr.reset_ddrc();
+            ddr
+        }
     }
 
     /// Zynq-7000 AP SoC Technical Reference Manual:

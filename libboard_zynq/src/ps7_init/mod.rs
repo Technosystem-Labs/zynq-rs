@@ -1,12 +1,14 @@
-#![cfg(feature = "target_zc706")]
 
 use crate::println;
 
 mod zc706;
+mod redpitaya;
 // mod cora_z7_10;
 
 #[cfg(feature = "target_zc706")]
 use zc706 as target;
+#[cfg(feature = "target_redpitaya")]
+use redpitaya as target;
 // #[cfg(feature = "target_cora_z7_10")]
 // use cora_z7_10 as target;
 
