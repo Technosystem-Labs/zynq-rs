@@ -41,10 +41,12 @@ pub struct Phy {
 pub enum PhyDevice {
     Marvell88E1116R,
     Rtl8211E,
+    PEF7071
 }
 
 const OUI_MARVELL: u32 = 0x005043;
 const OUI_REALTEK: u32 = 0x000732;
+const OUI_LANTIQ : u32 = 0x355969;
 
 impl Phy {
     /// Probe all addresses on MDIO for a known PHY
@@ -61,6 +63,11 @@ impl Phy {
                     model: 0b010001,
                     rev: 0b0101,
                 }) => Some(PhyDevice::Rtl8211E),
+                Some(PhyIdentifier {
+                    oui: OUI_LANTIQ,
+                    model: 0,
+                    ..
+                }) => Some(PhyDevice::PEF7071),
                 _ => None,
             }.map(|device| Phy { addr, device })
         }).next()
@@ -70,6 +77,7 @@ impl Phy {
         match self.device {
             PhyDevice::Marvell88E1116R => &"Marvell 88E1116R",
             PhyDevice::Rtl8211E => &"RTL8211E",
+            PhyDevice::PEF7071 => &"Intel XWAY PHY11G (PEF 7071/PEF 7072) v1.5 / v1.6"
         }
     }
 
