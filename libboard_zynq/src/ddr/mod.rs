@@ -34,6 +34,7 @@ impl DdrRam {
             // We have not yet fixed red pitaya initialization yet.  It seems
             // that the clock configuration, iob settings and ddr settings are
             // all problematic
+            #[cfg(feature = "target_redpitaya")]
             ps7_init::apply();
             let regs = regs::RegisterBlock::ddrc();
             DdrRam { regs }

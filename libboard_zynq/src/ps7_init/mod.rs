@@ -1,16 +1,19 @@
 
 use crate::println;
 
+#[cfg(feature = "target_zc706")]
 mod zc706;
+#[cfg(feature = "target_redpitaya")]
 mod redpitaya;
-// mod cora_z7_10;
+#[cfg(not(any(feature = "target_zc706", feature = "target_redpitaya")))]
+mod none;
 
 #[cfg(feature = "target_zc706")]
 use zc706 as target;
 #[cfg(feature = "target_redpitaya")]
 use redpitaya as target;
-// #[cfg(feature = "target_cora_z7_10")]
-// use cora_z7_10 as target;
+#[cfg(not(any(feature = "target_zc706", feature = "target_redpitaya")))]
+use none as target;
 
 pub fn report_differences() {
     for (i, op) in target::INIT_DATA.iter().enumerate() {
