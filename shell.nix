@@ -8,7 +8,7 @@ in
       rustPlatform.rust.rustc
       rustPlatform.rust.cargo
       pkgs.cacert
-      pkgs.cargo-xbuild
+      (pkgs.cargo-xbuild.overrideAttrs(oa: { patches = oa.patches ++ [ ./xbuild_writable_lockfile.diff ]; } ))
 
       pkgs.openocd pkgs.gdb
       pkgs.openssh pkgs.rsync

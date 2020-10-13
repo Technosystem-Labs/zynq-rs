@@ -8,7 +8,9 @@ let
       src = ./.;
       cargoSha256 = "1f2psa1g41pl2j8n60hhik2s2pqdfjhr5capimvajf81kxrnn2ck";
 
-      nativeBuildInputs = [ pkgs.cargo-xbuild ];
+      nativeBuildInputs = [
+        (pkgs.cargo-xbuild.overrideAttrs(oa: { patches = oa.patches ++ [ ./xbuild_writable_lockfile.diff ]; } ))
+      ];
       buildPhase = ''
         export XARGO_RUST_SRC="${rustPlatform.rust.rustc.src}/library"
         export CARGO_HOME=$(mktemp -d cargo-home.XXX)
