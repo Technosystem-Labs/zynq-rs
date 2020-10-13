@@ -1,6 +1,7 @@
 let
   pkgs = import <nixpkgs> { overlays = [ (import ./nix/mozilla-overlay.nix) ]; };
   rustPlatform = (import ./nix/rust-platform.nix { inherit pkgs; });
+  cargo-xbuild = (import ./default.nix).cargo-xbuild;
 in
   pkgs.stdenv.mkDerivation {
     name = "zynq-env";
@@ -8,7 +9,7 @@ in
       rustPlatform.rust.rustc
       rustPlatform.rust.cargo
       pkgs.cacert
-      (pkgs.cargo-xbuild.overrideAttrs(oa: { patches = oa.patches ++ [ ./xbuild_writable_lockfile.diff ]; } ))
+      cargo-xbuild
 
       pkgs.openocd pkgs.gdb
       pkgs.openssh pkgs.rsync
