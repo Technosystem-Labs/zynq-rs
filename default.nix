@@ -1,12 +1,14 @@
 let
   pkgs = import <nixpkgs> { overlays = [ (import ./nix/mozilla-overlay.nix) ]; };
   rustPlatform = (import ./nix/rust-platform.nix { inherit pkgs; });
-  build-crate = name: crate: features:
+  cargoSha256Experiments = "0ijb3ma7mip48ayc3hilma42rwlz3krb755klmnwwwvxhdhw29w2";
+  cargoSha256SZL = "0shz0kzjnmqvwy68km71awn7krn1109nanyckhzvrxy1l1jxg2rd";
+  build-crate = name: crate: features: cargoSha256:
     rustPlatform.buildRustPackage rec {
       name = "${crate}";
 
       src = ./.;
-      cargoSha256 = "1f2psa1g41pl2j8n60hhik2s2pqdfjhr5capimvajf81kxrnn2ck";
+      inherit cargoSha256;
 
       nativeBuildInputs = [
         (pkgs.cargo-xbuild.overrideAttrs(oa: { patches = oa.patches ++ [ ./xbuild_writable_lockfile.diff ]; } ))
@@ -32,9 +34,9 @@ let
     };
 in
   {
-    zc706-experiments = build-crate "zc706-experiments" "experiments" "target_zc706";
-    cora-experiments = build-crate "cora-experiments" "experiments" "target_cora_z7_10";
-    redpitaya-experiments = build-crate "redpitaya-experiments" "experiments" "target_redpitaya";
+    zc706-experiments = build-crate "zc706-experiments" "experiments" "target_zc706" cargoSha256Experiments;
+    cora-experiments = build-crate "cora-experiments" "experiments" "target_cora_z7_10" cargoSha256Experiments;
+    redpitaya-experiments = build-crate "redpitaya-experiments" "experiments" "target_redpitaya" cargoSha256Experiments;
     zc706-fsbl = (import ./nix/fsbl.nix { inherit pkgs; });
-    zc706-szl = build-crate "zc706-szl" "szl" "target_zc706";
+    zc706-szl = build-crate "zc706-szl" "szl" "target_zc706" cargoSha256SZL;
   }
