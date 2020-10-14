@@ -11,5 +11,7 @@ fatfs = { version = "0.3", features = ["core_io"], default-features = false }
 log = "0.4"
 
 [features]
+target_zc706 = []
+target_cora_z7_10 = []
+target_redpitaya = []
 ipv6 = []
-
