@@ -39,4 +39,5 @@ in
     redpitaya-experiments = build-crate "redpitaya-experiments" "experiments" "target_redpitaya" cargoSha256Experiments;
     zc706-fsbl = (import ./nix/fsbl.nix { inherit pkgs; });
     zc706-szl = build-crate "zc706-szl" "szl" "target_zc706" cargoSha256SZL;
+    redpitaya-szl = build-crate "redpitaya-szl" "szl" "target_redpitaya" cargoSha256SZL;
   }
