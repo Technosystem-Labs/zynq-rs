@@ -10,6 +10,7 @@ const PARTID_FAT16_LESS32M: u8 = 0x04;
 const PARTID_FAT16: u8 = 0x06;
 const PARTID_FAT32: u8 = 0x0B;
 const PARTID_FAT32_LBA: u8 = 0x0C;
+const PARTID_FAT16_LBA: u8 = 0x0E;
 
 fn cmd_error_to_io_error(_: CmdTransferError) -> Error {
     Error::new(ErrorKind::Other, "Command transfer error")
@@ -161,7 +162,7 @@ impl SdReader {
         debug!("Partition ID: {:0X}", buffer[0]);
         match buffer[0] {
             PARTID_FAT12 | PARTID_FAT16_LESS32M | PARTID_FAT16 |
-            PARTID_FAT32 | PARTID_FAT32_LBA => {}
+            PARTID_FAT16_LBA | PARTID_FAT32 | PARTID_FAT32_LBA => {}
             _ => {
                 return Err(Error::new(
                     ErrorKind::InvalidData,
