@@ -56,9 +56,9 @@ fn parse_config<'a>(
     buffer: &mut Vec<u8>,
     file: fatfs::File<sd_reader::SdReader>,
 ) -> Result<'a, ()> {
-    let prefix = [key, "="].concat().to_lowercase();
+    let prefix = [key, "="].concat().to_ascii_lowercase();
     for line in BufReader::new(file).lines() {
-        let line = line?.to_lowercase();
+        let line = line?.to_ascii_lowercase();
         if line.starts_with(&prefix) {
             buffer.extend(line[prefix.len()..].as_bytes());
             return Ok(());
@@ -121,7 +121,7 @@ impl Config {
             match root_dir.remove(&["/CONFIG/", key, ".BIN"].concat()) {
                 Ok(()) => Ok(()),
                 Err(_) => {
-                    let prefix = [key, "="].concat().to_lowercase();
+                    let prefix = [key, "="].concat().to_ascii_lowercase();
                     match root_dir.create_file("/CONFIG.TXT") {
                         Ok(mut f) => {
                             let mut buffer = String::new();
@@ -129,7 +129,7 @@ impl Config {
                             f.seek(SeekFrom::Start(0))?;
                             f.truncate()?;
                             for line in buffer.lines() {
-                                if line.len() > 0 && !line.to_lowercase().starts_with(&prefix) {
+                                if line.len() > 0 && !line.to_ascii_lowercase().starts_with(&prefix) {
                                     f.write(line.as_bytes())?;
                                     f.write(NEWLINE)?;
                                 }
