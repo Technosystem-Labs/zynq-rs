@@ -5,14 +5,18 @@ use crate::println;
 mod zc706;
 #[cfg(feature = "target_redpitaya")]
 mod redpitaya;
-#[cfg(not(any(feature = "target_zc706", feature = "target_redpitaya")))]
+#[cfg(feature = "target_cora_z7_10")]
+mod cora_z7_10;
+#[cfg(not(any(feature = "target_zc706", feature = "target_redpitaya", feature = "target_cora_z7_10")))]
 mod none;
 
 #[cfg(feature = "target_zc706")]
 use zc706 as target;
 #[cfg(feature = "target_redpitaya")]
 use redpitaya as target;
-#[cfg(not(any(feature = "target_zc706", feature = "target_redpitaya")))]
+#[cfg(feature = "target_cora_z7_10")]
+use cora_z7_10 as target;
+#[cfg(not(any(feature = "target_zc706", feature = "target_redpitaya", feature = "target_cora_z7_10")))]
 use none as target;
 
 pub fn report_differences() {

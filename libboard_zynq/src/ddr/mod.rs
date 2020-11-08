@@ -4,7 +4,7 @@ use crate::{print, println};
 use super::slcr::{self, DdriobVrefSel};
 use super::clocks::{Clocks, source::{DdrPll, ClockSource}};
 
-#[cfg(feature = "target_redpitaya")]
+#[cfg(any(feature = "target_redpitaya", feature = "target_cora_z7_10"))]
 use super::ps7_init;
 
 mod regs;
@@ -30,11 +30,11 @@ pub struct DdrRam {
 
 impl DdrRam {
     pub fn ddrram() -> Self {
-        if cfg!(feature = "target_redpitaya") {
+        if cfg!(any(feature = "target_redpitaya", feature = "target_cora_z7_10")) {
             // We have not yet fixed red pitaya initialization yet.  It seems
             // that the clock configuration, iob settings and ddr settings are
             // all problematic
-            #[cfg(feature = "target_redpitaya")]
+            #[cfg(any(feature = "target_redpitaya", feature = "target_cora_z7_10"))]
             ps7_init::apply();
             let regs = regs::RegisterBlock::ddrc();
             DdrRam { regs }
