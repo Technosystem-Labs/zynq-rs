@@ -2,7 +2,7 @@ use super::InitOp::{self, *};
 
 pub const INIT_DATA: &'static [InitOp] = &[
     // *** ps7_mio_init_data_3_0 ***
-        // START: top
+    // START: top
     // .. START: SLCR SETTINGS
     // .. UNLOCK_KEY = 0xDF0D
     // .. ==> 0xF8000008[15:0] = 0x0000DF0DU
@@ -1973,7 +1973,7 @@ pub const INIT_DATA: &'static [InitOp] = &[
     // FINISH: top
 
     // *** ps7_pll_init_data_3_0 ***
-// START: top
+    // START: top
     // .. START: SLCR SETTINGS
     // .. UNLOCK_KEY = 0xDF0D
     // .. ==> 0xF8000008[15:0] = 0x0000DF0DU
