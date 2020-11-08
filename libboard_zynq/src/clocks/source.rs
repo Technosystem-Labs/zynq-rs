@@ -57,7 +57,7 @@ pub trait ClockSource {
     /// 25.10.4 PLLs
     fn setup(target_freq: u32) {
         let fdiv = (target_freq / PS_CLK).min(66) as u16;
-        let (pll_res, pll_cp, lock_cnt) = PLL_FDIV_LOCK_PARAM.iter()
+        let (pll_cp, pll_res, lock_cnt) = PLL_FDIV_LOCK_PARAM.iter()
             .filter(|(fdiv_max, _)| fdiv <= *fdiv_max)
             .nth(0)
             .expect("PLL_FDIV_LOCK_PARAM")
