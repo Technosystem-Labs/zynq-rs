@@ -44,8 +44,7 @@ impl DdrRam {
             Self::configure_iob();
             let regs = regs::RegisterBlock::ddrc();
             let mut ddr = DdrRam { regs };
-            ddr.configure();
-            ddr.reset_ddrc();
+            ddr.reset_ddrc(|ddr| ddr.configure());
             ddr
         }
     }
@@ -319,15 +318,7 @@ impl DdrRam {
     }
 
     /// Reset DDR controller
-    fn reset_ddrc(&mut self) {
-        #[cfg(feature = "target_zc706")]
-        unsafe {
-            // row/column address bits
-            self.regs.dram_addr_map_bank.write(0x00000777);
-            self.regs.dram_addr_map_col.write(0xFFF00000);
-            self.regs.dram_addr_map_row.write(0x0F666666);
-        }
-
+    fn reset_ddrc<F: FnMut(&mut Self)>(&mut self, mut f: F) {
         #[cfg(feature = "target_zc706")]
         let width = regs::DataBusWidth::Width32bit;
         #[cfg(feature = "target_cora_z7_10")]
@@ -339,6 +330,23 @@ impl DdrRam {
             .powerdown_en(false)
             .data_bus_width(width)
         );
+        f(self);
+
+        #[cfg(feature = "target_zc706")]
+        unsafe {
+            // row/column address bits
+            self.regs.dram_addr_map_bank.write(0x00000777);
+            self.regs.dram_addr_map_col.write(0xFFF00000);
+            self.regs.dram_addr_map_row.write(0x0F666666);
+        }
+        #[cfg(feature = "target_cora_z7_10")]
+        unsafe {
+            // row/column address bits
+            self.regs.dram_addr_map_bank.write(0x00000666);
+            self.regs.dram_addr_map_col.write(0xFFFF0000);
+            self.regs.dram_addr_map_row.write(0x0F555555);
+        }
+
         self.regs.ddrc_ctrl.modify(|_, w| w
             .soft_rstb(true)
             .powerdown_en(false)
