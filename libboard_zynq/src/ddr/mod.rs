@@ -257,17 +257,6 @@ impl DdrRam {
                 .post_selfref_gap_x32(0x10)
         );
 
-        #[cfg(feature = "target_cora_z7_10")]
-        self.regs.dram_param1.write(
-            regs::DramParam1::zeroed()
-                .wr2pre(0x12)
-                .powerdown_to_x32(0x6)
-                .t_faw(0x15)
-                .t_ras_max(0x23)
-                .t_ras_min(0x13)
-                .t_cke(0x4)
-        );
-
         self.regs.dram_param2.write(
             regs::DramParam2::zeroed()
                 .write_latency(0x5)
@@ -279,34 +268,12 @@ impl DdrRam {
                 .t_rcd(0x7)
         );
 
-        #[cfg(feature = "target_cora_z7_10")]
-        self.regs.dram_param3.write(
-            regs::DramParam3::zeroed()
-                .t_ccd(4)
-                .t_rrd(6)
-                .refresh_margin(2)
-                .t_rp(7)
-                .refresh_to_x32(8)
-                .mobile(false)
-                .dfi_dram_clk_disable(false)
-                .read_latency(7)
-                .mode_ddr1_ddr2(true)
-                .dis_pad_pd(false)
-        );
-
         self.regs.dram_emr_mr.write(
             regs::DramEmrMr::zeroed()
                 .mr(0x930)
                 .emr(0x4)
         );
 
-        #[cfg(feature = "target_cora_z7_10")]
-        self.regs.dram_burst8_rdwr.write(
-            regs::Burst8Rdwr::zeroed()
-                .burst_rdwr(4)
-                .pre_cke_x1024(0x167)
-                .post_cke_x1024(0x1)
-        );
         #[cfg(feature = "target_cora_z7_10")]
         self.regs.phy_config2.modify(
             |_, w| w.data_slice_in_use(false)
@@ -348,12 +315,6 @@ impl DdrRam {
                 .ctrlup_max(0x40)
         );
 
-        #[cfg(feature = "target_cora_z7_10")]
-        self.regs.phy_init_ratio3.write(
-            regs::PhyInitRatio::zeroed()
-                .wrlvl_init_ratio(0x0)
-                .gatelvl_init_ratio(0x76)
-        );
         #[cfg(feature = "target_zc706")]
         self.regs.phy_init_ratio3.write(
             regs::PhyInitRatio::zeroed()
@@ -379,18 +340,6 @@ impl DdrRam {
                 .dis_calib_rst(false)
                 .ctrl_slave_delay(0x0)
         );
-
-        #[cfg(feature = "target_cora_z7_10")]
-        for axi_priority_rd_port in &mut self.regs.axi_priority_rd_ports {
-            axi_priority_rd_port.modify(
-                |_, w| w
-                    .arb_pri_rd_portn(0x3ff)
-                    .arb_disable_aging_rd_portn(false)
-                    .arb_disable_urgent_rd_portn(false)
-                    .arb_disable_page_match_rd_portn(false)
-                    .arb_set_hpr_rd_portn(false)
-            );
-        }
     }
 
     /// Reset DDR controller
