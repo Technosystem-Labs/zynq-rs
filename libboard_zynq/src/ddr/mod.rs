@@ -4,7 +4,7 @@ use crate::{print, println};
 use super::slcr::{self, DdriobVrefSel};
 use super::clocks::{Clocks, source::{DdrPll, ClockSource}};
 
-#[cfg(any(feature = "target_redpitaya", feature = "target_cora_z7_10"))]
+#[cfg(feature = "target_redpitaya")]
 use super::ps7_init;
 
 mod regs;
@@ -30,18 +30,18 @@ pub struct DdrRam {
 
 impl DdrRam {
     pub fn ddrram() -> Self {
-        if cfg!(any(feature = "target_redpitaya", feature = "target_cora_z7_10")) {
+        if cfg!(feature = "target_redpitaya") {
             // We have not yet fixed red pitaya initialization yet.  It seems
             // that the clock configuration, iob settings and ddr settings are
             // all problematic
-            #[cfg(any(feature = "target_redpitaya", feature = "target_cora_z7_10"))]
+            #[cfg(feature = "target_redpitaya")]
             ps7_init::apply();
             let regs = regs::RegisterBlock::ddrc();
             DdrRam { regs }
         } else {
             let clocks = Self::clock_setup();
-            Self::calibrate_iob_impedance(&clocks);
             Self::configure_iob();
+            Self::calibrate_iob_impedance(&clocks);
             let regs = regs::RegisterBlock::ddrc();
             let mut ddr = DdrRam { regs };
             ddr.reset_ddrc(|ddr| ddr.configure());
@@ -218,12 +218,12 @@ impl DdrRam {
                 slcr.ddriob_drive_slew_clock.write(0x00F9861C);
             }
 
-            // Enable external V[REF]
             #[cfg(feature = "target_cora_z7_10")]
             slcr.ddriob_ddr_ctrl.modify(|_, w| w
                     .vref_int_en(false)
                     .vref_ext_en_lower(true)
                     .vref_ext_en_upper(false)
+                    .refio_en(true)
             );
             #[cfg(feature = "target_zc706")]
             slcr.ddriob_ddr_ctrl.modify(|_, w| w
@@ -242,11 +242,30 @@ impl DdrRam {
     }
 
     fn configure(&mut self) {
+        #[cfg(feature = "target_cora_z7_10")]
+        self.regs.dram_param0.write(
+            regs::DramParam0::zeroed()
+                .t_rc(0x1a)
+                .t_rfc_min(0x9e)
+                .post_selfref_gap_x32(0x10)
+        );
+        #[cfg(feature = "target_zc706")]
         self.regs.dram_param0.write(
             regs::DramParam0::zeroed()
                 .t_rc(0x1b)
                 .t_rfc_min(0x56)
                 .post_selfref_gap_x32(0x10)
+        );
+
+        #[cfg(feature = "target_cora_z7_10")]
+        self.regs.dram_param1.write(
+            regs::DramParam1::zeroed()
+                .wr2pre(0x12)
+                .powerdown_to_x32(0x6)
+                .t_faw(0x15)
+                .t_ras_max(0x23)
+                .t_ras_min(0x13)
+                .t_cke(0x4)
         );
 
         self.regs.dram_param2.write(
@@ -260,10 +279,41 @@ impl DdrRam {
                 .t_rcd(0x7)
         );
 
+        #[cfg(feature = "target_cora_z7_10")]
+        self.regs.dram_param3.write(
+            regs::DramParam3::zeroed()
+                .t_ccd(4)
+                .t_rrd(6)
+                .refresh_margin(2)
+                .t_rp(7)
+                .refresh_to_x32(8)
+                .mobile(false)
+                .dfi_dram_clk_disable(false)
+                .read_latency(7)
+                .mode_ddr1_ddr2(true)
+                .dis_pad_pd(false)
+        );
+
         self.regs.dram_emr_mr.write(
             regs::DramEmrMr::zeroed()
                 .mr(0x930)
                 .emr(0x4)
+        );
+
+        #[cfg(feature = "target_cora_z7_10")]
+        self.regs.dram_burst8_rdwr.write(
+            regs::Burst8Rdwr::zeroed()
+                .burst_rdwr(4)
+                .pre_cke_x1024(0x167)
+                .post_cke_x1024(0x1)
+        );
+        #[cfg(feature = "target_cora_z7_10")]
+        self.regs.phy_config2.modify(
+            |_, w| w.data_slice_in_use(false)
+        );
+        #[cfg(feature = "target_cora_z7_10")]
+        self.regs.phy_config3.modify(
+            |_, w| w.data_slice_in_use(false)
         );
 
         self.regs.phy_cmd_timeout_rddata_cpt.modify(
@@ -298,10 +348,24 @@ impl DdrRam {
                 .ctrlup_max(0x40)
         );
 
+        #[cfg(feature = "target_cora_z7_10")]
+        self.regs.phy_init_ratio3.write(
+            regs::PhyInitRatio::zeroed()
+                .wrlvl_init_ratio(0x0)
+                .gatelvl_init_ratio(0x76)
+        );
+        #[cfg(feature = "target_zc706")]
         self.regs.phy_init_ratio3.write(
             regs::PhyInitRatio::zeroed()
                 .wrlvl_init_ratio(0x21)
                 .gatelvl_init_ratio(0xee)
+        );
+
+        #[cfg(feature = "target_cora_z7_10")]
+        self.regs.reg_64.modify(
+            |_, w| w
+                .phy_ctrl_slave_ratio(0x100)
+                .phy_invert_clkout(true)
         );
 
         self.regs.reg_65.write(
@@ -315,6 +379,18 @@ impl DdrRam {
                 .dis_calib_rst(false)
                 .ctrl_slave_delay(0x0)
         );
+
+        #[cfg(feature = "target_cora_z7_10")]
+        for axi_priority_rd_port in &mut self.regs.axi_priority_rd_ports {
+            axi_priority_rd_port.modify(
+                |_, w| w
+                    .arb_pri_rd_portn(0x3ff)
+                    .arb_disable_aging_rd_portn(false)
+                    .arb_disable_urgent_rd_portn(false)
+                    .arb_disable_page_match_rd_portn(false)
+                    .arb_set_hpr_rd_portn(false)
+            );
+        }
     }
 
     /// Reset DDR controller
@@ -370,7 +446,7 @@ impl DdrRam {
         #[cfg(feature = "target_zc706")]
         let megabytes = 1023;
         #[cfg(feature = "target_cora_z7_10")]
-        let megabytes = 511;
+        let megabytes = 512;
         #[cfg(feature = "target_redpitaya")]
         let megabytes = 511;
 

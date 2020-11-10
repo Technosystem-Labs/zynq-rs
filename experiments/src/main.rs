@@ -93,8 +93,6 @@ pub fn main_core0() {
     println!("\nZynq experiments");
     let mut interrupt_controller = gic::InterruptController::gic(mpcore::RegisterBlock::mpcore());
     interrupt_controller.enable_interrupts();
-    // ps7_init::apply();
-    libboard_zynq::stdio::drop_uart();
 
     libboard_zynq::logger::init().unwrap();
     log::set_max_level(log::LevelFilter::Trace);

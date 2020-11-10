@@ -427,7 +427,7 @@ pub const INIT_DATA: &'static [InitOp] = &[
     // .. DisableRcvr = 0
     // .. ==> 0xF8000700[13:13] = 0x00000000U
     // ..     ==> MASK : 0x00002000U    VAL : 0x00000000U
-    // .. 
+    // ..
     MaskWrite(0xF8000700, 0x00003FFF, 0x00001600),
     // .. TRI_ENABLE = 0
     // .. ==> 0xF8000704[0:0] = 0x00000000U
@@ -3522,7 +3522,7 @@ pub const INIT_DATA: &'static [InitOp] = &[
     // .. .. FINISH: CHECK DDR STATUS
     // .. FINISH: DDR INITIALIZATION
     // FINISH: top
-    
+
     // *** ps7_peripherals_init_data_3_0 ***
     // START: top
     // .. START: SLCR SETTINGS
@@ -3978,5 +3978,4 @@ pub const INIT_DATA: &'static [InitOp] = &[
     // .. .. FINISH: NOR CHIP SELECT
     // .. FINISH: SMC TIMING CALCULATION REGISTER UPDATE
     // FINISH: top
-
 ];

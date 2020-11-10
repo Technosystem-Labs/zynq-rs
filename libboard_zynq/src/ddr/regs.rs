@@ -33,14 +33,14 @@ pub struct RegisterBlock {
     pub lpr: RW<u32>,
     pub wr: RW<u32>,
     pub dram_param0: DramParam0,
-    pub dram_param1: RW<u32>,
+    pub dram_param1: DramParam1,
     pub dram_param2: DramParam2,
-    pub dram_param3: RW<u32>,
+    pub dram_param3: DramParam3,
     pub dram_param4: RW<u32>,
     pub dram_init_param: RW<u32>,
     pub dram_emr: RW<u32>,
     pub dram_emr_mr: DramEmrMr,
-    pub dram_burst8_rdwr: RW<u32>,
+    pub dram_burst8_rdwr: Burst8Rdwr,
     pub dram_disable_dq: RW<u32>,
     pub dram_addr_map_bank: RW<u32>,
     pub dram_addr_map_col: RW<u32>,
@@ -84,10 +84,10 @@ pub struct RegisterBlock {
     pub che_ecc_corr_bit_mask_63_32_offset: RW<u32>,
     _unused3: [RO<u32>; 5],
     pub phy_rcvr_enable: RW<u32>,
-    pub phy_config0: RW<u32>,
-    pub phy_config1: RW<u32>,
-    pub phy_config2: RW<u32>,
-    pub phy_config3: RW<u32>,
+    pub phy_config0: PhyConfig,
+    pub phy_config1: PhyConfig,
+    pub phy_config2: PhyConfig,
+    pub phy_config3: PhyConfig,
     _unused4: RO<u32>,
     pub phy_init_ratio0: PhyInitRatio,
     pub phy_init_ratio1: PhyInitRatio,
@@ -114,7 +114,7 @@ pub struct RegisterBlock {
     pub wr_data_slv2: RW<u32>,
     pub wr_data_slv3: RW<u32>,
     _unused9: RO<u32>,
-    pub reg_64: RW<u32>,
+    pub reg_64: Reg64,
     pub reg_65: Reg65,
     _unused10: [RO<u32>; 3],
     pub reg69_6a0: RW<u32>,
@@ -142,10 +142,7 @@ pub struct RegisterBlock {
     pub axi_priority_wr_port1: RW<u32>,
     pub axi_priority_wr_port2: RW<u32>,
     pub axi_priority_wr_port3: RW<u32>,
-    pub axi_priority_rd_port0: RW<u32>,
-    pub axi_priority_rd_port1: RW<u32>,
-    pub axi_priority_rd_port2: RW<u32>,
-    pub axi_priority_rd_port3: RW<u32>,
+    pub axi_priority_rd_ports: [AxiPriorityRd; 4],
     _unused15: [RO<u32>; 27],
     pub excl_access_cfg0: RW<u32>,
     pub excl_access_cfg1: RW<u32>,
@@ -173,6 +170,14 @@ register_bits!(dram_param0, t_rc, u8, 0, 5);
 register_bits!(dram_param0, t_rfc_min, u8, 6, 13);
 register_bits!(dram_param0, post_selfref_gap_x32, u8, 14, 20);
 
+register!(dram_param1, DramParam1, RW, u32);
+register_bits!(dram_param1, wr2pre, u8, 0, 4);
+register_bits!(dram_param1, powerdown_to_x32, u8, 5, 9);
+register_bits!(dram_param1, t_faw, u8, 10, 15);
+register_bits!(dram_param1, t_ras_max, u8, 16, 21);
+register_bits!(dram_param1, t_ras_min, u8, 22, 26);
+register_bits!(dram_param1, t_cke, u8, 28, 31);
+
 register!(dram_param2, DramParam2, RW, u32);
 register_bits!(dram_param2, write_latency, u8, 0, 4);
 register_bits!(dram_param2, rd2wr, u8, 5, 9);
@@ -182,9 +187,28 @@ register_bits!(dram_param2, pad_pd, u8, 20, 22);
 register_bits!(dram_param2, rd2pre, u8, 23, 27);
 register_bits!(dram_param2, t_rcd, u8, 28, 31);
 
+register!(dram_param3, DramParam3, RW, u32);
+register_bits!(dram_param3, t_ccd, u8, 2, 4);
+register_bits!(dram_param3, t_rrd, u8, 5, 7);
+register_bits!(dram_param3, refresh_margin, u8, 8, 11);
+register_bits!(dram_param3, t_rp, u8, 12, 15);
+register_bits!(dram_param3, refresh_to_x32, u8, 16, 20);
+register_bit!(dram_param3, sdram, 21);
+register_bit!(dram_param3, mobile, 22);
+register_bit!(dram_param3, dfi_dram_clk_disable, 23);
+register_bits!(dram_param3, read_latency, u8, 24, 28);
+register_bit!(dram_param3, mode_ddr1_ddr2, 29);
+register_bit!(dram_param3, dis_pad_pd, 30);
+
 register!(dram_emr_mr, DramEmrMr, RW, u32);
 register_bits!(dram_emr_mr, mr, u16, 0, 15);
 register_bits!(dram_emr_mr, emr, u16, 16, 31);
+
+register!(burst8_rdwr, Burst8Rdwr, RW, u32);
+register_bits!(burst8_rdwr, burst_rdwr, u8, 0, 3);
+register_bits!(burst8_rdwr, pre_cke_x1024, u16, 4, 13);
+register_bits!(burst8_rdwr, post_cke_x1024, u16, 16, 25);
+register_bit!(burst8_rdwr, burstchop, 28);
 
 register!(phy_cmd_timeout_rddata_cpt, PhyCmdTimeoutRddataCpt, RW, u32);
 register_bits!(phy_cmd_timeout_rddata_cpt, rd_cmd_to_data, u8, 0, 3);
@@ -212,9 +236,26 @@ register_bits!(dfi_timing, rddata_en, u8, 0, 4);
 register_bits!(dfi_timing, ctrlup_min, u16, 5, 14);
 register_bits!(dfi_timing, ctrlup_max, u16, 15, 24);
 
+register!(phy_config, PhyConfig, RW, u32);
+register_bit!(phy_config, data_slice_in_use, 0);
+register_bit!(phy_config, rdlvl_inc_mode, 1);
+register_bit!(phy_config, gatelvl_inc_mode, 2);
+register_bit!(phy_config, wrlvl_inc_mode, 3);
+register_bits!(phy_config, dq_offset, u8, 24, 30);
+
 register!(phy_init_ratio, PhyInitRatio, RW, u32);
 register_bits!(phy_init_ratio, wrlvl_init_ratio, u16, 0, 9);
 register_bits!(phy_init_ratio, gatelvl_init_ratio, u16, 10, 19);
+
+register!(reg_64, Reg64, RW, u32);
+register_bit!(reg_64, phy_bl2, 1);
+register_bit!(reg_64, phy_invert_clkout, 7);
+register_bit!(reg_64, phy_sel_logic, 9);
+register_bits!(reg_64, phy_ctrl_slave_ratio, u16, 10, 19);
+register_bit!(reg_64, phy_ctrl_slave_force, 20);
+register_bits!(reg_64, phy_ctrl_slave_delay, u8, 21, 27);
+register_bit!(reg_64, phy_lpddr, 29);
+register_bit!(reg_64, phy_cmd_latency, 30);
 
 register!(reg_65, Reg65, RW, u32);
 register_bits!(reg_65, wr_rl_delay, u8, 0, 4);
@@ -231,3 +272,10 @@ register!(mode_sts_reg,
           ModeStsReg, RO, u32);
 register_bits_typed!(mode_sts_reg, operating_mode, u8, ControllerStatus, 0, 2);
 // (mode_sts_reg) ...
+
+register!(axi_priority_rd, AxiPriorityRd, RW, u32);
+register_bits!(axi_priority_rd, arb_pri_rd_portn, u16, 0, 9);
+register_bit!(axi_priority_rd, arb_disable_aging_rd_portn, 16);
+register_bit!(axi_priority_rd, arb_disable_urgent_rd_portn, 17);
+register_bit!(axi_priority_rd, arb_disable_page_match_rd_portn, 18);
+register_bit!(axi_priority_rd, arb_set_hpr_rd_portn, 19);
