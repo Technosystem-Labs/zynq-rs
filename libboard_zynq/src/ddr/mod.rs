@@ -392,12 +392,14 @@ impl DdrRam {
     /// actually there's 1 MB more but starting at 0x0000_0000
     /// overlaps with OCM.
     pub fn size(&self) -> usize {
+        // DDR range ends at 0x3FFF_FFFF in the default SCU address
+        // filtering address map
         #[cfg(feature = "target_zc706")]
         let megabytes = 1023;
         #[cfg(feature = "target_cora_z7_10")]
         let megabytes = 512;
         #[cfg(feature = "target_redpitaya")]
-        let megabytes = 511;
+        let megabytes = 512;
 
         megabytes * 1024 * 1024
     }
