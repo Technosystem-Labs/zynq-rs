@@ -1,11 +1,8 @@
 use libregister::{RegisterR, RegisterW, RegisterRW};
 use log::{debug, info, error};
 use crate::{print, println};
-use super::slcr::{self, DdriobVrefSel};
+use super::slcr;
 use super::clocks::{Clocks, source::{DdrPll, ClockSource}};
-
-#[cfg(feature = "target_redpitaya")]
-use super::ps7_init;
 
 mod regs;
 
@@ -18,8 +15,8 @@ const DDR_FREQ: u32 = 666_666_666;
 const DDR_FREQ: u32 = 525_000_000;
 
 #[cfg(feature = "target_redpitaya")]
-/// Alliance Memory AS4C256M16D3B: 800 MHz DDR3
-const DDR_FREQ: u32 = 800_000_000;
+/// Alliance Memory AS4C256M16D3B: 800 MHz DDR3 at 533 MHz
+const DDR_FREQ: u32 = 533_333_333;
 
 /// MT41K256M16HA-125
 const DCI_FREQ: u32 = 10_000_000;
@@ -30,23 +27,13 @@ pub struct DdrRam {
 
 impl DdrRam {
     pub fn ddrram() -> Self {
-        if cfg!(feature = "target_redpitaya") {
-            // We have not yet fixed red pitaya initialization yet.  It seems
-            // that the clock configuration, iob settings and ddr settings are
-            // all problematic
-            #[cfg(feature = "target_redpitaya")]
-            ps7_init::apply();
-            let regs = regs::RegisterBlock::ddrc();
-            DdrRam { regs }
-        } else {
-            let clocks = Self::clock_setup();
-            Self::configure_iob();
-            Self::calibrate_iob_impedance(&clocks);
-            let regs = regs::RegisterBlock::ddrc();
-            let mut ddr = DdrRam { regs };
-            ddr.reset_ddrc(|ddr| ddr.configure());
-            ddr
-        }
+        let clocks = Self::clock_setup();
+        Self::configure_iob();
+        Self::calibrate_iob_impedance(&clocks);
+        let regs = regs::RegisterBlock::ddrc();
+        let mut ddr = DdrRam { regs };
+        ddr.reset_ddrc(|ddr| ddr.configure());
+        ddr
     }
 
     /// Zynq-7000 AP SoC Technical Reference Manual:
@@ -237,6 +224,7 @@ impl DdrRam {
                     .vref_int_en(false)
                     .vref_ext_en_lower(true)
                     .vref_ext_en_upper(false)
+                    .refio_en(true)
             );
         });
     }
@@ -249,12 +237,29 @@ impl DdrRam {
                 .t_rfc_min(0x9e)
                 .post_selfref_gap_x32(0x10)
         );
+        #[cfg(feature = "target_redpitaya")]
+        self.regs.dram_param0.write(
+            regs::DramParam0::zeroed()
+                .t_rc(0x1b)
+                .t_rfc_min(0xa0)
+                .post_selfref_gap_x32(0x10)
+        );
         #[cfg(feature = "target_zc706")]
         self.regs.dram_param0.write(
             regs::DramParam0::zeroed()
                 .t_rc(0x1b)
                 .t_rfc_min(0x56)
                 .post_selfref_gap_x32(0x10)
+        );
+        #[cfg(feature = "target_redpitaya")]
+        self.regs.dram_param1.modify(
+            |_, w| w
+                .wr2pre(0x12)
+                .powerdown_to_x32(6)
+                .t_faw(0x16)
+                .t_ras_max(0x24)
+                .t_ras_min(0x13)
+                .t_cke(4)
         );
 
         self.regs.dram_param2.write(
@@ -267,6 +272,20 @@ impl DdrRam {
                 .rd2pre(0x4)
                 .t_rcd(0x7)
         );
+        #[cfg(feature = "target_redpitaya")]
+        self.regs.dram_param3.modify(
+            |_, w| w
+                .t_ccd(4)
+                .t_rrd(6)
+                .refresh_margin(2)
+                .t_rp(7)
+                .refresh_to_x32(8)
+                .mobile(false)
+                .dfi_dram_clk_disable(false)
+                .read_latency(7)
+                .mode_ddr1_ddr2(true)
+                .dis_pad_pd(false)
+        );
 
         self.regs.dram_emr_mr.write(
             regs::DramEmrMr::zeroed()
@@ -275,11 +294,19 @@ impl DdrRam {
         );
 
         #[cfg(feature = "target_cora_z7_10")]
-        self.regs.phy_config2.modify(
+        self.regs.phy_configs[2].modify(
             |_, w| w.data_slice_in_use(false)
         );
         #[cfg(feature = "target_cora_z7_10")]
-        self.regs.phy_config3.modify(
+        self.regs.phy_configs[3].modify(
+            |_, w| w.data_slice_in_use(false)
+        );
+        #[cfg(feature = "target_redpitaya")]
+        self.regs.phy_configs[2].modify(
+            |_, w| w.data_slice_in_use(false)
+        );
+        #[cfg(feature = "target_redpitaya")]
+        self.regs.phy_configs[3].modify(
             |_, w| w.data_slice_in_use(false)
         );
 
@@ -316,7 +343,7 @@ impl DdrRam {
         );
 
         #[cfg(feature = "target_zc706")]
-        self.regs.phy_init_ratio3.write(
+        self.regs.phy_init_ratios[3].write(
             regs::PhyInitRatio::zeroed()
                 .wrlvl_init_ratio(0x21)
                 .gatelvl_init_ratio(0xee)
@@ -327,6 +354,18 @@ impl DdrRam {
             |_, w| w
                 .phy_ctrl_slave_ratio(0x100)
                 .phy_invert_clkout(true)
+        );
+        #[cfg(feature = "target_redpitaya")]
+        self.regs.reg_64.modify(
+            |_, w| w
+                .phy_bl2(false)
+                .phy_invert_clkout(true)
+                .phy_sel_logic(false)
+                .phy_ctrl_slave_ratio(0x100)
+                .phy_ctrl_slave_force(false)
+                .phy_ctrl_slave_delay(0)
+                .phy_lpddr(false)
+                .phy_cmd_latency(false)
         );
 
         self.regs.reg_65.write(
@@ -364,7 +403,7 @@ impl DdrRam {
             self.regs.dram_addr_map_col.write(0xFFF00000);
             self.regs.dram_addr_map_row.write(0x0F666666);
         }
-        #[cfg(feature = "target_cora_z7_10")]
+        #[cfg(any(feature = "target_cora_z7_10", feature = "target_redpitaya"))]
         unsafe {
             // row/column address bits
             self.regs.dram_addr_map_bank.write(0x00000666);

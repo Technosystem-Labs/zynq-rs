@@ -60,7 +60,7 @@ pub struct RegisterBlock {
     pub ctrl6: RW<u32>,
     _unused1: [RO<u32>; 8],
     pub che_refresh_timer01: RW<u32>,
-    pub che_t_zq: RW<u32>,
+    pub che_t_zq: CheTZq,
     pub che_t_zq_short_interval: RW<u32>,
     pub deep_pwrdwn: RW<u32>,
     pub reg_2c: Reg2C,
@@ -84,15 +84,9 @@ pub struct RegisterBlock {
     pub che_ecc_corr_bit_mask_63_32_offset: RW<u32>,
     _unused3: [RO<u32>; 5],
     pub phy_rcvr_enable: RW<u32>,
-    pub phy_config0: PhyConfig,
-    pub phy_config1: PhyConfig,
-    pub phy_config2: PhyConfig,
-    pub phy_config3: PhyConfig,
+    pub phy_configs: [PhyConfig; 4],
     _unused4: RO<u32>,
-    pub phy_init_ratio0: PhyInitRatio,
-    pub phy_init_ratio1: PhyInitRatio,
-    pub phy_init_ratio2: PhyInitRatio,
-    pub phy_init_ratio3: PhyInitRatio,
+    pub phy_init_ratios: [PhyInitRatio; 4],
     _unused5: RO<u32>,
     pub phy_rd_dqs_cfg0: RW<u32>,
     pub phy_rd_dqs_cfg1: RW<u32>,
@@ -138,10 +132,7 @@ pub struct RegisterBlock {
     _unused14: [RO<u32>; 5],
     pub axi_id: RW<u32>,
     pub page_mask: RW<u32>,
-    pub axi_priority_wr_port0: RW<u32>,
-    pub axi_priority_wr_port1: RW<u32>,
-    pub axi_priority_wr_port2: RW<u32>,
-    pub axi_priority_wr_port3: RW<u32>,
+    pub axi_priority_wr_ports: [RW<u32>; 4],
     pub axi_priority_rd_ports: [AxiPriorityRd; 4],
     _unused15: [RO<u32>; 27],
     pub excl_access_cfg0: RW<u32>,
@@ -221,6 +212,13 @@ register_bit!(phy_cmd_timeout_rddata_cpt, dis_phy_ctrl_rstn, 18);
 register_bit!(phy_cmd_timeout_rddata_cpt, clk_stall_level, 19);
 register_bits!(phy_cmd_timeout_rddata_cpt, gatelvl_num_of_dq0, u8, 24, 27);
 register_bits!(phy_cmd_timeout_rddata_cpt, wrlvl_num_of_dq0, u8, 28, 31);
+
+register!(che_t_zq, CheTZq, RW, u32);
+register_bit!(che_t_zq, dis_auto_zq, 0);
+register_bit!(che_t_zq, ddr3, 1);
+register_bits!(che_t_zq, t_mod, u8, 2, 11);
+register_bits!(che_t_zq, t_zq_long_nop, u16, 12, 21);
+register_bits!(che_t_zq, t_zq_short_nop, u16, 22, 31);
 
 register!(reg_2c, Reg2C, RW, u32);
 register_bits!(reg_2c, wrlvl_max_x1024, u16, 0, 11);
