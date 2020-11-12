@@ -2,6 +2,8 @@ use libregister::{RegisterR, RegisterW, RegisterRW};
 use log::{debug, info, error};
 use crate::{print, println};
 use super::slcr;
+#[cfg(feature = "target_zc706")]
+use super::slcr::DdriobVrefSel;
 use super::clocks::{Clocks, source::{DdrPll, ClockSource}};
 
 mod regs;
