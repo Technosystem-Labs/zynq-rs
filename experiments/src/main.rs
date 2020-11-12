@@ -143,8 +143,6 @@ pub fn main_core0() {
     let timer = libboard_zynq::timer::GlobalTimer::start();
 
     let mut ddr = zynq::ddr::DdrRam::ddrram();
-    // ddr init may call ps7_init, reconfiguring the uart
-    libboard_zynq::stdio::drop_uart();
     #[cfg(not(feature = "target_zc706"))]
     ddr.memtest();
     ram::init_alloc_ddr(&mut ddr);
