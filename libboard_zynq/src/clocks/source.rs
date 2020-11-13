@@ -4,7 +4,7 @@ use super::slcr;
 
 #[cfg(feature = "target_zc706")]
 pub const PS_CLK: u32 = 33_333_333;
-#[cfg(feature = "target_cora_z7_10")]
+#[cfg(feature = "target_coraz7")]
 pub const PS_CLK: u32 = 50_000_000;
 #[cfg(feature = "target_redpitaya")]
 pub const PS_CLK: u32 = 33_333_333;

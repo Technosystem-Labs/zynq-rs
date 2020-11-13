@@ -105,7 +105,7 @@ impl Sdio {
                 );
             }
             // cora card detect pin
-            #[cfg(feature = "target_cora_z7_10")]
+            #[cfg(feature = "target_coraz7")]
             {
                 unsafe {
                     slcr.sd0_wp_cd_sel.write(47 << 16);

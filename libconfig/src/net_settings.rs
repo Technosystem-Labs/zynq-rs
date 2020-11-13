@@ -35,9 +35,9 @@ pub fn get_adresses(cfg: &Config) -> NetAddresses {
     let mut hardware_addr = EthernetAddress([0x02, 0x00, 0x00, 0x00, 0x00, 0x52]);
     #[cfg(feature = "target_zc706")]
     let mut ipv4_addr = IpAddress::v4(192, 168, 1, 52);
-    #[cfg(feature = "target_cora_z7_10")]
+    #[cfg(feature = "target_coraz7")]
     let mut hardware_addr = EthernetAddress([0x02, 0x00, 0x00, 0x00, 0x00, 0x54]);
-    #[cfg(feature = "target_cora_z7_10")]
+    #[cfg(feature = "target_coraz7")]
     let mut ipv4_addr = IpAddress::v4(192, 168, 1, 54);
     #[cfg(feature = "target_redpitaya")]
     let mut hardware_addr = EthernetAddress([0x02, 0x00, 0x00, 0x00, 0x00, 0x55]);

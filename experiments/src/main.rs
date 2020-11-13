@@ -107,7 +107,7 @@ pub fn main_core0() {
 
     #[cfg(feature = "target_zc706")]
     const CPU_FREQ: u32 = 800_000_000;
-    #[cfg(feature = "target_cora_z7_10")]
+    #[cfg(feature = "target_coraz7")]
     const CPU_FREQ: u32 = 650_000_000;
     #[cfg(feature = "target_redpitaya")]
     const CPU_FREQ: u32 = 800_000_000;
@@ -120,7 +120,7 @@ pub fn main_core0() {
         IoPll::setup(1_000_000_000);
         libboard_zynq::stdio::drop_uart();
     }
-    #[cfg(feature = "target_cora_z7_10")]
+    #[cfg(feature = "target_coraz7")]
     {
         IoPll::setup(1_000_000_000);
         libboard_zynq::stdio::drop_uart();
