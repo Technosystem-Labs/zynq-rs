@@ -31,13 +31,16 @@ let
       doCheck = false;
       dontFixup = true;
     };
+
+  targetCrates = target: {
+    "${target}-experiments" = build-crate "${target}-experiments" "experiments" "target_${target}" cargoSha256Experiments;
+    "${target}-szl" = build-crate "${target}-szl" "szl" "target_${target}" cargoSha256SZL;
+  };
+  targets = ["zc706" "coraz7" "redpitaya"];
 in
   {
     inherit cargo-xbuild;
-    zc706-experiments = build-crate "zc706-experiments" "experiments" "target_zc706" cargoSha256Experiments;
-    cora-experiments = build-crate "cora-experiments" "experiments" "target_cora_z7_10" cargoSha256Experiments;
-    redpitaya-experiments = build-crate "redpitaya-experiments" "experiments" "target_redpitaya" cargoSha256Experiments;
-    zc706-fsbl = (import ./nix/fsbl.nix { inherit pkgs; });
-    zc706-szl = build-crate "zc706-szl" "szl" "target_zc706" cargoSha256SZL;
-    redpitaya-szl = build-crate "redpitaya-szl" "szl" "target_redpitaya" cargoSha256SZL;
-  }
+    zc706-fsbl = import ./nix/fsbl.nix { inherit pkgs; };
+  } // (builtins.foldl' (results: target:
+    results // targetCrates target
+  ) {} targets)
