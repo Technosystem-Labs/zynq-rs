@@ -14,8 +14,8 @@ Supported features:
 
 Supported boards:
  * ZC706
- * Red Pitaya (note: SDRAM issues, worked around using `ps7_init`)
- * Cora Z7-10 (note: SDRAM issues)
+ * Red Pitaya
+ * Cora Z7-10 (seems to also run on Cora Z7-07S, including dual-core support)
 
 ## Build
 
