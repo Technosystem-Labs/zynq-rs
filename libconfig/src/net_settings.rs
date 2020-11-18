@@ -51,7 +51,7 @@ pub fn get_adresses(cfg: &Config) -> NetAddresses {
         ipv4_addr = addr;
     }
     #[cfg(feature = "ipv6")]
-    let ipv6_addr = cfg.read_str("ipv6").ok().and_then(|s| s.parse().ok());
+    let ipv6_addr = cfg.read_str("ip6").ok().and_then(|s| s.parse().ok());
 
     #[cfg(feature = "ipv6")]
     let ipv6_ll_addr = IpAddress::v6(
