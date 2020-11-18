@@ -4,7 +4,7 @@ set -e
 
 target_host="rpi-4.m-labs.hk"
 
-while getopts "h:i" opt; do
+while getopts "h:" opt; do
     case "$opt" in
     \?) exit 0
         ;;
