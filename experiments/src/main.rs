@@ -223,7 +223,7 @@ pub fn main_core0() {
                     // const CHUNK_SIZE: usize = 65536;
                     // match stream.send((0..=255).cycle().take(CHUNK_SIZE)).await {
                     match stream.send_slice(&tx_data[..]).await {
-                        Ok(len) => stats_tx.borrow_mut().1 += tx_data.len(), //CHUNK_SIZE,
+                        Ok(_len) => stats_tx.borrow_mut().1 += tx_data.len(), //CHUNK_SIZE,
                         Err(e) => {
                             warn!("tx: {:?}", e);
                             break
