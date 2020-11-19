@@ -8,6 +8,8 @@ pub const PS_CLK: u32 = 33_333_333;
 pub const PS_CLK: u32 = 50_000_000;
 #[cfg(feature = "target_redpitaya")]
 pub const PS_CLK: u32 = 33_333_333;
+#[cfg(feature = "target_kasli_soc")]
+pub const PS_CLK: u32 = 33_333_333;
 
 /// (pll_fdiv_max, (pll_cp, pll_res, lock_cnt))
 const PLL_FDIV_LOCK_PARAM: &[(u16, (u8, u8, u16))] = &[

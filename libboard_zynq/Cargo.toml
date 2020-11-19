@@ -9,6 +9,7 @@ edition = "2018"
 target_zc706 = []
 target_coraz7 = []
 target_redpitaya = []
+target_kasli_soc = []
 ipv6 = [ "smoltcp/proto-ipv6" ]
 
 [dependencies]

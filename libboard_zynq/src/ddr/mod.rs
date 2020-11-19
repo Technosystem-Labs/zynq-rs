@@ -20,6 +20,10 @@ const DDR_FREQ: u32 = 525_000_000;
 /// Alliance Memory AS4C256M16D3B: 800 MHz DDR3 at 533 MHz
 const DDR_FREQ: u32 = 533_333_333;
 
+#[cfg(feature = "target_kasli_soc")]
+/// MT41K256M16HA-125:E: 800 MHz DDR3L at 533 MHz
+const DDR_FREQ: u32 = 533_333_333;
+
 const DCI_MAX_FREQ: u32 = 10_000_000;
 
 pub struct DdrRam {
@@ -143,13 +147,13 @@ impl DdrRam {
                 .output_en(slcr::DdriobOutputEn::Obuf);
             #[cfg(feature = "target_zc706")]
             let data1_config = data0_config.clone();
-            #[cfg(feature = "target_coraz7")]
+            #[cfg(any(feature = "target_coraz7", feature = "target_kasli_soc"))]
             let data0_config = slcr::DdriobConfig::zeroed()
                 .inp_type(slcr::DdriobInputType::VrefDifferential)
                 .term_en(true)
                 .dci_type(slcr::DdriobDciType::Termination)
                 .output_en(slcr::DdriobOutputEn::Obuf);
-            #[cfg(feature = "target_coraz7")]
+            #[cfg(any(feature = "target_coraz7", feature = "target_kasli_soc"))]
             let data1_config = slcr::DdriobConfig::zeroed()
                 .pullup_en(true);
             #[cfg(feature = "target_redpitaya")]
@@ -172,13 +176,13 @@ impl DdrRam {
                 .output_en(slcr::DdriobOutputEn::Obuf);
             #[cfg(feature = "target_zc706")]
             let diff1_config = diff0_config.clone();
-            #[cfg(feature = "target_coraz7")]
+            #[cfg(any(feature = "target_coraz7", feature = "target_kasli_soc"))]
             let diff0_config = slcr::DdriobConfig::zeroed()
                 .inp_type(slcr::DdriobInputType::Differential)
                 .term_en(true)
                 .dci_type(slcr::DdriobDciType::Termination)
                 .output_en(slcr::DdriobOutputEn::Obuf);
-            #[cfg(feature = "target_coraz7")]
+            #[cfg(any(feature = "target_coraz7", feature = "target_kasli_soc"))]
             let diff1_config = slcr::DdriobConfig::zeroed()
                 .pullup_en(true);
             #[cfg(feature = "target_redpitaya")]
@@ -206,7 +210,7 @@ impl DdrRam {
                 slcr.ddriob_drive_slew_clock.write(0x00F9861C);
             }
 
-            #[cfg(feature = "target_coraz7")]
+            #[cfg(any(feature = "target_coraz7", feature = "target_kasli_soc"))]
             slcr.ddriob_ddr_ctrl.modify(|_, w| w
                     .vref_int_en(false)
                     .vref_ext_en_lower(true)
@@ -231,7 +235,7 @@ impl DdrRam {
     }
 
     fn configure(&mut self) {
-        #[cfg(feature = "target_coraz7")]
+        #[cfg(any(feature = "target_coraz7", feature = "target_kasli_soc"))]
         self.regs.dram_param0.write(
             regs::DramParam0::zeroed()
                 .t_rc(0x1a)
@@ -294,11 +298,11 @@ impl DdrRam {
                 .emr(0x4)
         );
 
-        #[cfg(feature = "target_coraz7")]
+        #[cfg(any(feature = "target_coraz7", feature = "target_kasli_soc"))]
         self.regs.phy_configs[2].modify(
             |_, w| w.data_slice_in_use(false)
         );
-        #[cfg(feature = "target_coraz7")]
+        #[cfg(any(feature = "target_coraz7", feature = "target_kasli_soc"))]
         self.regs.phy_configs[3].modify(
             |_, w| w.data_slice_in_use(false)
         );
@@ -350,7 +354,7 @@ impl DdrRam {
                 .gatelvl_init_ratio(0xee)
         );
 
-        #[cfg(feature = "target_coraz7")]
+        #[cfg(any(feature = "target_coraz7", feature = "target_kasli_soc"))]
         self.regs.reg_64.modify(
             |_, w| w
                 .phy_ctrl_slave_ratio(0x100)
@@ -386,7 +390,7 @@ impl DdrRam {
     fn reset_ddrc<F: FnMut(&mut Self)>(&mut self, mut f: F) {
         #[cfg(feature = "target_zc706")]
         let width = regs::DataBusWidth::Width32bit;
-        #[cfg(feature = "target_coraz7")]
+        #[cfg(any(feature = "target_coraz7", feature = "target_kasli_soc"))]
         let width = regs::DataBusWidth::Width16bit;
         #[cfg(feature = "target_redpitaya")]
         let width = regs::DataBusWidth::Width16bit;
@@ -404,7 +408,11 @@ impl DdrRam {
             self.regs.dram_addr_map_col.write(0xFFF00000);
             self.regs.dram_addr_map_row.write(0x0F666666);
         }
-        #[cfg(any(feature = "target_coraz7", feature = "target_redpitaya"))]
+        #[cfg(any(
+            feature = "target_coraz7",
+            feature = "target_redpitaya",
+            feature = "target_kasli_soc",
+        ))]
         unsafe {
             // row/column address bits
             self.regs.dram_addr_map_bank.write(0x00000666);
@@ -436,9 +444,11 @@ impl DdrRam {
         // filtering address map
         #[cfg(feature = "target_zc706")]
         let megabytes = 1023;
-        #[cfg(feature = "target_coraz7")]
-        let megabytes = 512;
-        #[cfg(feature = "target_redpitaya")]
+        #[cfg(any(
+            feature = "target_coraz7",
+            feature = "target_redpitaya",
+            feature = "target_kasli_soc",
+        ))]
         let megabytes = 512;
 
         megabytes * 1024 * 1024

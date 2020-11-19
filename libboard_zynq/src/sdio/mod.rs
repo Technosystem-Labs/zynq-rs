@@ -117,7 +117,7 @@ impl Sdio {
                 );
             }
             // redpitaya card detect pin
-            #[cfg(feature = "target_redpitaya")]
+            #[cfg(any(feature = "target_redpitaya", feature = "target_kasli_soc"))]
             {
                 unsafe {
                     slcr.sd0_wp_cd_sel.write(46 << 16);

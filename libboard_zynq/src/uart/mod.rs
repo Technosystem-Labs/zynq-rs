@@ -46,7 +46,7 @@ impl Uart {
         self_
     }
 
-    #[cfg(feature = "target_zc706")]
+    #[cfg(any(feature = "target_zc706", feature = "target_kasli_soc"))]
     pub fn uart1(baudrate: u32) -> Self {
         slcr::RegisterBlock::unlocked(|slcr| {
             // Route UART 1 RxD/TxD Signals to MIO Pins

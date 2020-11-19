@@ -47,7 +47,7 @@ impl DerefMut for LazyUart {
             LazyUart::Uninitialized => {
                 #[cfg(any(feature = "target_coraz7", feature = "target_redpitaya"))]
                 let uart = Uart::uart0(UART_RATE);
-                #[cfg(feature = "target_zc706")]
+                #[cfg(any(feature = "target_zc706", feature = "target_kasli_soc"))]
                 let uart = Uart::uart1(UART_RATE);
                 *self = LazyUart::Initialized(uart);
                 self
