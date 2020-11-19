@@ -5,11 +5,8 @@ authors = ["M-Labs"]
 edition = "2018"
 
 [features]
-target_zc706 = []
-target_coraz7 = []
-target_redpitaya = []
 power_saving = []
-default = ["target_zc706"]
+default = []
 
 [dependencies]
 bit_field = "0.10"
