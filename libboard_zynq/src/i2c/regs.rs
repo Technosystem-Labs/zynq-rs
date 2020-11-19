@@ -40,53 +40,66 @@ impl RegisterBlock {
     }
 }
 
-// MASK_DATA_1_MSW:
-// Maskable output data for MIO[53:48]
-register!(gpio_output_mask, GPIOOutputMask, RW, u32);
+register!(gpio_output_mask,
+          /// MASK_DATA_1_MSW:
+          /// Maskable output data for MIO[53:48]
+          GPIOOutputMask, RW, u32);
 #[cfg(any(feature = "target_zc706", feature = "target_kasli_soc"))]
 register_at!(GPIOOutputMask, 0xE000A00C, new);
 #[cfg(any(feature = "target_zc706", feature = "target_kasli_soc"))]
-// Output for SCL
-register_bit!(gpio_output_mask, scl_o, 2);
-// Output for SDA
+register_bit!(gpio_output_mask,
+              /// Output for SCL
+              scl_o, 2);
 #[cfg(any(feature = "target_zc706", feature = "target_kasli_soc"))]
-register_bit!(gpio_output_mask, sda_o, 3);
-// Mask for keeping bits except SCL and SDA unchanged
+register_bit!(gpio_output_mask,
+              /// Output for SDA
+              sda_o, 3);
 #[cfg(any(feature = "target_zc706", feature = "target_kasli_soc"))]
-register_bits!(gpio_output_mask, mask, u16, 16, 31);
+register_bits!(gpio_output_mask,
+               /// Mask for keeping bits except SCL and SDA unchanged
+               mask, u16, 16, 31);
 
-// DATA_1_RO:
-// Input data for MIO[53:32]
-register!(gpio_input, GPIOInput, RO, u32);
+register!(gpio_input,
+          /// DATA_1_RO:
+          /// Input data for MIO[53:32]
+          GPIOInput, RO, u32);
 #[cfg(any(feature = "target_zc706", feature = "target_kasli_soc"))]
 register_at!(GPIOInput, 0xE000A064, new);
-// Input for SCL
 #[cfg(any(feature = "target_zc706", feature = "target_kasli_soc"))]
-register_bit!(gpio_input, scl, 18);
-// Input for SDA
+register_bit!(gpio_input,
+              /// Input for SCL
+              scl, 18);
 #[cfg(any(feature = "target_zc706", feature = "target_kasli_soc"))]
-register_bit!(gpio_input, sda, 19);
+register_bit!(gpio_input,
+              /// Input for SDA
+              sda, 19);
 
-// DIRM_1:
-// Direction mode for MIO[53:32]; 0/1 = in/out
-register!(gpio_direction, GPIODirection, RW, u32);
+register!(gpio_direction,
+          /// DIRM_1:
+          /// Direction mode for MIO[53:32]; 0/1 = in/out
+          GPIODirection, RW, u32);
 #[cfg(any(feature = "target_zc706", feature = "target_kasli_soc"))]
 register_at!(GPIODirection, 0xE000A244, new);
-// Direction for SCL
 #[cfg(any(feature = "target_zc706", feature = "target_kasli_soc"))]
-register_bit!(gpio_direction, scl, 18);
-// Direction for SDA
+register_bit!(gpio_direction,
+              /// Direction for SCL
+              scl, 18);
 #[cfg(any(feature = "target_zc706", feature = "target_kasli_soc"))]
-register_bit!(gpio_direction, sda, 19);
+register_bit!(gpio_direction,
+              /// Direction for SDA
+              sda, 19);
 
-// OEN_1:
-// Output enable for MIO[53:32]
-register!(gpio_output_enable, GPIOOutputEnable, RW, u32);
+register!(gpio_output_enable,
+          /// OEN_1:
+          /// Output enable for MIO[53:32]
+          GPIOOutputEnable, RW, u32);
 #[cfg(any(feature = "target_zc706", feature = "target_kasli_soc"))]
 register_at!(GPIOOutputEnable, 0xE000A248, new);
-// Output enable for SCL
 #[cfg(any(feature = "target_zc706", feature = "target_kasli_soc"))]
-register_bit!(gpio_output_enable, scl, 18);
-// Output enable for SDA
+register_bit!(gpio_output_enable,
+              /// Output enable for SCL
+              scl, 18);
 #[cfg(any(feature = "target_zc706", feature = "target_kasli_soc"))]
-register_bit!(gpio_output_enable, sda, 19);
+register_bit!(gpio_output_enable,
+              /// Output enable for SDA
+              sda, 19);
