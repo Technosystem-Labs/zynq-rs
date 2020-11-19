@@ -36,7 +36,7 @@ let
     "${target}-experiments" = build-crate "${target}-experiments" "experiments" "target_${target}" cargoSha256Experiments;
     "${target}-szl" = build-crate "${target}-szl" "szl" "target_${target}" cargoSha256SZL;
   };
-  targets = ["zc706" "coraz7" "redpitaya"];
+  targets = ["zc706" "coraz7" "redpitaya" "kasli_soc"];
 in
   {
     inherit cargo-xbuild;

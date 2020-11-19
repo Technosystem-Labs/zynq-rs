@@ -105,31 +105,20 @@ pub fn main_core0() {
             .boot_mode_pins()
     );
 
-    #[cfg(feature = "target_zc706")]
+    #[cfg(any(
+        feature = "target_zc706",
+        feature = "target_redpitaya",
+        feature = "target_kasli_soc",
+    ))]
     const CPU_FREQ: u32 = 800_000_000;
     #[cfg(feature = "target_coraz7")]
     const CPU_FREQ: u32 = 650_000_000;
-    #[cfg(feature = "target_redpitaya")]
-    const CPU_FREQ: u32 = 800_000_000;
 
     info!("Setup clock sources...");
     ArmPll::setup(2 * CPU_FREQ);
     Clocks::set_cpu_freq(CPU_FREQ);
-    #[cfg(feature = "target_zc706")]
-    {
-        IoPll::setup(1_000_000_000);
-        libboard_zynq::stdio::drop_uart();
-    }
-    #[cfg(feature = "target_coraz7")]
-    {
-        IoPll::setup(1_000_000_000);
-        libboard_zynq::stdio::drop_uart();
-    }
-    #[cfg(feature = "target_redpitaya")]
-    {
-        IoPll::setup(1_000_000_000);
-        libboard_zynq::stdio::drop_uart();
-    }
+    IoPll::setup(1_000_000_000);
+    libboard_zynq::stdio::drop_uart();
     info!("PLLs set up");
     let clocks = zynq::clocks::Clocks::get();
     info!(

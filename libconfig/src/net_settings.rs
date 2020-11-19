@@ -43,6 +43,10 @@ pub fn get_adresses(cfg: &Config) -> NetAddresses {
     let mut hardware_addr = EthernetAddress([0x02, 0x00, 0x00, 0x00, 0x00, 0x55]);
     #[cfg(feature = "target_redpitaya")]
     let mut ipv4_addr = IpAddress::v4(192, 168, 1, 55);
+    #[cfg(feature = "target_kasli_soc")]
+    let mut hardware_addr = EthernetAddress([0x02, 0x00, 0x00, 0x00, 0x00, 0x56]);
+    #[cfg(feature = "target_kasli_soc")]
+    let mut ipv4_addr = IpAddress::v4(192, 168, 1, 56);
 
     if let Ok(Ok(addr)) = cfg.read_str("mac").map(|s| s.parse()) {
         hardware_addr = addr;

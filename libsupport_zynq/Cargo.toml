@@ -9,6 +9,7 @@ edition = "2018"
 target_zc706 = ["libboard_zynq/target_zc706"]
 target_coraz7 = ["libboard_zynq/target_coraz7"]
 target_redpitaya = ["libboard_zynq/target_redpitaya"]
+target_kasli_soc = ["libboard_zynq/target_kasli_soc"]
 panic_handler = []
 dummy_irq_handler = []
 alloc_core = []
