@@ -20,8 +20,7 @@ const DDR_FREQ: u32 = 525_000_000;
 /// Alliance Memory AS4C256M16D3B: 800 MHz DDR3 at 533 MHz
 const DDR_FREQ: u32 = 533_333_333;
 
-/// MT41K256M16HA-125
-const DCI_FREQ: u32 = 10_000_000;
+const DCI_MAX_FREQ: u32 = 10_000_000;
 
 pub struct DdrRam {
     regs: &'static mut regs::RegisterBlock,
@@ -61,7 +60,7 @@ impl DdrRam {
     }
 
     fn calculate_dci_divisors(clocks: &Clocks) -> (u8, u8) {
-        let target = (DCI_FREQ - 1 + clocks.ddr) / DCI_FREQ;
+        let target = (DCI_MAX_FREQ - 1 + clocks.ddr) / DCI_MAX_FREQ;
 
         let mut best = None;
         let mut best_error = 0;
