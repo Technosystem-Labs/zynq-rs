@@ -22,10 +22,29 @@ impl<'a> EEPROM<'a> {
         }
     }
 
+    #[cfg(feature = "target_kasli_soc")]
+    pub fn new(i2c: &'a mut I2c, page_size: u8) -> Self {
+        EEPROM {
+            i2c: i2c,
+            port: 3,
+            address: 0x57,
+            page_size: page_size,
+            count_down: unsafe { crate::timer::GlobalTimer::get() }.countdown()
+        }
+    }
+
     #[cfg(feature = "target_zc706")]
     fn select(&mut self) -> Result<(), &'static str> {
         let mask: u16 = 1 << self.port;
         self.i2c.pca9548_select(0b1110100, mask as u8)?;
+        Ok(())
+    }
+
+    #[cfg(feature = "target_kasli_soc")]
+    fn select(&mut self) -> Result<(), &'static str> {
+        let mask: u16 = 1 << self.port;
+        // tca9548 is compatible with pca9548
+        self.i2c.pca9548_select(0b1110001, mask as u8)?;
         Ok(())
     }
 

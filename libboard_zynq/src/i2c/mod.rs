@@ -13,7 +13,7 @@ pub struct I2c {
 }
 
 impl I2c {
-    #[cfg(feature = "target_zc706")]
+    #[cfg(any(feature = "target_zc706", feature = "target_kasli_soc"))]
     pub fn i2c0() -> Self {
         // Route I2C 0 SCL / SDA Signals to MIO Pins 50 / 51
         slcr::RegisterBlock::unlocked(|slcr| {
