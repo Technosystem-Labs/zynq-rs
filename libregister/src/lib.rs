@@ -30,8 +30,9 @@ pub trait RegisterRW: RegisterR + RegisterW {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! register_common {
-    ($mod_name: ident, $struct_name: ident, $access: ty, $inner: ty) => (
+    ($mod_name: ident, $(#[$outer:meta])* $struct_name: ident, $access: ty, $inner: ty) => (
         #[repr(C)]
+        $(#[$outer])*
         pub struct $struct_name {
             inner: $access,
         }
@@ -157,34 +158,34 @@ macro_rules! register_vcell {
 #[macro_export]
 macro_rules! register {
     // Define read-only register
-    ($mod_name: ident, $struct_name: ident, RO, $inner: ty) => (
-        $crate::register_common!($mod_name, $struct_name, $crate::RO<$inner>, $inner);
+    ($mod_name: ident, $(#[$outer:meta])* $struct_name: ident, RO, $inner: ty) => (
+        $crate::register_common!($mod_name, $(#[$outer])* $struct_name, $crate::RO<$inner>, $inner);
         $crate::register_r!($mod_name, $struct_name);
     );
 
     // Define write-only register
-    ($mod_name: ident, $struct_name: ident, WO, $inner: ty) => (
-        $crate::register_common!($mod_name, $struct_name, volatile_register::WO<$inner>, $inner);
+    ($mod_name: ident, $(#[$outer:meta])* $struct_name: ident, WO, $inner: ty) => (
+        $crate::register_common!($mod_name, $(#[$outer])* $struct_name, volatile_register::WO<$inner>, $inner);
         $crate::register_w!($mod_name, $struct_name);
     );
 
     // Define read-write register
-    ($mod_name: ident, $struct_name: ident, RW, $inner: ty) => (
-        $crate::register_common!($mod_name, $struct_name, volatile_register::RW<$inner>, $inner);
+    ($mod_name: ident, $(#[$outer:meta])* $struct_name: ident, RW, $inner: ty) => (
+        $crate::register_common!($mod_name, $(#[$outer])* $struct_name, volatile_register::RW<$inner>, $inner);
         $crate::register_r!($mod_name, $struct_name);
         $crate::register_w!($mod_name, $struct_name);
         $crate::register_rw!($mod_name, $struct_name);
     );
 
     // Define read-write register
-    ($mod_name: ident, $struct_name: ident, VolatileCell, $inner: ty) => (
-        $crate::register_common!($mod_name, $struct_name, VolatileCell<$inner>, $inner);
+    ($mod_name: ident, $(#[$outer:meta])* $struct_name: ident, VolatileCell, $inner: ty) => (
+        $crate::register_common!($mod_name, $(#[$outer])* $struct_name, VolatileCell<$inner>, $inner);
         $crate::register_vcell!($mod_name, $struct_name);
     );
 
     // Define read-write register with mask on write (for WTC mixed access.)
-    ($mod_name: ident, $struct_name: ident, RW, $inner: ty, $mask: expr) => (
-        $crate::register_common!($mod_name, $struct_name, volatile_register::RW<$inner>, $inner);
+    ($mod_name: ident, $(#[$outer:meta])* $struct_name: ident, RW, $inner: ty, $mask: expr) => (
+        $crate::register_common!($mod_name, $(#[$outer])* $struct_name, volatile_register::RW<$inner>, $inner);
         $crate::register_r!($mod_name, $struct_name);
         $crate::register_w!($mod_name, $struct_name);
         $crate::register_rw!($mod_name, $struct_name, $mask);
