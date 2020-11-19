@@ -40,6 +40,7 @@ pub struct Phy {
 #[derive(Clone, Copy)]
 pub enum PhyDevice {
     Marvell88E1116R,
+    Marvell88E1512,
     Rtl8211E,
     PEF7071
 }
@@ -59,6 +60,11 @@ impl Phy {
                     ..
                 }) => Some(PhyDevice::Marvell88E1116R),
                 Some(PhyIdentifier {
+                    oui: OUI_MARVELL,
+                    model: 29,
+                    ..
+                }) => Some(PhyDevice::Marvell88E1512),
+                Some(PhyIdentifier {
                     oui: OUI_REALTEK,
                     model: 0b010001,
                     rev: 0b0101,
@@ -76,6 +82,7 @@ impl Phy {
     pub fn name(&self) -> &'static str {
         match self.device {
             PhyDevice::Marvell88E1116R => &"Marvell 88E1116R",
+            PhyDevice::Marvell88E1512 => &"Marvell 88E1512",
             PhyDevice::Rtl8211E => &"RTL8211E",
             PhyDevice::PEF7071 => &"Intel XWAY PHY11G (PEF 7071/PEF 7072) v1.5 / v1.6"
         }
