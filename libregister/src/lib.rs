@@ -52,7 +52,7 @@ macro_rules! register_common {
 #[macro_export]
 macro_rules! register_r {
     ($mod_name: ident, $struct_name: ident) => (
-        impl libregister::RegisterR for $struct_name {
+        impl $crate::RegisterR for $struct_name {
             type R = $mod_name::Read;
 
             #[inline]
@@ -67,7 +67,7 @@ macro_rules! register_r {
 #[macro_export]
 macro_rules! register_w {
     ($mod_name: ident, $struct_name: ident) => (
-        impl libregister::RegisterW for $struct_name {
+        impl $crate::RegisterW for $struct_name {
             type W = $mod_name::Write;
 
             #[inline]
@@ -88,7 +88,7 @@ macro_rules! register_w {
 #[macro_export]
 macro_rules! register_rw {
     ($mod_name: ident, $struct_name: ident) => (
-        impl libregister::RegisterRW for $struct_name {
+        impl $crate::RegisterRW for $struct_name {
             #[inline]
             fn modify<F: FnOnce(Self::R, Self::W) -> Self::W>(&mut self, f: F) {
                 unsafe {
@@ -101,7 +101,7 @@ macro_rules! register_rw {
         }
     );
     ($mod_name: ident, $struct_name: ident, $mask: expr) => (
-        impl libregister::RegisterRW for $struct_name {
+        impl $crate::RegisterRW for $struct_name {
             #[inline]
             fn modify<F: FnOnce(Self::R, Self::W) -> Self::W>(&mut self, f: F) {
                 unsafe {
@@ -119,7 +119,7 @@ macro_rules! register_rw {
 #[macro_export]
 macro_rules! register_vcell {
     ($mod_name: ident, $struct_name: ident) => (
-        impl libregister::RegisterR for $struct_name {
+        impl $crate::RegisterR for $struct_name {
             type R = $mod_name::Read;
 
             #[inline]
@@ -128,7 +128,7 @@ macro_rules! register_vcell {
                 $mod_name::Read { inner }
             }
         }
-        impl libregister::RegisterW for $struct_name {
+        impl $crate::RegisterW for $struct_name {
             type W = $mod_name::Write;
 
             #[inline]
@@ -141,7 +141,7 @@ macro_rules! register_vcell {
                 self.inner.set(w.inner);
             }
         }
-        impl libregister::RegisterRW for $struct_name {
+        impl $crate::RegisterRW for $struct_name {
             #[inline]
             fn modify<F: FnOnce(Self::R, Self::W) -> Self::W>(&mut self, f: F) {
                 let r = self.read();
@@ -158,36 +158,36 @@ macro_rules! register_vcell {
 macro_rules! register {
     // Define read-only register
     ($mod_name: ident, $struct_name: ident, RO, $inner: ty) => (
-        libregister::register_common!($mod_name, $struct_name, libregister::RO<$inner>, $inner);
-        libregister::register_r!($mod_name, $struct_name);
+        $crate::register_common!($mod_name, $struct_name, $crate::RO<$inner>, $inner);
+        $crate::register_r!($mod_name, $struct_name);
     );
 
     // Define write-only register
     ($mod_name: ident, $struct_name: ident, WO, $inner: ty) => (
-        libregister::register_common!($mod_name, $struct_name, volatile_register::WO<$inner>, $inner);
-        libregister::register_w!($mod_name, $struct_name);
+        $crate::register_common!($mod_name, $struct_name, volatile_register::WO<$inner>, $inner);
+        $crate::register_w!($mod_name, $struct_name);
     );
 
     // Define read-write register
     ($mod_name: ident, $struct_name: ident, RW, $inner: ty) => (
-        libregister::register_common!($mod_name, $struct_name, volatile_register::RW<$inner>, $inner);
-        libregister::register_r!($mod_name, $struct_name);
-        libregister::register_w!($mod_name, $struct_name);
-        libregister::register_rw!($mod_name, $struct_name);
+        $crate::register_common!($mod_name, $struct_name, volatile_register::RW<$inner>, $inner);
+        $crate::register_r!($mod_name, $struct_name);
+        $crate::register_w!($mod_name, $struct_name);
+        $crate::register_rw!($mod_name, $struct_name);
     );
 
     // Define read-write register
     ($mod_name: ident, $struct_name: ident, VolatileCell, $inner: ty) => (
-        libregister::register_common!($mod_name, $struct_name, VolatileCell<$inner>, $inner);
-        libregister::register_vcell!($mod_name, $struct_name);
+        $crate::register_common!($mod_name, $struct_name, VolatileCell<$inner>, $inner);
+        $crate::register_vcell!($mod_name, $struct_name);
     );
 
     // Define read-write register with mask on write (for WTC mixed access.)
     ($mod_name: ident, $struct_name: ident, RW, $inner: ty, $mask: expr) => (
-        libregister::register_common!($mod_name, $struct_name, volatile_register::RW<$inner>, $inner);
-        libregister::register_r!($mod_name, $struct_name);
-        libregister::register_w!($mod_name, $struct_name);
-        libregister::register_rw!($mod_name, $struct_name, $mask);
+        $crate::register_common!($mod_name, $struct_name, volatile_register::RW<$inner>, $inner);
+        $crate::register_r!($mod_name, $struct_name);
+        $crate::register_w!($mod_name, $struct_name);
+        $crate::register_rw!($mod_name, $struct_name, $mask);
     );
 }
 
