@@ -34,15 +34,6 @@ pub trait PhyAccess {
 #[derive(Clone)]
 pub struct Phy {
     pub addr: u8,
-    device: PhyDevice,
-}
-
-#[derive(Clone, Copy)]
-pub enum PhyDevice {
-    Marvell88E1116R,
-    Marvell88E1512,
-    Rtl8211E,
-    PEF7071
 }
 
 const OUI_MARVELL: u32 = 0x005043;
@@ -52,40 +43,35 @@ const OUI_LANTIQ : u32 = 0x355969;
 impl Phy {
     /// Probe all addresses on MDIO for a known PHY
     pub fn find<PA: PhyAccess>(pa: &mut PA) -> Option<Phy> {
-        (1..32).filter_map(|addr| {
-            match identify_phy(pa, addr) {
+        (1..32).find(|addr| {
+            match identify_phy(pa, *addr) {
                 Some(PhyIdentifier {
                     oui: OUI_MARVELL,
+                    // Marvell 88E1116R
                     model: 36,
                     ..
-                }) => Some(PhyDevice::Marvell88E1116R),
+                }) => true,
                 Some(PhyIdentifier {
                     oui: OUI_MARVELL,
+                    // Marvell 88E1512
                     model: 29,
                     ..
-                }) => Some(PhyDevice::Marvell88E1512),
+                }) => true,
                 Some(PhyIdentifier {
                     oui: OUI_REALTEK,
+                    // RTL 8211E
                     model: 0b010001,
                     rev: 0b0101,
-                }) => Some(PhyDevice::Rtl8211E),
+                }) => true,
                 Some(PhyIdentifier {
                     oui: OUI_LANTIQ,
+                    // Intel XWAY PHY11G (PEF 7071/PEF 7072) v1.5 / v1.6
                     model: 0,
                     ..
-                }) => Some(PhyDevice::PEF7071),
-                _ => None,
-            }.map(|device| Phy { addr, device })
-        }).next()
-    }
-
-    pub fn name(&self) -> &'static str {
-        match self.device {
-            PhyDevice::Marvell88E1116R => &"Marvell 88E1116R",
-            PhyDevice::Marvell88E1512 => &"Marvell 88E1512",
-            PhyDevice::Rtl8211E => &"RTL8211E",
-            PhyDevice::PEF7071 => &"Intel XWAY PHY11G (PEF 7071/PEF 7072) v1.5 / v1.6"
-        }
+                }) => true,
+                _ => false,
+            }
+        }).map(|addr| Phy { addr })
     }
 
     pub fn read_reg<PA, PR>(&self, pa: &mut PA) -> PR
