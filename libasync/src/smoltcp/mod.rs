@@ -7,12 +7,18 @@ use smoltcp::{
     iface::EthernetInterface,
     phy::Device,
     socket::SocketSet,
-    time::Instant,
+    time::{Duration, Instant},
 };
 use crate::task;
 
 mod tcp_stream;
 pub use tcp_stream::TcpStream;
+
+pub trait LinkCheck {
+    type Link;
+    fn is_idle(&self) -> bool;
+    fn check_link_change(&mut self) -> Option<Self::Link>;
+}
 
 static mut SOCKETS: Option<Sockets> = None;
 
@@ -41,14 +47,24 @@ impl Sockets {
 
     /// Block and run executor indefinitely while polling the smoltcp
     /// iface
-    pub fn run<'b, 'c, 'e, D: for<'d> Device<'d>>(
+    pub fn run<'b, 'c, 'e, D: for<'d> Device<'d> + LinkCheck>(
         iface: &mut EthernetInterface<'b, 'c, 'e, D>,
         mut get_time: impl FnMut() -> Instant,
     ) -> ! {
         task::block_on(async {
+            let mut last_link_check = Instant::from_millis(0);
+            const LINK_CHECK_INTERVAL: u64 = 500;
+
             loop {
                 let instant = get_time();
                 Self::instance().poll(iface, instant);
+
+                let dev = iface.device_mut();
+                if dev.is_idle() && instant >= last_link_check + Duration::from_millis(LINK_CHECK_INTERVAL) {
+                    dev.check_link_change();
+                    last_link_check = instant;
+                }
+
                 task::r#yield().await;
             }
         })

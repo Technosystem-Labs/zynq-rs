@@ -7,7 +7,7 @@ pub use control::Control;
 mod pssr;
 pub use pssr::PSSR;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Link {
     pub speed: LinkSpeed,
     pub duplex: LinkDuplex,

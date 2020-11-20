@@ -145,6 +145,8 @@ pub struct Eth<GEM: Gem, RX, TX> {
     tx: TX,
     inner: EthInner<GEM>,
     phy: Phy,
+    /// keep track of RX path occupation to avoid needless `check_link_change()`
+    idle: bool,
 }
 
 impl Eth<Gem0, (), ()> {
@@ -314,6 +316,7 @@ impl<GEM: Gem> Eth<GEM, (), ()> {
             tx: (),
             inner,
             phy,
+            idle: true,
         }
     }
 }
@@ -325,6 +328,7 @@ impl<GEM: Gem, RX, TX> Eth<GEM, RX, TX> {
             tx: self.tx,
             inner: self.inner,
             phy: self.phy,
+            idle: self.idle,
         };
         let list_addr = new_self.rx.list_addr();
         assert!(list_addr & 0b11 == 0);
@@ -344,6 +348,7 @@ impl<GEM: Gem, RX, TX> Eth<GEM, RX, TX> {
             tx: tx::DescList::new(tx_size),
             inner: self.inner,
             phy: self.phy,
+            idle: self.idle,
         };
         let list_addr = &new_self.tx.list_addr();
         assert!(list_addr & 0b11 == 0);
@@ -395,14 +400,28 @@ impl<GEM: Gem, TX> Eth<GEM, rx::DescList, TX> {
                         regs::RxStatus::zeroed()
                             .frame_recd(true)
                     );
+                    self.idle = true;
                 }
-                _ => {}
+                _ =>
+                    self.idle = false,
             }
             result
         } else {
-            self.inner.check_link_change(&self.phy);
+            self.idle = true;
             Ok(None)
         }
+    }
+}
+
+impl<GEM: Gem, TX> libasync::smoltcp::LinkCheck for &mut Eth<GEM, rx::DescList, TX> {
+    type Link = Option<phy::Link>;
+
+    fn check_link_change(&mut self) -> Option<Self::Link> {
+        self.inner.check_link_change(&self.phy)
+    }
+
+    fn is_idle(&self) -> bool {
+        self.idle
     }
 }
 
@@ -439,10 +458,11 @@ impl<'a, GEM: Gem> smoltcp::phy::Device<'a> for &mut Eth<GEM, rx::DescList, tx::
                     regs: GEM::regs(),
                     desc_list: &mut self.tx,
                 };
+                self.idle = false;
                 Some((pktref, tx_token))
             }
             Ok(None) => {
-                self.inner.check_link_change(&self.phy);
+                self.idle = true;
                 None
             }
             Err(e) => {
@@ -602,13 +622,7 @@ impl<GEM: Gem> EthInner<GEM> {
     }
 
 
-    fn check_link_change(&mut self, phy: &Phy) {
-        // As the PHY access takes some time, exit early if there was
-        // already a link. TODO: check once per second.
-        if self.link.is_some() {
-            return
-        }
-
+    fn check_link_change(&mut self, phy: &Phy) -> Option<Option<phy::Link>> {
         let link = phy.get_link(self);
 
         // Check link state transition
@@ -640,6 +654,9 @@ impl<GEM: Gem> EthInner<GEM> {
             }
 
             self.link = link;
+            Some(link)
+        } else {
+            None
         }
     }
 }
