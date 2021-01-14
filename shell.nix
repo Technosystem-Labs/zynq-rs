@@ -17,7 +17,7 @@ in
       (import ./nix/mkbootimage.nix { inherit pkgs; })
     ];
 
-    XARGO_RUST_SRC = "${rustPlatform.rust.rustc.src}/library";
+    XARGO_RUST_SRC = "${rustPlatform.rust.rustc}/lib/rustlib/src/rust/library";
 
     shellHook = ''
       echo "Run 'cargo xbuild --release -p ...' to build."
