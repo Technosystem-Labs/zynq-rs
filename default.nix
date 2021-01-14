@@ -8,7 +8,9 @@ let
     rustPlatform.buildRustPackage rec {
       name = "${crate}";
 
-      src = ./.;
+      src = builtins.filterSource (path: type:
+        baseNameOf path != "target"
+      ) ./.;
       inherit cargoSha256;
 
       nativeBuildInputs = [ cargo-xbuild ];
