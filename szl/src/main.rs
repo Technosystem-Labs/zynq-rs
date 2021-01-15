@@ -20,7 +20,6 @@ use libconfig::{bootgen, sd_reader, Config};
 use libcortex_a9::{
     asm::{dsb, isb},
     cache::{bpiall, dcciall, iciallu},
-    enable_fpu,
     l2c::enable_l2_cache,
 };
 use libregister::RegisterR;
@@ -66,7 +65,6 @@ fn boot_sd<File: Read + Seek>(
 #[no_mangle]
 pub fn main_core0() {
     GlobalTimer::start();
-    enable_fpu();
     logger::init().unwrap();
     log::set_max_level(log::LevelFilter::Debug);
     println!(

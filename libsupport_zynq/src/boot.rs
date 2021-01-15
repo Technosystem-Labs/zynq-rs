@@ -4,7 +4,7 @@ use libregister::{
     VolatileCell,
     RegisterR, RegisterW, RegisterRW,
 };
-use libcortex_a9::{asm, l2c, regs::*, cache, mmu, spin_lock_yield, notify_spin_lock};
+use libcortex_a9::{asm, l2c, regs::*, cache, mmu, spin_lock_yield, notify_spin_lock, enable_fpu};
 use libboard_zynq::{slcr, mpcore};
 
 extern "C" {
@@ -43,6 +43,7 @@ pub unsafe extern "C" fn Reset() -> ! {
 unsafe fn boot_core0() -> ! {
     l1_cache_init();
 
+    enable_fpu();
     let mpcore = mpcore::RegisterBlock::mpcore();
     mpcore.scu_invalidate.invalidate_all_cores();
 
