@@ -1,7 +1,6 @@
 #![no_std]
 #![no_main]
 #![feature(const_in_array_repeat_expressions)]
-#![feature(naked_functions)]
 
 extern crate alloc;
 
@@ -56,7 +55,6 @@ static CORE1_RESTART: AtomicBool = AtomicBool::new(false);
 
 #[link_section = ".text.boot"]
 #[no_mangle]
-#[naked]
 pub unsafe extern "C" fn IRQ() {
     if MPIDR.read().cpu_id() == 1{
         let mpcore = mpcore::RegisterBlock::mpcore();
@@ -218,7 +216,7 @@ pub fn main_core0() {
         while let Ok(stream) = TcpStream::accept(TCP_PORT, 0x10_0000, 0x10_0000).await {
             let stats_tx = stats_tx.clone();
             task::spawn(async move {
-                let tx_data = (0..=255).take(4096).collect::<alloc::vec::Vec<u8>>();
+                let tx_data = (0..=255).cycle().take(4096).collect::<alloc::vec::Vec<u8>>();
                 loop {
                     // const CHUNK_SIZE: usize = 65536;
                     // match stream.send((0..=255).cycle().take(CHUNK_SIZE)).await {
