@@ -2,8 +2,8 @@ let
   pkgs = import <nixpkgs> { overlays = [ (import ./nix/mozilla-overlay.nix) ]; };
   rustPlatform = (import ./nix/rust-platform.nix { inherit pkgs; });
   cargo-xbuild = (pkgs.cargo-xbuild.overrideAttrs(oa: { patches = oa.patches ++ [ ./xbuild_writable_lockfile.diff ]; } ));
-  cargoSha256Experiments = "0hyvf4varmbrpbmgzwng9kic72j3wzmzlbdjnvdp7kxfxix288vz";
-  cargoSha256SZL = "1s25pnayqxim6ccwpzh7ba4510a1d2fflzly7ivdvxn7nfk7qnvn";
+  cargoSha256Experiments = "034l4sxy4adgd97v0ldk844j6m62v8lflavzhs9wnk82mzihglgp";
+  cargoSha256SZL = "0p9bvydk8jrzpc57cn7x9k5m89x1g0vfvar7i5gph7q9pvnkh6sh";
   build-crate = name: crate: features: cargoSha256:
     rustPlatform.buildRustPackage rec {
       name = "${crate}";
@@ -13,7 +13,7 @@ let
       ) ./.;
       inherit cargoSha256;
 
-      nativeBuildInputs = [ cargo-xbuild ];
+      nativeBuildInputs = [ cargo-xbuild pkgs.llvmPackages_9.clang-unwrapped ];
       buildPhase = ''
         export XARGO_RUST_SRC="${rustPlatform.rust.rustc}/lib/rustlib/src/rust/library"
         export CARGO_HOME=$(mktemp -d cargo-home.XXX)

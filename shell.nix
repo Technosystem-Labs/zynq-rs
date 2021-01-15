@@ -13,6 +13,7 @@ in
 
       pkgs.openocd pkgs.gdb
       pkgs.openssh pkgs.rsync
+      pkgs.llvmPackages_9.clang-unwrapped
 
       (import ./nix/mkbootimage.nix { inherit pkgs; })
     ];
