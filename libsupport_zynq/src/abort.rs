@@ -4,7 +4,6 @@ use libboard_zynq::{println, stdio};
 
 #[link_section = ".text.boot"]
 #[no_mangle]
-#[naked]
 pub unsafe extern "C" fn UndefinedInstruction() {
     stdio::drop_uart();
     println!("UndefinedInstruction");
@@ -13,7 +12,6 @@ pub unsafe extern "C" fn UndefinedInstruction() {
 
 #[link_section = ".text.boot"]
 #[no_mangle]
-#[naked]
 pub unsafe extern "C" fn SoftwareInterrupt() {
     stdio::drop_uart();
     println!("SoftwareInterrupt");
@@ -22,7 +20,6 @@ pub unsafe extern "C" fn SoftwareInterrupt() {
 
 #[link_section = ".text.boot"]
 #[no_mangle]
-#[naked]
 pub unsafe extern "C" fn PrefetchAbort() {
     stdio::drop_uart();
     println!("PrefetchAbort");
@@ -31,7 +28,6 @@ pub unsafe extern "C" fn PrefetchAbort() {
 
 #[link_section = ".text.boot"]
 #[no_mangle]
-#[naked]
 pub unsafe extern "C" fn DataAbort() {
     stdio::drop_uart();
 
@@ -43,7 +39,6 @@ pub unsafe extern "C" fn DataAbort() {
 
 #[link_section = ".text.boot"]
 #[no_mangle]
-#[naked]
 pub unsafe extern "C" fn ReservedException() {
     stdio::drop_uart();
     println!("ReservedException");
@@ -52,7 +47,6 @@ pub unsafe extern "C" fn ReservedException() {
 
 #[link_section = ".text.boot"]
 #[no_mangle]
-#[naked]
 #[cfg(feature = "dummy_irq_handler")]
 pub unsafe extern "C" fn IRQ() {
     stdio::drop_uart();
@@ -62,7 +56,6 @@ pub unsafe extern "C" fn IRQ() {
 
 #[link_section = ".text.boot"]
 #[no_mangle]
-#[naked]
 pub unsafe extern "C" fn FIQ() {
     stdio::drop_uart();
     println!("FIQ");

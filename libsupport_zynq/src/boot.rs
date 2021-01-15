@@ -20,7 +20,6 @@ static mut CORE1_ENABLED: VolatileCell<bool> = VolatileCell::new(false);
 
 #[link_section = ".text.boot"]
 #[no_mangle]
-#[naked]
 pub unsafe extern "C" fn Reset() -> ! {
     match MPIDR.read().cpu_id() {
         0 => {
@@ -38,9 +37,8 @@ pub unsafe extern "C" fn Reset() -> ! {
     }
 }
 
-#[naked]
 #[inline(never)]
-unsafe fn boot_core0() -> ! {
+unsafe extern "C" fn boot_core0() -> ! {
     l1_cache_init();
 
     enable_fpu();
@@ -65,9 +63,8 @@ unsafe fn boot_core0() -> ! {
     });
 }
 
-#[naked]
 #[inline(never)]
-unsafe fn boot_core1() -> ! {
+unsafe extern "C" fn boot_core1() -> ! {
     l1_cache_init();
 
     let mpcore = mpcore::RegisterBlock::mpcore();
