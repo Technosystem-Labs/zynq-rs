@@ -2,7 +2,7 @@ use core::{
     ops::{Deref, DerefMut},
     mem::{align_of, size_of},
 };
-use alloc::alloc::{dealloc, Layout, LayoutErr};
+use alloc::alloc::{dealloc, Layout, LayoutError};
 use crate::mmu::{L1_PAGE_SIZE, L1Table};
 
 pub struct UncachedSlice<T: 'static> {
@@ -12,7 +12,7 @@ pub struct UncachedSlice<T: 'static> {
 
 impl<T> UncachedSlice<T> {
     /// allocates in chunks of 1 MB
-    pub fn new<F: Fn() -> T>(len: usize, default: F) -> Result<Self, LayoutErr> {
+    pub fn new<F: Fn() -> T>(len: usize, default: F) -> Result<Self, LayoutError> {
         // round to full pages
         let size = ((len * size_of::<T>() - 1) | (L1_PAGE_SIZE - 1)) + 1;
         let align = align_of::<T>()

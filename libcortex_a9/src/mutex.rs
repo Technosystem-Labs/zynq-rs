@@ -32,7 +32,7 @@ impl<T> Mutex<T> {
     /// Lock the Mutex, blocks when already locked
     pub fn lock(&self) -> MutexGuard<T> {
         let mut irq = unsafe { enter_critical() };
-        while self.locked.compare_and_swap(UNLOCKED, LOCKED, Ordering::AcqRel) != UNLOCKED {
+        while self.locked.compare_exchange_weak(UNLOCKED, LOCKED, Ordering::AcqRel, Ordering::Relaxed).is_err() {
             unsafe {
                 exit_critical(irq);
                 spin_lock_yield();
@@ -44,7 +44,7 @@ impl<T> Mutex<T> {
 
     pub fn try_lock(&self) -> Option<MutexGuard<T>> {
         let irq = unsafe { enter_critical() };
-        if self.locked.compare_and_swap(UNLOCKED, LOCKED, Ordering::AcqRel) != UNLOCKED {
+        if self.locked.compare_exchange_weak(UNLOCKED, LOCKED, Ordering::AcqRel, Ordering::Relaxed).is_err() {
             unsafe { exit_critical(irq) };
             None
         } else {

@@ -20,7 +20,7 @@ impl Semaphore {
         loop {
             let value = self.value.load(Ordering::Relaxed);
             if value > 0 {
-                if self.value.compare_and_swap(value, value - 1, Ordering::SeqCst) == value {
+                if self.value.compare_exchange_weak(value, value - 1, Ordering::SeqCst, Ordering::Relaxed).is_ok() {
                     return Some(());
                 }
             } else {
@@ -58,7 +58,7 @@ impl Semaphore {
         loop {
             let value = self.value.load(Ordering::Relaxed);
             if value < self.max {
-                if self.value.compare_and_swap(value, value + 1, Ordering::SeqCst) == value {
+                if self.value.compare_exchange_weak(value, value + 1, Ordering::SeqCst, Ordering::Relaxed).is_ok() {
                     notify_spin_lock();
                     return;
                 }
