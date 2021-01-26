@@ -87,7 +87,7 @@ pub fn restart_core1() {
 #[no_mangle]
 pub fn main_core0() {
     // zynq::clocks::CpuClocks::enable_io(1_250_000_000);
-    enable_l2_cache();
+    enable_l2_cache(0x8);
     println!("\nZynq experiments");
     let mut interrupt_controller = gic::InterruptController::gic(mpcore::RegisterBlock::mpcore());
     interrupt_controller.enable_interrupts();
