@@ -173,7 +173,7 @@ impl RegisterRW for ACTLR {
 
 impl ACTLR {
     pub fn enable_smp(&mut self) {
-        self.modify(|_, w| w.smp(true).fw(true));
+        self.modify(|_, w| w.smp(true).fw(true).alloc_one_way(true));
     }
 
     pub fn enable_prefetch(&mut self) {
