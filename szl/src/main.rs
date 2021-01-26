@@ -20,7 +20,6 @@ use libconfig::{bootgen, sd_reader, Config};
 use libcortex_a9::{
     asm::{dsb, isb},
     cache::{bpiall, dcciall, iciallu},
-    l2c::enable_l2_cache,
 };
 use libregister::RegisterR;
 use libsupport_zynq::ram;
@@ -80,7 +79,6 @@ pub fn main_core0() {
 "#
     );
     info!("Simple Zynq Loader starting...");
-    enable_l2_cache();
 
     const CPU_FREQ: u32 = 800_000_000;
 
