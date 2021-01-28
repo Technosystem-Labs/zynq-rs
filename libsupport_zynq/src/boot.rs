@@ -4,7 +4,7 @@ use libregister::{
     VolatileCell,
     RegisterR, RegisterW, RegisterRW,
 };
-use libcortex_a9::{asm, l2c, regs::*, cache, mmu, spin_lock_yield, notify_spin_lock, enable_fpu};
+use libcortex_a9::{asm, l2c, regs::*, cache, mmu, spin_lock_yield, notify_spin_lock, enable_fpu, interrupt_handler};
 use libboard_zynq::{slcr, mpcore};
 
 extern "C" {
@@ -18,9 +18,7 @@ extern "C" {
 
 static mut CORE1_ENABLED: VolatileCell<bool> = VolatileCell::new(false);
 
-#[link_section = ".text.boot"]
-#[no_mangle]
-pub unsafe extern "C" fn Reset() -> ! {
+interrupt_handler!(Reset, reset_irq, __stack0_start, __stack1_start, {
     match MPIDR.read().cpu_id() {
         0 => {
             SP.write(&mut __stack0_start as *mut _ as u32);
@@ -35,7 +33,7 @@ pub unsafe extern "C" fn Reset() -> ! {
         }
         _ => unreachable!(),
     }
-}
+});
 
 #[inline(never)]
 unsafe extern "C" fn boot_core0() -> ! {

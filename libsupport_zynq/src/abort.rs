@@ -1,63 +1,49 @@
 use libregister::RegisterR;
-use libcortex_a9::regs::{DFSR, MPIDR};
+use libcortex_a9::{regs::{DFSR, MPIDR}, interrupt_handler};
 use libboard_zynq::{println, stdio};
 
-#[link_section = ".text.boot"]
-#[no_mangle]
-pub unsafe extern "C" fn UndefinedInstruction() {
+interrupt_handler!(UndefinedInstruction, undefined_instruction, __stack0_start, __stack1_start, {
     stdio::drop_uart();
     println!("UndefinedInstruction");
     loop {}
-}
+});
 
-#[link_section = ".text.boot"]
-#[no_mangle]
-pub unsafe extern "C" fn SoftwareInterrupt() {
+interrupt_handler!(SoftwareInterrupt, software_interrupt, __stack0_start, __stack1_start, {
     stdio::drop_uart();
     println!("SoftwareInterrupt");
     loop {}
-}
+});
 
-#[link_section = ".text.boot"]
-#[no_mangle]
-pub unsafe extern "C" fn PrefetchAbort() {
+interrupt_handler!(PrefetchAbort, prefetch_abort, __stack0_start, __stack1_start, {
     stdio::drop_uart();
     println!("PrefetchAbort");
     loop {}
-}
+});
 
-#[link_section = ".text.boot"]
-#[no_mangle]
-pub unsafe extern "C" fn DataAbort() {
+interrupt_handler!(DataAbort, data_abort, __stack0_start, __stack1_start, {
     stdio::drop_uart();
 
     println!("DataAbort on core {}", MPIDR.read().cpu_id());
     println!("DFSR: {:03X}", DFSR.read());
 
     loop {}
-}
+});
 
-#[link_section = ".text.boot"]
-#[no_mangle]
-pub unsafe extern "C" fn ReservedException() {
+interrupt_handler!(ReservedException, reserved_exception, __stack0_start, __stack1_start, {
     stdio::drop_uart();
     println!("ReservedException");
     loop {}
-}
+});
 
-#[link_section = ".text.boot"]
-#[no_mangle]
 #[cfg(feature = "dummy_irq_handler")]
-pub unsafe extern "C" fn IRQ() {
+interrupt_handler!(IRQ, irq, __stack0_start, __stack1_start, {
     stdio::drop_uart();
     println!("IRQ");
     loop {}
-}
+});
 
-#[link_section = ".text.boot"]
-#[no_mangle]
-pub unsafe extern "C" fn FIQ() {
+interrupt_handler!(FIQ, fiq, __stack0_start, __stack1_start, {
     stdio::drop_uart();
     println!("FIQ");
     loop {}
-}
+});

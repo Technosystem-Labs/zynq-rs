@@ -1,6 +1,8 @@
 #![no_std]
 #![no_main]
 #![feature(const_in_array_repeat_expressions)]
+#![feature(naked_functions)]
+#![feature(asm)]
 
 extern crate alloc;
 
@@ -33,7 +35,7 @@ use libcortex_a9::{
     sync_channel,
     regs::{MPIDR, SP},
     spin_lock_yield, notify_spin_lock,
-    asm
+    asm, interrupt_handler
 };
 use libregister::{RegisterR, RegisterW};
 use libsupport_zynq::{
@@ -53,9 +55,7 @@ extern "C" {
 
 static CORE1_RESTART: AtomicBool = AtomicBool::new(false);
 
-#[link_section = ".text.boot"]
-#[no_mangle]
-pub unsafe extern "C" fn IRQ() {
+interrupt_handler!(IRQ, irq, __stack0_start, __stack1_start, {
     if MPIDR.read().cpu_id() == 1{
         let mpcore = mpcore::RegisterBlock::mpcore();
         let mut gic = gic::InterruptController::gic(mpcore);
@@ -73,7 +73,7 @@ pub unsafe extern "C" fn IRQ() {
     stdio::drop_uart();
     println!("IRQ");
     loop {}
-}
+});
 
 pub fn restart_core1() {
     let mut interrupt_controller = gic::InterruptController::gic(mpcore::RegisterBlock::mpcore());
