@@ -55,7 +55,7 @@ extern "C" {
 
 static CORE1_RESTART: AtomicBool = AtomicBool::new(false);
 
-interrupt_handler!(IRQ, irq, __stack0_start, __stack1_start, {
+interrupt_handler!(IRQ, irq, __irq_stack0_start, __irq_stack1_start, {
     if MPIDR.read().cpu_id() == 1{
         let mpcore = mpcore::RegisterBlock::mpcore();
         let mut gic = gic::InterruptController::gic(mpcore);

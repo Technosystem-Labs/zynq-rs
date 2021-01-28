@@ -2,7 +2,7 @@ use r0::zero_bss;
 use core::ptr::write_volatile;
 use libregister::{
     VolatileCell,
-    RegisterR, RegisterW, RegisterRW,
+    RegisterR, RegisterRW,
 };
 use libcortex_a9::{asm, l2c, regs::*, cache, mmu, spin_lock_yield, notify_spin_lock, enable_fpu, interrupt_handler};
 use libboard_zynq::{slcr, mpcore};
@@ -19,16 +19,15 @@ extern "C" {
 static mut CORE1_ENABLED: VolatileCell<bool> = VolatileCell::new(false);
 
 interrupt_handler!(Reset, reset_irq, __stack0_start, __stack1_start, {
+    // no need to setup stack here, as we already did when entering the handler
     match MPIDR.read().cpu_id() {
         0 => {
-            SP.write(&mut __stack0_start as *mut _ as u32);
             boot_core0();
         }
         1 => {
             while !CORE1_ENABLED.get() {
                 spin_lock_yield();
             }
-            SP.write(&mut __stack1_start as *mut _ as u32);
             boot_core1();
         }
         _ => unreachable!(),

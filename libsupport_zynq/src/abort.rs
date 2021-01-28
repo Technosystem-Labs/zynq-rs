@@ -2,25 +2,25 @@ use libregister::RegisterR;
 use libcortex_a9::{regs::{DFSR, MPIDR}, interrupt_handler};
 use libboard_zynq::{println, stdio};
 
-interrupt_handler!(UndefinedInstruction, undefined_instruction, __stack0_start, __stack1_start, {
+interrupt_handler!(UndefinedInstruction, undefined_instruction, __irq_stack0_start, __irq_stack1_start, {
     stdio::drop_uart();
     println!("UndefinedInstruction");
     loop {}
 });
 
-interrupt_handler!(SoftwareInterrupt, software_interrupt, __stack0_start, __stack1_start, {
+interrupt_handler!(SoftwareInterrupt, software_interrupt, __irq_stack0_start, __irq_stack1_start, {
     stdio::drop_uart();
     println!("SoftwareInterrupt");
     loop {}
 });
 
-interrupt_handler!(PrefetchAbort, prefetch_abort, __stack0_start, __stack1_start, {
+interrupt_handler!(PrefetchAbort, prefetch_abort, __irq_stack0_start, __irq_stack1_start, {
     stdio::drop_uart();
     println!("PrefetchAbort");
     loop {}
 });
 
-interrupt_handler!(DataAbort, data_abort, __stack0_start, __stack1_start, {
+interrupt_handler!(DataAbort, data_abort, __irq_stack0_start, __irq_stack1_start, {
     stdio::drop_uart();
 
     println!("DataAbort on core {}", MPIDR.read().cpu_id());
@@ -29,20 +29,20 @@ interrupt_handler!(DataAbort, data_abort, __stack0_start, __stack1_start, {
     loop {}
 });
 
-interrupt_handler!(ReservedException, reserved_exception, __stack0_start, __stack1_start, {
+interrupt_handler!(ReservedException, reserved_exception, __irq_stack0_start, __irq_stack1_start, {
     stdio::drop_uart();
     println!("ReservedException");
     loop {}
 });
 
 #[cfg(feature = "dummy_irq_handler")]
-interrupt_handler!(IRQ, irq, __stack0_start, __stack1_start, {
+interrupt_handler!(IRQ, irq, __irq_stack0_start, __irq_stack1_start, {
     stdio::drop_uart();
     println!("IRQ");
     loop {}
 });
 
-interrupt_handler!(FIQ, fiq, __stack0_start, __stack1_start, {
+interrupt_handler!(FIQ, fiq, __irq_stack0_start, __irq_stack1_start, {
     stdio::drop_uart();
     println!("FIQ");
     loop {}
