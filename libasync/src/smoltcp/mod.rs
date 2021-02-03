@@ -23,7 +23,7 @@ pub trait LinkCheck {
 static mut SOCKETS: Option<Sockets> = None;
 
 pub struct Sockets {
-    sockets: RefCell<SocketSet<'static, 'static, 'static>>,
+    sockets: RefCell<SocketSet<'static>>,
     wakers: RefCell<Vec<Waker>>,
 }
 
@@ -47,8 +47,8 @@ impl Sockets {
 
     /// Block and run executor indefinitely while polling the smoltcp
     /// iface
-    pub fn run<'b, 'c, 'e, D: for<'d> Device<'d> + LinkCheck>(
-        iface: &mut EthernetInterface<'b, 'c, 'e, D>,
+    pub fn run<'b, D: for<'d> Device<'d> + LinkCheck>(
+        iface: &mut EthernetInterface<'b, D>,
         mut get_time: impl FnMut() -> Instant,
     ) -> ! {
         task::block_on(async {
@@ -74,9 +74,9 @@ impl Sockets {
         unsafe { SOCKETS.as_ref().expect("Sockets") }
     }
 
-    fn poll<'b, 'c, 'e, D: for<'d> Device<'d>>(
+    fn poll<'b, D: for<'d> Device<'d>>(
         &self,
-        iface: &mut EthernetInterface<'b, 'c, 'e, D>,
+        iface: &mut EthernetInterface<'b, D>,
         instant: Instant
     ) {
         let processed = {
