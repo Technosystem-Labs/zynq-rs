@@ -24,6 +24,6 @@ libcortex_a9 = { path = "../libcortex_a9" }
 libasync = { path = "../libasync" }
 
 [dependencies.smoltcp]
-version = "0.7"
+version = "0.6"
 features = ["ethernet", "proto-ipv4", "socket-tcp"]
 default-features = false
