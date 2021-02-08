@@ -262,6 +262,14 @@ impl TcpStream {
     pub fn set_timeout(&mut self, duration: Option<Duration>) {
         self.with_socket(|mut socket| socket.set_timeout(duration));
     }
+
+    pub fn ack_delay(&self) -> Option<Duration> {
+        self.with_socket(|socket| socket.ack_delay())
+    }
+
+    pub fn set_ack_delay(&mut self, duration: Option<Duration>) {
+        self.with_socket(|mut socket| socket.set_ack_delay(duration));
+    }
 }
 
 impl Drop for TcpStream {
