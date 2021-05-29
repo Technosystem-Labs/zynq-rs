@@ -2,8 +2,8 @@ let
   pkgs = import <nixpkgs> { overlays = [ (import ./nix/mozilla-overlay.nix) ]; };
   rustPlatform = (import ./nix/rust-platform.nix { inherit pkgs; });
   cargo-xbuild = (pkgs.cargo-xbuild.overrideAttrs(oa: { patches = oa.patches ++ [ ./xbuild_writable_lockfile.diff ]; } ));
-  cargoSha256Experiments = "107zc5n5xgzpw9i4j7r40pzl5pihlkmzx2gy934fhb6ybkfz9rnx";
-  cargoSha256SZL = "1vvn8c6nxl6p8sib19d0ah1kbimh48p86c8pjb878day4d1irbdl";
+  cargoSha256Experiments = "152i79x3mk6p1b1fpx91b4mvqv6yqwh315ih751lizwp8pyi4n80";
+  cargoSha256SZL = "1qfhwzb83a5wa2ilfdk20jldbcrbfck8siglrznv90hwrfdvvgr2";
   build-crate = name: crate: features: cargoSha256:
     rustPlatform.buildRustPackage rec {
       name = "${crate}";

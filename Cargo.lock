@@ -14,15 +14,15 @@ checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 
 [[package]]
 name = "byteorder"
-version = "1.4.2"
+version = "1.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae44d1a3d5a19df61dd0c8beb138458ac2a53a7ac09eba97d55592540004306b"
+checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
 name = "cc"
-version = "1.0.66"
+version = "1.0.68"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c0496836a84f8d0495758516b8621a622beb77c0fed418570e50764093ced48"
+checksum = "4a72c244c1ff497a746a7e1fb3d14bd08420ecda70c8f25c7112f2781652d787"
 
 [[package]]
 name = "cfg-if"
@@ -44,10 +44,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "embedded-hal"
-version = "0.2.4"
+name = "core_io"
+version = "0.1.20210325"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa998ce59ec9765d15216393af37a58961ddcefb14c753b4816ba2191d865fcb"
+checksum = "97f8932064288cc79feb4d343a399d353a6f6f001e586ece47fe518a9e8507df"
+dependencies = [
+ "rustc_version",
+]
+
+[[package]]
+name = "embedded-hal"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db184d3fa27bc7a2344250394c0264144dfe0bc81a4401801dcb964b8dd172ad"
 dependencies = [
  "nb 0.1.3",
  "void",
@@ -74,7 +83,7 @@ checksum = "e18f80a87439240dac45d927fd8f8081b6f1e34c03e97271189fa8a8c2e96c8f"
 dependencies = [
  "bitflags",
  "byteorder",
- "core_io",
+ "core_io 0.1.20210325",
  "log",
 ]
 
@@ -109,7 +118,7 @@ dependencies = [
 name = "libconfig"
 version = "0.1.0"
 dependencies = [
- "core_io",
+ "core_io 0.1.20210325",
  "fatfs",
  "libboard_zynq",
  "log",
@@ -169,9 +178,9 @@ checksum = "c75de51135344a4f8ed3cfe2720dc27736f7711989703a0b43aadf3753c55577"
 
 [[package]]
 name = "memchr"
-version = "2.3.4"
+version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ee1c47aaa256ecabcaea351eae4a9b01ef39ed810004e298d2511ed284b1525"
+checksum = "b16bd47d9e329435e309c58469fe0791c2d0d1ba96ec0954152a5ae2b04387dc"
 
 [[package]]
 name = "nb"
@@ -201,10 +210,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bd7a31eed1591dcbc95d92ad7161908e72f4677f8fabf2a32ca49b4237cbf211"
 
 [[package]]
-name = "smoltcp"
-version = "0.7.0"
+name = "rustc_version"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab527c390c7e107f687bd92a886a083fde61b8cdc700b37f3d7e4346ffd8fae1"
+checksum = "c5f5376ea5e30ce23c03eb77cbe4962b988deead10910c372b226388b594c084"
+dependencies = [
+ "semver",
+]
+
+[[package]]
+name = "semver"
+version = "0.1.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4f410fedcf71af0345d7607d246e7ad15faaadd49d240ee3b24e5dc21a820ac"
+
+[[package]]
+name = "smoltcp"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "11b5647cc4676e9358e6b15b6536b34e5b413e5ae946a06b3f85e713132bcdfa"
 dependencies = [
  "bitflags",
  "byteorder",
@@ -216,7 +240,7 @@ name = "szl"
 version = "0.1.0"
 dependencies = [
  "byteorder",
- "core_io",
+ "core_io 0.1.20210325",
  "libboard_zynq",
  "libconfig",
  "libcortex_a9",
