@@ -13,6 +13,7 @@ Supported features:
 
 
 Supported boards:
+ * Kasli-SoC
  * ZC706
  * Red Pitaya
  * Cora Z7-10 (seems to also run on Cora Z7-07S, including dual-core support)
