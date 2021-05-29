@@ -6,7 +6,6 @@ members = [
   "libsupport_zynq",
   "libasync",
   "libconfig",
-  "libcoreio",
   "experiments",
   "szl",
 ]
@@ -19,6 +18,3 @@ opt-level = 'z'
 lto = true
 debug-assertions = false
 overflow-checks = false
-
-[patch.crates-io]
-core_io = { path = "./libcoreio" }
