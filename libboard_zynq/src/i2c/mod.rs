@@ -33,6 +33,17 @@ impl I2c {
                     .pullup(true)
                     .disable_rcvr(true)
             );
+            // On Kasli-SoC prototype, leakage through the unconfigured I2C_SW_RESET
+            // MIO pin develops enough voltage on the T21 gate to assert the reset.
+            // Configure the pin to avoid this problem.
+            #[cfg(feature = "target_kasli_soc")]
+            slcr.mio_pin_33.write(
+                slcr::MioPin33::zeroed()
+                    .l3_sel(0b000)
+                    .io_type(slcr::IoBufferType::Lvcmos33)
+                    .pullup(false)
+                    .disable_rcvr(true)
+            );
             // Reset
             slcr.gpio_rst_ctrl.reset_gpio();
         });
