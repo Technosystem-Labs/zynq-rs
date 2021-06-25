@@ -76,7 +76,7 @@ impl I2c {
         nb::block!(self.count_down.wait()).unwrap();
     }
 
-    fn half_period(&mut self) { self.delay_us(100) }
+    fn unit_delay(&mut self) { self.delay_us(100) }
 
     fn sda_i(&mut self) -> bool {
         self.regs.gpio_input.read().sda()
@@ -117,15 +117,15 @@ impl I2c {
         self.sda_o(false);
 
         // Check the I2C bus is ready
-        self.half_period();
-        self.half_period();
+        self.unit_delay();
+        self.unit_delay();
         if !self.sda_i() {
             // Try toggling SCL a few times
             for _bit in 0..8 {
                 self.scl_oe(true);
-                self.half_period();
+                self.unit_delay();
                 self.scl_oe(false);
-                self.half_period();
+                self.unit_delay();
             }
         }
 
@@ -148,9 +148,9 @@ impl I2c {
             return Err("SDA arbitration lost");
         }
         self.sda_oe(true);
-        self.half_period();
+        self.unit_delay();
         self.scl_oe(true);
-        self.half_period();
+        self.unit_delay();
         // postcondition: SCL and SDA low
         Ok(())
     }
@@ -158,9 +158,9 @@ impl I2c {
     pub fn restart(&mut self) -> Result<(), &'static str> {
         // precondition SCL and SDA low
         self.sda_oe(false);
-        self.half_period();
+        self.unit_delay();
         self.scl_oe(false);
-        self.half_period();
+        self.unit_delay();
         self.start()?;
         // postcondition: SCL and SDA low
         Ok(())
@@ -168,11 +168,11 @@ impl I2c {
 
     pub fn stop(&mut self) -> Result<(), &'static str> {
         // precondition: SCL and SDA low
-        self.half_period();
+        self.unit_delay();
         self.scl_oe(false);
-        self.half_period();
+        self.unit_delay();
         self.sda_oe(false);
-        self.half_period();
+        self.unit_delay();
         if !self.sda_i() {
             return Err("SDA arbitration lost");
         }
@@ -185,20 +185,20 @@ impl I2c {
         // MSB first
         for bit in (0..8).rev() {
             self.sda_oe(data & (1 << bit) == 0);
-            self.half_period();
+            self.unit_delay();
             self.scl_oe(false);
-            self.half_period();
+            self.unit_delay();
             self.scl_oe(true);
-            self.half_period();
+            self.unit_delay();
         }
         self.sda_oe(false);
-        self.half_period();
+        self.unit_delay();
         self.scl_oe(false);
-        self.half_period();
+        self.unit_delay();
         // Read ack/nack
         let ack = !self.sda_i();
         self.scl_oe(true);
-        self.half_period();
+        self.unit_delay();
         self.sda_oe(true);
         // postcondition: SCL and SDA low
 
@@ -213,17 +213,17 @@ impl I2c {
 
         // MSB first
         for bit in (0..8).rev() {
-            self.half_period();
+            self.unit_delay();
             self.scl_oe(false);
-            self.half_period();
+            self.unit_delay();
             if self.sda_i() { data |= 1 << bit }
             self.scl_oe(true);
         }
         // Send ack/nack
         self.sda_oe(ack);
-        self.half_period();
+        self.unit_delay();
         self.scl_oe(false);
-        self.half_period();
+        self.unit_delay();
         self.scl_oe(true);
         self.sda_oe(true);
         // postcondition: SCL and SDA low
