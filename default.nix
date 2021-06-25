@@ -39,10 +39,17 @@ let
     "${target}-szl" = build-crate "${target}-szl" "szl" "target_${target}" cargoSha256SZL;
   };
   targets = ["zc706" "coraz7" "redpitaya" "kasli_soc"];
+  allTargetCrates = (builtins.foldl' (results: target:
+      results // targetCrates target
+    ) {} targets);
 in
   {
     inherit cargo-xbuild;
     zc706-fsbl = import ./nix/fsbl.nix { inherit pkgs; };
-  } // (builtins.foldl' (results: target:
-    results // targetCrates target
-  ) {} targets)
+    szl = pkgs.runCommand "szl" {} (builtins.foldl' (commands: target:
+      let
+        szlResult = builtins.getAttr "${target}-szl" allTargetCrates;
+      in
+        commands + "ln -s ${szlResult}/szl.elf $out/szl-${target}.elf\n"
+    ) "mkdir $out\n" targets);
+  } // allTargetCrates
