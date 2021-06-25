@@ -150,6 +150,7 @@ impl I2c {
         self.sda_oe(true);
         self.half_period();
         self.scl_oe(true);
+        self.half_period();
         // postcondition: SCL and SDA low
         Ok(())
     }
@@ -188,6 +189,7 @@ impl I2c {
             self.scl_oe(false);
             self.half_period();
             self.scl_oe(true);
+            self.half_period();
         }
         self.sda_oe(false);
         self.half_period();
@@ -196,6 +198,7 @@ impl I2c {
         // Read ack/nack
         let ack = !self.sda_i();
         self.scl_oe(true);
+        self.half_period();
         self.sda_oe(true);
         // postcondition: SCL and SDA low
 
