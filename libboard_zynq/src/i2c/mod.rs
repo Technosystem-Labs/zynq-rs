@@ -133,7 +133,7 @@ impl I2c {
             return Err("SDA is stuck low and doesn't get unstuck");
         }
         if !self.scl_i() {
-            return Err("SCL is stuck low and doesn't get unstuck");
+            return Err("SCL is stuck low");
         }
         // postcondition: SCL and SDA high
         Ok(())
@@ -142,7 +142,7 @@ impl I2c {
     pub fn start(&mut self) -> Result<(), &'static str> {
         // precondition: SCL and SDA high
         if !self.scl_i() {
-            return Err("SCL is stuck low and doesn't get unstuck");
+            return Err("SCL is stuck low");
         }
         if !self.sda_i() {
             return Err("SDA arbitration lost");
