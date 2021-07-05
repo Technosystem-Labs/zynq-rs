@@ -51,7 +51,7 @@ mod phy_impl {
     impl Phy {
         /// Probe all addresses on MDIO for a known PHY
         pub fn find<PA: PhyAccess>(pa: &mut PA) -> Option<Phy> {
-            (1..32).find(|addr| {
+            (0..32).find(|addr| {
                 match identify_phy(pa, *addr) {
                     Some(PhyIdentifier {
                         oui: OUI_MARVELL,
