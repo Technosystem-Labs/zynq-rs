@@ -6,7 +6,7 @@ let
   targets = [];
   rustChannelOfTargets = _channel: _date: targets:
     (pkgs.lib.rustLib.fromManifestFile rustManifest {
-      inherit (pkgs) stdenv fetchurl patchelf;
+      inherit (pkgs) stdenv lib fetchurl patchelf;
     }).rust.override {
       inherit targets;
       extensions = ["rust-src"];
