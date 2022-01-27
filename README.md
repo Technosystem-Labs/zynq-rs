@@ -20,18 +20,30 @@ Supported boards:
 
 ## Build
 
+Zynq-rs is packaged using the [Nix](https://nixos.org) Flakes system. Install Nix 2.4+ and enable flakes by adding ``experimental-features = nix-command flakes`` to ``nix.conf`` (e.g. ``~/.config/nix/nix.conf``). 
+
+You can build SZL or experiments crate for the platform of your choice by using ``nix build`` command, e.g.
+
 ```shell
-nix-shell --command "cargo xbuild --release -p experiments"
+nix build .#coraz7-experiments
 ```
 
-Currently the ELF output is placed at `target/armv7-none-eabihf/release/experiments`
+Alternatively, you can still use ``cargo xbuild`` within ``nix develop`` shell.
+
+```shell
+nix develop
+cargo xbuild --release -p experiments
+```
+
+Currently the ELF output is placed at `target/armv7-none-eabihf/release/experiments`, or `result/experiments.elf` for Nix Flakes build.
 
 ## Debug
 
 ### Running on the ZC706
 
 ```shell
-nix-shell --command "cargo xbuild --release -p experiments"
+nix develop
+cargo xbuild --release -p experiments
 cd openocd
 openocd -f zc706.cfg
 ```
@@ -39,7 +51,8 @@ openocd -f zc706.cfg
 ### Running on the Cora Z7-10
 
 ```shell
-nix-shell --command "cd experiments && cargo xbuild --release --no-default-features --features=target_coraz7"
+nix develop
+cargo xbuild --release -p experiments --no-default-features --features=target_coraz7
 cd openocd
 openocd -f cora-z7-10.cfg
 ```
