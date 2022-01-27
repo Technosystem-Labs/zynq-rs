@@ -75,7 +75,7 @@ pub fn main_core0() {
                    ___/ / / /__/ /___
                   /____/ /____/_____/
 
-                 (C) 2020-2021 M-Labs
+                 (C) 2020-2022 M-Labs
 "#
     );
     info!("Simple Zynq Loader starting...");
