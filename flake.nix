@@ -257,15 +257,15 @@
         in
           commands + "ln -s ${szlResult}/szl.elf $out/szl-${target}.elf\n"
       ) "mkdir $out\n" targets);
-
-      allOutputs = { 
-        inherit cargo-xbuild szl; 
+    in rec {
+      packages.x86_64-linux = { 
+        inherit cargo-xbuild szl mkbootimage;
         zc706-fsbl = fsbl { board = "zc706"; };
       } // allTargetCrates ;
-    in rec {
-      packages.x86_64-linux = allOutputs;
 
       hydraJobs = packages.x86_64-linux;
+
+      inherit rustPlatform;
 
       devShell.x86_64-linux = pkgs.mkShell {
         name = "zynq-rs-dev-shell";
