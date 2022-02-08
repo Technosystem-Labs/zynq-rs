@@ -153,11 +153,11 @@ impl I2c {
         self.i2cswr_o(true);
         self.delay_us(10);
 
-        let pca954x_addr = 0x70;
+        let pca954x_addr = 0x71;
 
         self.start()?;
         // read the config register
-        if !self.write(pca954x_addr << 1 | 0x01)? {
+        if !self.write(pca954x_addr)? {
             return Err("PCA954X failed to ack read address");
         }
         let config = self.read(true)?;
