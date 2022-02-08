@@ -7,9 +7,16 @@ use super::time::Microseconds;
 use embedded_hal::timer::CountDown;
 use libregister::{RegisterR, RegisterRW, RegisterW};
 
+enum PCA954X {
+    PCA9548 = 0,
+    #[cfg(feature = "target_kasli_soc")]
+    PCA9547 = 1,
+}
+
 pub struct I2c {
     regs: regs::RegisterBlock,
-    count_down: super::timer::global::CountDown<Microseconds>
+    count_down: super::timer::global::CountDown<Microseconds>,
+    pca_type: PCA954X
 }
 
 impl I2c {
@@ -48,14 +55,15 @@ impl I2c {
             slcr.gpio_rst_ctrl.reset_gpio();
         });
 
-        Self::i2c_common(0xFFFF - 0x000C)
+        Self::i2c_common(0xFFFF - 0x000C, 0xFFFF - 0x0002)
     }
 
-    fn i2c_common(gpio_output_mask: u16) -> Self {
+    fn i2c_common(gpio_output_mask: u16, _gpio_output_mask_lower: u16) -> Self {
         // Setup register block
         let self_ = Self {
             regs: regs::RegisterBlock::i2c(),
-            count_down: unsafe { super::timer::GlobalTimer::get() }.countdown()
+            count_down: unsafe { super::timer::GlobalTimer::get() }.countdown(),
+            pca_type: PCA954X::PCA9548
         };
 
         // Setup GPIO output mask
@@ -66,6 +74,17 @@ impl I2c {
         self_.regs.gpio_direction.modify(|_, w| {
             w.scl(true).sda(true)
         });
+
+        //Kasli-SoC exclusive: I2C_SW_RESET configuration
+        #[cfg(feature = "target_kasli_soc")]
+        {
+            self_.regs.gpio_output_mask_lower.modify(|_, w| {
+                w.mask(_gpio_output_mask_lower)
+            });
+            self_.regs.gpio_direction.modify(|_, w| {
+                w.i2cswr(true)
+            });
+        }
 
         self_
     }
@@ -110,6 +129,47 @@ impl I2c {
         })
     }
 
+    #[cfg(feature = "target_kasli_soc")]
+    fn i2cswr_oe(&mut self, oe: bool) {
+        self.regs.gpio_output_enable.modify(|_, w| {
+             w.i2cswr(oe)
+        })
+    }
+
+    #[cfg(feature = "target_kasli_soc")]
+    fn i2cswr_o(&mut self, o: bool) {
+        self.regs.gpio_output_mask_lower.modify(|_, w| {
+             w.i2cswr_o(o)
+        })
+    }
+
+    #[cfg(feature = "target_kasli_soc")]
+    fn pca_autodetect(&mut self) -> Result<PCA954X, &'static str> {
+        // start with resetting the PCA954X
+        self.i2cswr_oe(false);
+        self.i2cswr_o(false);
+        self.delay_us(10); // reset time is just 500ns
+        self.i2cswr_oe(true);
+        self.i2cswr_o(true);
+        self.delay_us(10);
+
+        let pca954x_addr = 0x70;
+
+        self.start()?;
+        // read the config register
+        if !self.write(pca954x_addr << 1 | 0x01)? {
+            return Err("PCA954X failed to ack read address");
+        }
+        let config = self.read(true)?;
+        let pca = match config {
+            0x00 => PCA954X::PCA9548,
+            0x08 => PCA954X::PCA9547,
+            _ => { return Err("Unknown PCA954X type."); }
+        };
+        self.stop()?;
+        Ok(pca)
+    }
+
     pub fn init(&mut self) -> Result<(), &'static str> {
         self.scl_oe(false);
         self.sda_oe(false);
@@ -136,6 +196,14 @@ impl I2c {
             return Err("SCL is stuck low");
         }
         // postcondition: SCL and SDA high
+        #[cfg(feature = "target_kasli_soc")]
+        {
+            self.pca_type = self.pca_autodetect()?;
+        }
+        #[cfg(not(feature = "target_kasli_soc"))]
+        {
+            self.pca_type = PCA954X::PCA9548;
+        }
         Ok(())
     }
 
@@ -231,12 +299,20 @@ impl I2c {
         Ok(data)
     }
 
-    pub fn pca9548_select(&mut self, address: u8, channels: u8) -> Result<(), &'static str> {
+    pub fn pca954x_select(&mut self, address: u8, channel: u8) -> Result<(), &'static str> {
         self.start()?;
+        // PCA9547 supports only one channel at a time
+        // for compatibility, PCA9548 is treated as such
+        let setting = match self.pca_type {
+            PCA954X::PCA9548 => 1 << channel,
+            #[cfg(feature = "target_kasli_soc")]
+            PCA954X::PCA9547 => channel | 0x08,
+        };
+
         if !self.write(address << 1)? {
             return Err("PCA9548 failed to ack write address")
         }
-        if !self.write(channels)? {
+        if !self.write(setting)? {
             return Err("PCA9548 failed to ack control word")
         }
         self.stop()?;

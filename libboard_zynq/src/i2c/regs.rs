@@ -20,13 +20,15 @@ use libregister::{
 //
 // Current compatibility:
 // zc706: GPIO 50, 51 == SCL, SDA
-// kasli_soc: GPIO 50, 51 == SCL, SDA
+// kasli_soc: GPIO 50, 51 == SCL, SDA; GPIO 33 == I2C_SW_RESET
 
 pub struct RegisterBlock {
     pub gpio_output_mask: &'static mut GPIOOutputMask,
     pub gpio_input: &'static mut GPIOInput,
     pub gpio_direction: &'static mut GPIODirection,
     pub gpio_output_enable: &'static mut GPIOOutputEnable,
+    #[cfg(feature = "target_kasli_soc")]
+    pub gpio_output_mask_lower: &'static mut GPIOOutputMaskLower,
 }
 
 impl RegisterBlock {
@@ -35,7 +37,9 @@ impl RegisterBlock {
             gpio_output_mask: GPIOOutputMask::new(),
             gpio_input: GPIOInput::new(),
             gpio_direction: GPIODirection::new(),
-            gpio_output_enable: GPIOOutputEnable::new()
+            gpio_output_enable: GPIOOutputEnable::new(),
+            #[cfg(feature = "target_kasli_soc")]
+            gpio_output_mask_lower: GPIOOutputMaskLower::new(),
         }
     }
 }
@@ -59,6 +63,21 @@ register_bits!(gpio_output_mask,
                /// Mask for keeping bits except SCL and SDA unchanged
                mask, u16, 16, 31);
 
+
+register!(gpio_output_mask_lower,
+            /// MASK_DATA_1_LSW:
+            /// Maskable output data for MIO[47:32]
+            GPIOOutputMaskLower, RW, u32);
+#[cfg(feature = "target_kasli_soc")]
+register_at!(GPIOOutputMaskLower, 0xE000A008, new);
+#[cfg(feature = "target_kasli_soc")]
+register_bit!(gpio_output_mask_lower,
+              /// Output for I2C_SW_RESET (MIO[33])
+              i2cswr_o, 1);
+#[cfg(feature = "target_kasli_soc")]
+register_bits!(gpio_output_mask_lower,
+              mask, u16, 16, 31);
+
 register!(gpio_input,
           /// DATA_1_RO:
           /// Input data for MIO[53:32]
@@ -74,6 +93,7 @@ register_bit!(gpio_input,
               /// Input for SDA
               sda, 19);
 
+
 register!(gpio_direction,
           /// DIRM_1:
           /// Direction mode for MIO[53:32]; 0/1 = in/out
@@ -88,6 +108,10 @@ register_bit!(gpio_direction,
 register_bit!(gpio_direction,
               /// Direction for SDA
               sda, 19);
+#[cfg(feature = "target_kasli_soc")]
+register_bit!(gpio_direction,
+              /// Direction for I2C_SW_RESET
+              i2cswr, 1);
 
 register!(gpio_output_enable,
           /// OEN_1:
@@ -103,3 +127,8 @@ register_bit!(gpio_output_enable,
 register_bit!(gpio_output_enable,
               /// Output enable for SDA
               sda, 19);
+#[cfg(feature = "target_kasli_soc")]
+register_bit!(gpio_output_enable,
+              /// Output enable for I2C_SW_RESET
+              i2cswr, 1);
+              

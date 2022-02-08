@@ -35,16 +35,14 @@ impl<'a> EEPROM<'a> {
 
     #[cfg(feature = "target_zc706")]
     fn select(&mut self) -> Result<(), &'static str> {
-        let mask: u16 = 1 << self.port;
-        self.i2c.pca9548_select(0b1110100, mask as u8)?;
+        self.i2c.pca954x_select(0b1110100, self.port)?;
         Ok(())
     }
 
     #[cfg(feature = "target_kasli_soc")]
     fn select(&mut self) -> Result<(), &'static str> {
-        let mask: u16 = 1 << self.port;
         // tca9548 is compatible with pca9548
-        self.i2c.pca9548_select(0b1110001, mask as u8)?;
+        self.i2c.pca954x_select(0b1110001, self.port)?;
         Ok(())
     }
 
