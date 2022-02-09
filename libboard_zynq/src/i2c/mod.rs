@@ -144,27 +144,26 @@ impl I2c {
     }
 
     #[cfg(feature = "target_kasli_soc")]
-    fn pca_autodetect(&mut self) -> Result<PCA954X, &'static str> {
+    pub fn pca_autodetect(&mut self) -> Result<PCA954X, &'static str> {
         // start with resetting the PCA954X
-        self.i2cswr_oe(false);
-        self.i2cswr_o(false);
-        self.delay_us(10); // reset time is just 500ns
-        self.i2cswr_oe(true);
-        self.i2cswr_o(true);
-        self.delay_us(10);
 
-        let pca954x_addr = 0x71;
+        /*self.i2cswr_oe(false);
+        self.unit_delay(); 
+        self.i2cswr_oe(true);*/
+
+        let pca954x_read_addr = (0x71 << 1) | 0x01;
 
         self.start()?;
         // read the config register
-        if !self.write(pca954x_addr)? {
+        if !self.write(pca954x_read_addr)? {
             return Err("PCA954X failed to ack read address");
         }
-        let config = self.read(true)?;
+        let config = self.read(false)?;
+
         let pca = match config {
             0x00 => PCA954X::PCA9548,
             0x08 => PCA954X::PCA9547,
-            _ => { return Err("Unknown PCA954X type."); }
+            _ => { return Err("Unknown response for PCA954X autodetect")},
         };
         self.stop()?;
         Ok(pca)
@@ -196,14 +195,13 @@ impl I2c {
             return Err("SCL is stuck low");
         }
         // postcondition: SCL and SDA high
+        
         #[cfg(feature = "target_kasli_soc")]
         {
+            self.unit_delay();
             self.pca_type = self.pca_autodetect()?;
         }
-        #[cfg(not(feature = "target_kasli_soc"))]
-        {
-            self.pca_type = PCA954X::PCA9548;
-        }
+        
         Ok(())
     }
 
@@ -287,7 +285,7 @@ impl I2c {
             if self.sda_i() { data |= 1 << bit }
             self.scl_oe(true);
         }
-        // Send ack/nack
+        // Send ack/nack (true = nack, false = ack)
         self.sda_oe(ack);
         self.unit_delay();
         self.scl_oe(false);

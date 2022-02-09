@@ -76,7 +76,7 @@ register_bit!(gpio_output_mask_lower,
               i2cswr_o, 1);
 #[cfg(feature = "target_kasli_soc")]
 register_bits!(gpio_output_mask_lower,
-              mask, u16, 16, 31);
+               mask, u16, 16, 31);
 
 register!(gpio_input,
           /// DATA_1_RO:
