@@ -7,7 +7,7 @@ use super::time::Microseconds;
 use embedded_hal::timer::CountDown;
 use libregister::{RegisterR, RegisterRW, RegisterW};
 
-enum PCA954X {
+pub enum I2cMultiplexer {
     PCA9548 = 0,
     #[cfg(feature = "target_kasli_soc")]
     PCA9547 = 1,
@@ -16,7 +16,7 @@ enum PCA954X {
 pub struct I2c {
     regs: regs::RegisterBlock,
     count_down: super::timer::global::CountDown<Microseconds>,
-    pca_type: PCA954X
+    pca_type: I2cMultiplexer
 }
 
 impl I2c {
@@ -63,7 +63,7 @@ impl I2c {
         let self_ = Self {
             regs: regs::RegisterBlock::i2c(),
             count_down: unsafe { super::timer::GlobalTimer::get() }.countdown(),
-            pca_type: PCA954X::PCA9548
+            pca_type: I2cMultiplexer::PCA9548 //default for zc706
         };
 
         // Setup GPIO output mask
@@ -75,7 +75,7 @@ impl I2c {
             w.scl(true).sda(true)
         });
 
-        //Kasli-SoC exclusive: I2C_SW_RESET configuration
+        //Kasli-SoC only: I2C_SW_RESET configuration
         #[cfg(feature = "target_kasli_soc")]
         {
             self_.regs.gpio_output_mask_lower.modify(|_, w| {
@@ -144,13 +144,15 @@ impl I2c {
     }
 
     #[cfg(feature = "target_kasli_soc")]
-    pub fn pca_autodetect(&mut self) -> Result<PCA954X, &'static str> {
+    fn pca_autodetect(&mut self) -> Result<I2cMultiplexer, &'static str> {
         // start with resetting the PCA954X
-
-        /*self.i2cswr_oe(false);
-        self.unit_delay(); 
-        self.i2cswr_oe(true);*/
-
+        // SDA must be clear (before start)
+        // reset time is 500ns, unit_delay (100us) to account for propagation
+        self.i2cswr_o(true);
+        self.unit_delay();
+        self.i2cswr_o(false);
+        self.unit_delay();
+    
         let pca954x_read_addr = (0x71 << 1) | 0x01;
 
         self.start()?;
@@ -161,8 +163,8 @@ impl I2c {
         let config = self.read(false)?;
 
         let pca = match config {
-            0x00 => PCA954X::PCA9548,
-            0x08 => PCA954X::PCA9547,
+            0x00 => I2cMultiplexer::PCA9548,
+            0x08 => I2cMultiplexer::PCA9547,
             _ => { return Err("Unknown response for PCA954X autodetect")},
         };
         self.stop()?;
@@ -198,7 +200,7 @@ impl I2c {
         
         #[cfg(feature = "target_kasli_soc")]
         {
-            self.unit_delay();
+            self.i2cswr_oe(true);
             self.pca_type = self.pca_autodetect()?;
         }
         
@@ -300,18 +302,18 @@ impl I2c {
     pub fn pca954x_select(&mut self, address: u8, channel: u8) -> Result<(), &'static str> {
         self.start()?;
         // PCA9547 supports only one channel at a time
-        // for compatibility, PCA9548 is treated as such
+        // for compatibility, PCA9548 is treated as such too
         let setting = match self.pca_type {
-            PCA954X::PCA9548 => 1 << channel,
+            I2cMultiplexer::PCA9548 => 1 << channel,
             #[cfg(feature = "target_kasli_soc")]
-            PCA954X::PCA9547 => channel | 0x08,
+            I2cMultiplexer::PCA9547 => channel | 0x08,
         };
 
         if !self.write(address << 1)? {
-            return Err("PCA9548 failed to ack write address")
+            return Err("PCA954X failed to ack write address")
         }
         if !self.write(setting)? {
-            return Err("PCA9548 failed to ack control word")
+            return Err("PCA954X failed to ack control word")
         }
         self.stop()?;
         Ok(())
