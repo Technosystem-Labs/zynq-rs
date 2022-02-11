@@ -35,14 +35,14 @@ impl<'a> EEPROM<'a> {
 
     #[cfg(feature = "target_zc706")]
     fn select(&mut self) -> Result<(), &'static str> {
-        self.i2c.pca954x_select(0b1110100, self.port)?;
+        self.i2c.pca954x_select(0b1110100, Some(self.port))?;
         Ok(())
     }
 
     #[cfg(feature = "target_kasli_soc")]
     fn select(&mut self) -> Result<(), &'static str> {
         // tca9548 is compatible with pca9548
-        self.i2c.pca954x_select(0b1110001, self.port)?;
+        self.i2c.pca954x_select(0b1110001, Some(self.port))?;
         Ok(())
     }
 

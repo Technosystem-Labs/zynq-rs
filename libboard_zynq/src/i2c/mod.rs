@@ -301,14 +301,25 @@ impl I2c {
         Ok(data)
     }
 
-    pub fn pca954x_select(&mut self, address: u8, channel: u8) -> Result<(), &'static str> {
+    pub fn pca954x_select(&mut self, address: u8, channel: Option<u8>) -> Result<(), &'static str> {
         self.start()?;
         // PCA9547 supports only one channel at a time
         // for compatibility, PCA9548 is treated as such too
+        // channel - Some(x) - # of the channel [0,7], or None for all disabled
         let setting = match self.pca_type {
-            I2cMultiplexer::PCA9548 => 1 << channel,
+            I2cMultiplexer::PCA9548 => { 
+                match channel {
+                    Some(ch) => 1 << ch,
+                    None => 0,
+                }
+            },
             #[cfg(feature = "target_kasli_soc")]
-            I2cMultiplexer::PCA9547 => channel | 0x08,
+            I2cMultiplexer::PCA9547 => {
+                match channel {
+                    Some(ch) => ch | 0x08,
+                    None => 0,
+                }
+            }
         };
 
         if !self.write(address << 1)? {
