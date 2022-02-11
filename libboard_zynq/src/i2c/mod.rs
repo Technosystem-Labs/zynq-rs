@@ -6,6 +6,8 @@ use super::slcr;
 use super::time::Microseconds;
 use embedded_hal::timer::CountDown;
 use libregister::{RegisterR, RegisterRW, RegisterW};
+#[cfg(feature = "target_kasli_soc")]
+use log::info;
 
 pub enum I2cMultiplexer {
     PCA9548 = 0,
@@ -163,8 +165,8 @@ impl I2c {
         let config = self.read(false)?;
 
         let pca = match config {
-            0x00 => I2cMultiplexer::PCA9548,
-            0x08 => I2cMultiplexer::PCA9547,
+            0x00 => { info!("PCA9548 detected"); I2cMultiplexer::PCA9548 },
+            0x08 => { info!("PCA9547 detected"); I2cMultiplexer::PCA9547 },
             _ => { return Err("Unknown response for PCA954X autodetect")},
         };
         self.stop()?;
