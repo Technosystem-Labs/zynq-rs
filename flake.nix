@@ -278,6 +278,7 @@
           openocd gdb
           openssh rsync
           llvmPackages_9.clang-unwrapped
+          (python3.withPackages(ps: [ ps.pyftdi ]))
           mkbootimage ];
         };
     };
