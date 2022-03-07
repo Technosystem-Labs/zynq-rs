@@ -30,7 +30,19 @@ impl fmt::Display for NetAddresses {
     }
 }
 
-pub fn get_adresses(cfg: &Config) -> NetAddresses {
+#[cfg(feature = "target_kasli_soc")]
+fn get_address_from_eeprom() -> EthernetAddress {
+    use libboard_zynq::i2c::{I2c, eeprom};
+
+    let mut i2c = I2c::i2c0();
+    i2c.init().unwrap();
+    let mut eeprom = eeprom::EEPROM::new(&mut i2c, 16);
+    let address = eeprom.read_eui48().unwrap_or([0x02, 0x00, 0x00, 0x00, 0x00, 0x56]);
+
+    EthernetAddress(address)
+}
+
+pub fn get_addresses(cfg: &Config) -> NetAddresses {
     #[cfg(feature = "target_zc706")]
     let mut hardware_addr = EthernetAddress([0x02, 0x00, 0x00, 0x00, 0x00, 0x52]);
     #[cfg(feature = "target_zc706")]
@@ -44,7 +56,7 @@ pub fn get_adresses(cfg: &Config) -> NetAddresses {
     #[cfg(feature = "target_redpitaya")]
     let mut ipv4_addr = IpAddress::v4(192, 168, 1, 55);
     #[cfg(feature = "target_kasli_soc")]
-    let mut hardware_addr = EthernetAddress([0x02, 0x00, 0x00, 0x00, 0x00, 0x56]);
+    let mut hardware_addr = get_address_from_eeprom();
     #[cfg(feature = "target_kasli_soc")]
     let mut ipv4_addr = IpAddress::v4(192, 168, 1, 56);
 
