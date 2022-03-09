@@ -100,6 +100,10 @@ impl PhyRegister for Status {
     fn addr() -> u8 {
         1
     }
+        
+    fn page() -> u8 {
+        0
+    }
 }
 
 impl From<u16> for Status {

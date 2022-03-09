@@ -43,6 +43,10 @@ impl PhyRegister for PSSR {
     fn addr() -> u8 {
         0x11
     }
+        
+    fn page() -> u8 {
+        0
+    }
 }
 
 impl From<u16> for PSSR {

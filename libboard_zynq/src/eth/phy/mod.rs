@@ -33,6 +33,7 @@ pub trait PhyAccess {
 
 pub trait PhyRegister {
     fn addr() -> u8;
+    fn page() -> u8;
 }
 
 
@@ -44,6 +45,8 @@ pub struct Phy {
 const OUI_MARVELL: u32 = 0x005043;
 const OUI_REALTEK: u32 = 0x000732;
 const OUI_LANTIQ : u32 = 0x355969;
+
+const PAGE_REGISTER: u8 = 0x16;
 
 impl Phy {
     /// Probe all addresses on MDIO for a known PHY
@@ -84,6 +87,7 @@ impl Phy {
         PA: PhyAccess,
         PR: PhyRegister + From<u16>,
     {
+        pa.write_phy(self.addr, PAGE_REGISTER, PR::page());
         pa.read_phy(self.addr, PR::addr()).into()
     }
 
@@ -93,6 +97,7 @@ impl Phy {
         PR: PhyRegister + From<u16> + Into<u16>,
         F: FnMut(PR) -> PR,
     {
+        pa.write_phy(self.addr, PAGE_REGISTER, PR::page());
         let reg = pa.read_phy(self.addr, PR::addr()).into();
         let reg = f(reg);
         pa.write_phy(self.addr, PR::addr(), reg.into())

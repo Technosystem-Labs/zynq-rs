@@ -82,6 +82,10 @@ impl PhyRegister for Control {
     fn addr() -> u8 {
         0
     }
+    
+    fn page() -> u8 {
+        0
+    }
 }
 
 impl From<u16> for Control {
