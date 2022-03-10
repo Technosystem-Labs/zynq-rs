@@ -6,6 +6,8 @@ mod control;
 pub use control::Control;
 mod pssr;
 pub use pssr::PSSR;
+mod leds;
+pub use leds::Leds;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Link {
@@ -24,6 +26,43 @@ pub enum LinkSpeed {
 pub enum LinkDuplex {
     Half,
     Full,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum Led0Control {
+    OnLinkOffNoLink = 0b0000,
+    OnLinkBlinkActivityOffNoLink = 0b0001,
+    BlinkDependingOnLink = 0b0010,
+    OnActivityOffNoActivity = 0b0011,
+    BlinkActivityOffNoActivity = 0b0100,
+    OnTransmitOffNoTransmit = 0b0101,
+    OnCopperLinkOffElse = 0b0110,
+    On1000LinkOffElse = 0b0111,
+    ForceOff = 0b1000,
+    ForceOn = 0b1001,
+    ForceHiZ = 0b1010,
+    ForceBlink = 0b1011,
+    Mode1 = 0b1100,
+    Mode2 = 0b1101,
+    Mode3 = 0b1110,
+    Mode4 = 0b1111
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum Led1Control {
+    OnReceiveOffNoReceive = 0b0000,
+    OnLinkBlinkActivityOffNoLink = 0b0001,
+    OnLinkBlinkReceiveOffNoLink = 0b0010,
+    OnActivityOffNoActivity = 0b0011,
+    BlinkActivityOffNoActivity = 0b0100,
+    On100OrFiberOffElse = 0b0101,
+    On1001000LinkOffElse = 0b0110,
+    On100LinkOffElse = 0b0111,
+    ForceOff = 0b1000,
+    ForceOn = 0b1001,
+    ForceHiZ = 0b1010,
+    ForceBlink = 0b1011,
+    Invalid
 }
 
 pub trait PhyAccess {
@@ -87,7 +126,7 @@ impl Phy {
         PA: PhyAccess,
         PR: PhyRegister + From<u16>,
     {
-        pa.write_phy(self.addr, PAGE_REGISTER, PR::page());
+        pa.write_phy(self.addr, PAGE_REGISTER, PR::page().into());
         pa.read_phy(self.addr, PR::addr()).into()
     }
 
@@ -97,7 +136,7 @@ impl Phy {
         PR: PhyRegister + From<u16> + Into<u16>,
         F: FnMut(PR) -> PR,
     {
-        pa.write_phy(self.addr, PAGE_REGISTER, PR::page());
+        pa.write_phy(self.addr, PAGE_REGISTER, PR::page().into());
         let reg = pa.read_phy(self.addr, PR::addr()).into();
         let reg = f(reg);
         pa.write_phy(self.addr, PR::addr(), reg.into())
@@ -109,6 +148,14 @@ impl Phy {
         F: FnMut(Control) -> Control,
     {
         self.modify_reg(pa, f)
+    }
+
+    pub fn modify_leds<PA, F>(&self, pa: &mut PA, f: F)
+    where
+        PA: PhyAccess,
+        F: FnMut(Leds) -> Leds,
+    {
+        self.modify_reg(pa, f)   
     }
 
     pub fn get_control<PA: PhyAccess>(&self, pa: &mut PA) -> Control {
@@ -142,6 +189,13 @@ impl Phy {
         self.modify_control(pa, |control|
             control.set_autoneg_enable(true)
                 .set_restart_autoneg(true)
+        );
+    }
+
+    pub fn set_leds<PA: PhyAccess>(&self, pa: &mut PA) {
+        self.modify_leds(pa, |leds|
+            leds.set_led0(Led0Control::OnCopperLinkOffElse)
+                .set_led1(Led1Control::BlinkActivityOffNoActivity)
         );
     }
 }
