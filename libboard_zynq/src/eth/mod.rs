@@ -310,6 +310,7 @@ impl<GEM: Gem> Eth<GEM, (), ()> {
         let phy = Phy::find(&mut inner).expect("phy");
         phy.reset(&mut inner);
         phy.restart_autoneg(&mut inner);
+        #[cfg(feature="target_kasli_soc")]
         phy.set_leds(&mut inner);
 
         Eth {

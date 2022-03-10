@@ -85,6 +85,8 @@ const OUI_MARVELL: u32 = 0x005043;
 const OUI_REALTEK: u32 = 0x000732;
 const OUI_LANTIQ : u32 = 0x355969;
 
+//only change pages on Kasli-SoC's Marvel 88E11xx
+#[cfg(feature="target_kasli_soc")]
 const PAGE_REGISTER: u8 = 0x16;
 
 impl Phy {
@@ -126,7 +128,9 @@ impl Phy {
         PA: PhyAccess,
         PR: PhyRegister + From<u16>,
     {
+        #[cfg(feature="target_kasli_soc")]
         pa.write_phy(self.addr, PAGE_REGISTER, PR::page().into());
+
         pa.read_phy(self.addr, PR::addr()).into()
     }
 
@@ -136,7 +140,9 @@ impl Phy {
         PR: PhyRegister + From<u16> + Into<u16>,
         F: FnMut(PR) -> PR,
     {
+        #[cfg(feature="target_kasli_soc")]
         pa.write_phy(self.addr, PAGE_REGISTER, PR::page().into());
+        
         let reg = pa.read_phy(self.addr, PR::addr()).into();
         let reg = f(reg);
         pa.write_phy(self.addr, PR::addr(), reg.into())
@@ -192,6 +198,7 @@ impl Phy {
         );
     }
 
+    #[cfg(feature="target_kasli_soc")]
     pub fn set_leds<PA: PhyAccess>(&self, pa: &mut PA) {
         self.modify_leds(pa, |leds|
             leds.set_led0(Led0Control::OnCopperLinkOffElse)
