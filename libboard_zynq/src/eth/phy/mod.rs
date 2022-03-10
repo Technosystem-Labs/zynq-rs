@@ -62,7 +62,6 @@ pub enum Led1Control {
     ForceOn = 0b1001,
     ForceHiZ = 0b1010,
     ForceBlink = 0b1011,
-    Invalid
 }
 
 pub trait PhyAccess {

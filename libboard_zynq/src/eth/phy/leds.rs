@@ -24,7 +24,7 @@ impl Leds {
             0b1101 => Led0Control::Mode2,
             0b1110 => Led0Control::Mode3,
             0b1111 => Led0Control::Mode4,
-            _ => Led0Control::OnLinkOffNoLink, //impossible, but Rust compiler requires it
+            _ => unreachable!()
         }
     }
     pub fn led1(&self) -> Led1Control {
@@ -41,7 +41,7 @@ impl Leds {
             0b1001 => Led1Control::ForceOn,
             0b1010 => Led1Control::ForceHiZ,
             0b1011 => Led1Control::ForceBlink,
-            _ => Led1Control::Invalid, //impossible, but Rust compiler requires it
+            _ => unreachable!()
         }
     }
 
