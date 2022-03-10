@@ -136,7 +136,14 @@ pub fn main_core0() {
                 }
             }
             v => {
-                panic!("Boot mode {:?} not supported", v);
+                log::error!("Boot mode {:?} not supported", v);
+                log::info!("Fall back on netboot");
+                netboot::netboot(
+                    &mut bootgen_file,
+                    config,
+                    &mut __runtime_start as *mut usize as *mut u8,
+                    max_len,
+                )
             }
         };
     }
