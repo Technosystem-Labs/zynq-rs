@@ -11,6 +11,9 @@ pub struct PhyIdentifier {
 }
 
 pub fn identify_phy<PA: PhyAccess>(pa: &mut PA, addr: u8) -> Option<PhyIdentifier> {
+    #[cfg(feature = "target_kasli_soc")]
+    pa.write_phy(addr, 0x16, 0); //reset page
+    
     let id1 = pa.read_phy(addr, 2);
     let id2 = pa.read_phy(addr, 3);
     if id1 != 0xFFFF || id2 != 0xFFFF {
