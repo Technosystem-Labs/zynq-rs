@@ -164,7 +164,8 @@ impl Config {
                 f.seek(SeekFrom::End(0))?;
                 write!(f, "{}={}\n", key, String::from_utf8(value).unwrap())?;
             } else {
-                let mut f = root_dir.create_file(&["/CONFIG/", key, ".BIN"].concat())?;
+                let mut dir = root_dir.create_dir("/CONFIG")?;
+                let mut f = dir.create_file(&[key, ".BIN"].concat())?;
                 f.write_all(&value)?;
             }
         }
