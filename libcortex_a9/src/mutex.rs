@@ -1,6 +1,9 @@
 use core::ops::{Deref, DerefMut};
 use core::sync::atomic::{AtomicU32, Ordering};
 use core::cell::UnsafeCell;
+use core::task::{Context, Poll};
+use core::pin::Pin;
+use core::future::Future;
 use super::{
     spin_lock_yield, notify_spin_lock,
     asm::{enter_critical, exit_critical}
@@ -19,6 +22,23 @@ pub struct Mutex<T> {
 
 unsafe impl<T: Send> Sync for Mutex<T> {}
 unsafe impl<T: Send> Send for Mutex<T> {}
+
+struct Fut<'a, T>(&'a Mutex<T>);
+
+impl<'a, T> Future for Fut<'a, T> {
+    type Output = MutexGuard<'a, T>;
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let irq = unsafe { enter_critical() };
+        if self.0.locked.compare_exchange_weak(UNLOCKED, LOCKED, Ordering::AcqRel, Ordering::Relaxed).is_err() {
+            unsafe { exit_critical(irq) };
+            cx.waker().wake_by_ref();
+            Poll::Pending
+        }
+        else {
+            Poll::Ready(MutexGuard { mutex: self.0, irq })
+        }
+    }
+}
 
 impl<T> Mutex<T> {
     /// Constructor, const-fn
@@ -40,6 +60,10 @@ impl<T> Mutex<T> {
             }
         }
         MutexGuard { mutex: self, irq }
+    }
+
+    pub async fn async_lock(&self) -> MutexGuard<'_, T> {
+        Fut(&self).await
     }
 
     pub fn try_lock(&self) -> Option<MutexGuard<T>> {
