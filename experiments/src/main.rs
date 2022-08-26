@@ -183,6 +183,20 @@ pub fn main_core0() {
         println!("");
     }
 
+    #[cfg(feature = "target_kasli_soc")]
+    {
+        let mut err_cdwn = timer.countdown();
+        let mut err_state = true;
+        let mut led = zynq::error_led::ErrorLED::error_led();
+        task::spawn( async move { 
+            loop {
+                led.toggle(err_state);
+                err_state = !err_state;
+                delay(&mut err_cdwn, Milliseconds(1000)).await;
+            }
+        });
+    }
+
     let eth = zynq::eth::Eth::eth0(HWADDR.clone());
     println!("Eth on");
 
