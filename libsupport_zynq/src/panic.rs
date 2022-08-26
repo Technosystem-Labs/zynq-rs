@@ -1,4 +1,6 @@
 use libboard_zynq::{print, println};
+#[cfg(feature = "target_kasli_soc")]
+use libboard_zynq::error_led::ErrorLED;
 
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
@@ -13,6 +15,10 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     } else {
         println!("");
     }
-
+    #[cfg(feature = "target_kasli_soc")]
+    {
+        let mut err_led = ErrorLED::error_led();
+        err_led.toggle(true);
+    }
     loop {}
 }
