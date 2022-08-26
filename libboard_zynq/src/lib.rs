@@ -23,3 +23,5 @@ pub mod sdio;
 pub mod i2c;
 pub mod logger;
 pub mod ps7_init;
+#[cfg(feature="target_kasli_soc")]
+pub mod error_led;
