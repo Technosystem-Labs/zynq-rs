@@ -587,6 +587,17 @@ register_bit!(a9_cpu_rst_ctrl, a9_clkstop0, 4);
 register_bit!(a9_cpu_rst_ctrl, a9_rst1, 1);
 register_bit!(a9_cpu_rst_ctrl, a9_rst0, 0);
 
+pub fn reboot() {
+    RegisterBlock::unlocked(|slcr| {
+        unsafe {
+            let reboot = slcr.reboot_status.read();
+            slcr.reboot_status.write(reboot & 0xF0FFFFFF);
+            slcr.pss_rst_ctrl.modify(|_, w| w.soft_rst(true));
+        }
+    });
+}
+
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[repr(u8)]
 pub enum BootModePins {
@@ -605,7 +616,7 @@ register_bit!(boot_mode, jtag_routing, 3);
 register_bits_typed!(boot_mode, boot_mode_pins, u8, BootModePins, 0, 2);
 
 register!(pss_rst_ctrl, PssRstCtrl, RW, u32);
-register_bit!(pss_rst_ctrl, soft_rst, 1);
+register_bit!(pss_rst_ctrl, soft_rst, 0);
 
 /// Used for MioPin*.io_type
 #[repr(u8)]
