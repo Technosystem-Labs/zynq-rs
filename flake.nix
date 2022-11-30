@@ -161,13 +161,13 @@
 
       mkbootimage = pkgs.stdenv.mkDerivation {
         pname = "mkbootimage";
-        version = "2.2";
+        version = "2.3dev";
 
         src = pkgs.fetchFromGitHub {
           owner = "antmicro";
           repo = "zynq-mkbootimage";
-          rev = "4ee42d782a9ba65725ed165a4916853224a8edf7";
-          sha256 = "1k1mbsngqadqihzjgvwvsrkvryxy5ladpxd9yh9iqn2s7fxqwqa9";
+          rev = "872363ce32c249f8278cf107bc6d3bdeb38d849f";
+          sha256 = "sha256-5FPyAhUWZDwHbqmp9J2ZXTmjaXPz+dzrJMolaNwADHs=";
         };
 
         propagatedBuildInputs = [ pkgs.libelf pkgs.pcre ];
