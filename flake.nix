@@ -1,7 +1,7 @@
 {
   description = "Bare-metal Rust on Zynq-7000";
 
-  inputs.nixpkgs.url = github:NixOS/nixpkgs/nixos-22.11;
+  inputs.nixpkgs.url = github:NixOS/nixpkgs/nixos-23.05;
   inputs.mozilla-overlay = { url = github:mozilla/nixpkgs-mozilla; flake = false; };
 
   outputs = { self, nixpkgs, mozilla-overlay }:
@@ -223,7 +223,7 @@
 
         nativeBuildInputs = [ cargo-xbuild pkgs.llvmPackages_9.clang-unwrapped ];
         buildPhase = ''
-          export XARGO_RUST_SRC="${rustPlatform.rust.rustc}/lib/rustlib/src/rust/library"
+          export XARGO_RUST_SRC="${rust}/lib/rustlib/src/rust/library"
           export CARGO_HOME=$(mktemp -d cargo-home.XXX)
           pushd ${crate}
           cargo xbuild --release --frozen \
@@ -265,13 +265,12 @@
 
       hydraJobs = packages.x86_64-linux;
 
-      inherit rustPlatform;
+      inherit rust rustPlatform;
 
       devShell.x86_64-linux = pkgs.mkShell {
         name = "zynq-rs-dev-shell";
         buildInputs = with pkgs; [
-          rustPlatform.rust.rustc
-          rustPlatform.rust.cargo
+          rust
           cacert
           cargo-xbuild
 
