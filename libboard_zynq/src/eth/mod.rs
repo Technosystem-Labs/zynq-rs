@@ -13,6 +13,9 @@ mod regs;
 pub mod rx;
 pub mod tx;
 
+use super::time::Milliseconds;
+use embedded_hal::timer::CountDown;
+
 /// Size of all the buffers
 pub const MTU: usize = 1536;
 /// Maximum MDC clock
@@ -300,11 +303,18 @@ impl<GEM: Gem> Eth<GEM, (), ()> {
     fn gem_common(macaddr: [u8; 6]) -> Self {
         GEM::setup_clock(TX_1000);
 
+        #[cfg(feature="target_kasli_soc")]
+        {
+            let mut eth_reset_pin = PhyRst::rst_pin();
+            eth_reset_pin.reset();
+        }
+
         let mut inner = EthInner {
             gem: PhantomData,
             link: None,
         };
         inner.init();
+
         inner.configure(macaddr);
 
         let phy = Phy::find(&mut inner).expect("phy");
@@ -479,6 +489,70 @@ impl<'a, GEM: Gem> smoltcp::phy::Device<'a> for &mut Eth<GEM, rx::DescList, tx::
             regs: GEM::regs(),
             desc_list: &mut self.tx,
         })
+    }
+}
+
+pub struct PhyRst {
+    regs: regs::GpioRegisterBlock,
+    count_down: super::timer::global::CountDown<Milliseconds>,
+}
+
+impl PhyRst {
+    pub fn rst_pin() -> Self {
+        slcr::RegisterBlock::unlocked(|slcr| {
+            // Hardware Reset for PHY
+            slcr.mio_pin_47.write(
+                slcr::MioPin47::zeroed()
+                    .l3_sel(0b000)
+                    .io_type(slcr::IoBufferType::Lvcmos18)
+                    .pullup(true)
+                    .disable_rcvr(true)
+            );
+            slcr.gpio_rst_ctrl.reset_gpio();
+        });
+        Self::eth_reset_common(0xFFFF - 0x8000)
+    }
+    
+    fn delay_ms(&mut self, ms: u64) {
+        self.count_down.start(Milliseconds(ms));
+        nb::block!(self.count_down.wait()).unwrap();
+    }
+
+    fn eth_reset_common(gpio_output_mask: u16) -> Self {
+        let self_ = Self {
+            regs: regs::GpioRegisterBlock::regs(),
+            count_down: unsafe { super::timer::GlobalTimer::get() }.countdown(),
+        };
+
+        // Setup GPIO output mask
+        self_.regs.gpio_output_mask.modify(|_, w| {
+            w.mask(gpio_output_mask)
+        });
+
+        self_.regs.gpio_direction.modify(|_, w| {
+            w.phy_rst(true)
+        });
+        
+        self_
+    }
+
+    fn oe(&mut self, oe: bool) {
+        self.regs.gpio_output_enable.modify(|_, w| {
+            w.phy_rst(oe)
+        })
+    }
+
+    fn toggle(&mut self, o: bool) {
+        self.regs.gpio_output_mask.modify(|_, w| {
+            w.phy_rst(o)
+        })
+    }
+
+    pub fn reset(&mut self) {
+        self.toggle(false); // drive phy_rst (active LOW) pin low
+        self.oe(true);         // enable pin's output
+        self.delay_ms(10);
+        self.toggle(true);
     }
 }
 

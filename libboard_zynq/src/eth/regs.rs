@@ -110,6 +110,49 @@ pub struct RegisterBlock {
     pub design_cfg5: RO<u32>,
 }
 
+pub struct GpioRegisterBlock {
+    pub gpio_output_mask: &'static mut OutputMask,
+    pub gpio_direction: &'static mut Direction,
+    pub gpio_output_enable: &'static mut OutputEnable,
+}
+
+impl GpioRegisterBlock {
+    pub fn regs() -> Self {
+        Self {
+            gpio_output_mask: OutputMask::new(),
+            gpio_direction: Direction::new(),
+            gpio_output_enable: OutputEnable::new(),
+        }
+    }
+}
+
+register!(gpio_output_mask, 
+            /// MASK_DATA_1_SW:
+            /// Maskable output data for MIO[47:32]
+            OutputMask, RW, u32);
+register_at!(OutputMask, 0xE000A008, new);
+register_bit!(gpio_output_mask, 
+            /// Output for PHY_RST (MIO[47])
+            phy_rst, 15);
+register_bits!(gpio_output_mask,
+            mask, u16, 16, 31);
+register!(gpio_direction, 
+            /// DIRM_1:
+            /// Direction mode for MIO[53:32]; 0/1 = in/out
+            Direction, RW, u32);
+register_at!(Direction, 0xE000A244, new);
+register_bit!(gpio_direction,
+            /// Direction for PHY_RST
+            phy_rst, 15);
+register!(gpio_output_enable,
+            /// OEN_1:
+            /// Output enable for MIO[53:32]
+            OutputEnable, RW, u32);
+register_at!(OutputEnable, 0xE000A248, new);
+register_bit!(gpio_output_enable,
+            /// Output enable for PHY_RST
+            phy_rst, 15);
+    
 register_at!(RegisterBlock, 0xE000B000, gem0);
 register_at!(RegisterBlock, 0xE000C000, gem1);
 
