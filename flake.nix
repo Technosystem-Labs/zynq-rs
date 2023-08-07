@@ -221,7 +221,7 @@
         ) ./.;
         cargoLock = { lockFile = ./Cargo.lock; };
 
-        nativeBuildInputs = [ cargo-xbuild pkgs.llvmPackages_9.clang-unwrapped ];
+        nativeBuildInputs = [ cargo-xbuild pkgs.llvmPackages_14.clang-unwrapped ];
         buildPhase = ''
           export XARGO_RUST_SRC="${rust}/lib/rustlib/src/rust/library"
           export CARGO_HOME=$(mktemp -d cargo-home.XXX)
@@ -276,7 +276,7 @@
 
           openocd gdb
           openssh rsync
-          llvmPackages_9.clang-unwrapped
+          llvmPackages_14.clang-unwrapped
           (python3.withPackages(ps: [ ps.pyftdi ]))
           mkbootimage ];
         };
