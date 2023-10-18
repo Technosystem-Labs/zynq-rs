@@ -18,8 +18,6 @@ impl ErrorLED {
                     .pullup(true)
                     .disable_rcvr(true)
             );
-            // reset
-            slcr.gpio_rst_ctrl.reset_gpio();
         });
 
         Self::error_led_common(0xFFFF - 0x0080)

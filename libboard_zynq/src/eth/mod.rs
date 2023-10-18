@@ -508,7 +508,6 @@ impl PhyRst {
                     .pullup(true)
                     .disable_rcvr(true)
             );
-            slcr.gpio_rst_ctrl.reset_gpio();
         });
         Self::eth_reset_common(0xFFFF - 0x8000)
     }

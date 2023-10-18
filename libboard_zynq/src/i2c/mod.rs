@@ -53,8 +53,6 @@ impl I2c {
                     .pullup(false)
                     .disable_rcvr(true)
             );
-            // Reset
-            slcr.gpio_rst_ctrl.reset_gpio();
         });
 
         Self::i2c_common(0xFFFF - 0x000C, 0xFFFF - 0x0002)
