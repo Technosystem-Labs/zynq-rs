@@ -56,19 +56,29 @@ extern "C" {
 static CORE1_RESTART: AtomicBool = AtomicBool::new(false);
 
 interrupt_handler!(IRQ, irq, __irq_stack0_start, __irq_stack1_start, {
-    if MPIDR.read().cpu_id() == 1{
-        let mpcore = mpcore::RegisterBlock::mpcore();
-        let mut gic = gic::InterruptController::gic(mpcore);
-        let id = gic.get_interrupt_id();
-        if id.0 == 0 {
-            gic.end_interrupt(id);
-            asm::exit_irq();
-            SP.write(&mut __stack1_start as *mut _ as u32);
-            asm::enable_irq();
-            CORE1_RESTART.store(false, Ordering::Relaxed);
-            notify_spin_lock();
-            main_core1();
-        }
+    let mpcore = mpcore::RegisterBlock::mpcore();
+    let mut gic = gic::InterruptController::gic(mpcore);
+    let id = gic.get_interrupt_id();
+    match MPIDR.read().cpu_id(){
+        0 => {
+            if id.0 == 0 {
+                println!("Interrupting core0...");
+                gic.end_interrupt(id);
+                return;
+            }
+        },
+        1 => {
+            if id.0 == 0 {
+                gic.end_interrupt(id);
+                asm::exit_irq();
+                SP.write(&mut __stack1_start as *mut _ as u32);
+                asm::enable_irq();
+                CORE1_RESTART.store(false, Ordering::Relaxed);
+                notify_spin_lock();
+                main_core1();
+            }
+        },
+        _ => {}
     }
     stdio::drop_uart();
     println!("IRQ");
@@ -133,6 +143,10 @@ pub fn main_core0() {
     #[cfg(not(feature = "target_zc706"))]
     ddr.memtest();
     ram::init_alloc_ddr(&mut ddr);
+
+    info!("Send software interrupt to core0");
+    interrupt_controller.send_sgi(gic::InterruptId(0), gic::CPUCore::Core0.into());
+    info!("Core0 returned from interrupt");
 
     boot::Core1::start(false);
 
