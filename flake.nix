@@ -224,6 +224,7 @@
 
         doCheck = false;
         dontFixup = true;
+        auditable = false;
       };
 
       targetCrates = target: {
