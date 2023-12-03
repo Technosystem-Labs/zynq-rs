@@ -160,6 +160,7 @@
           mkdir -p $out/bin
           cp mkbootimage $out/bin
         '';
+        hardeningDisable = [ "fortify" ];
       };
 
       fsbl = { board ? "zc706" }: pkgs.stdenv.mkDerivation {
