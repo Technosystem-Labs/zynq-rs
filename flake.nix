@@ -139,26 +139,6 @@
         };
       };
 
-      cargo-xbuild = rustPlatform.buildRustPackage rec {
-        pname = "cargo-xbuild";
-        version = "0.6.5";
-
-        src = pkgs.fetchFromGitHub {
-          owner = "rust-osdev";
-          repo = pname;
-          rev = "v${version}";
-          sha256 = "18djvygq9v8rmfchvi2hfj0i6fhn36m716vqndqnj56fiqviwxvf";
-        };
-        cargoSha256 = "13sj9j9kl6js75h9xq0yidxy63vixxm9q3f8jil6ymarml5wkhx8";
-
-        meta = with pkgs.lib; {
-          description = "Automatically cross-compiles the sysroot crates core, compiler_builtins, and alloc";
-          homepage = "https://github.com/rust-osdev/cargo-xbuild";
-          license = with licenses; [ mit asl20 ];
-          maintainers = with maintainers; [ johntitor xrelkd ];
-        };
-      };
-
       mkbootimage = pkgs.stdenv.mkDerivation {
         pname = "mkbootimage";
         version = "2.3dev";
@@ -212,6 +192,10 @@
         doCheck = false;
         dontFixup = true;
       };
+
+      cargo-xbuild = pkgs.cargo-xbuild.overrideAttrs(oa: {
+        postPatch = "substituteInPlace src/sysroot.rs --replace 2021 2018";
+      });
 
       build-crate = name: crate: features: rustPlatform.buildRustPackage rec {
         name = "${crate}";
@@ -269,16 +253,16 @@
 
       devShell.x86_64-linux = pkgs.mkShell {
         name = "zynq-rs-dev-shell";
-        buildInputs = with pkgs; [
+        buildInputs = [
           rust
-          cacert
           cargo-xbuild
+          mkbootimage
 
-          openocd gdb
-          openssh rsync
-          llvmPackages_14.clang-unwrapped
-          (python3.withPackages(ps: [ ps.pyftdi ]))
-          mkbootimage ];
-        };
+          pkgs.openocd pkgs.gdb
+          pkgs.openssh pkgs.rsync
+          pkgs.llvmPackages_14.clang-unwrapped
+          (pkgs.python3.withPackages(ps: [ ps.pyftdi ]))
+        ];
+      };
     };
 }
