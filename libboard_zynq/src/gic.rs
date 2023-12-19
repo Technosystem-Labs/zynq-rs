@@ -115,7 +115,7 @@ impl InterruptController {
         let m = (id.0 >> 2) as usize;
         let n = (8 * (id.0 & 3)) as usize;
         unsafe {
-            self.mpcore.icdiptr[m].modify(|mut icdiptr| *icdiptr.set_bits(n..=n+1, target_cpu as u32 + 1));
+            self.mpcore.icdiptr[m].modify(|mut icdiptr| *icdiptr.set_bits(n..=n+1, target_cpu as u32));
         }
 
         // sensitivity
