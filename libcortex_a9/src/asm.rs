@@ -34,6 +34,12 @@ pub fn isb() {
     unsafe { llvm_asm!("isb" :::: "volatile") }
 }
 
+/// Enable FIQ
+#[inline]
+pub unsafe fn enable_fiq() {
+    llvm_asm!("cpsie f":::: "volatile");
+}
+
 /// Enable IRQ
 #[inline]
 pub unsafe fn enable_irq() {

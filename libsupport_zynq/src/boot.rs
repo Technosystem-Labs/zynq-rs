@@ -54,6 +54,7 @@ unsafe extern "C" fn boot_core0() -> ! {
         asm::dmb();
         asm::dsb();
 
+        asm::enable_fiq();
         asm::enable_irq();
         main_core0();
         panic!("return from main");
@@ -75,6 +76,7 @@ unsafe extern "C" fn boot_core1() -> ! {
         asm::dmb();
         asm::dsb();
 
+        asm::enable_fiq();
         asm::enable_irq();
         main_core1();
         panic!("return from main_core1");
