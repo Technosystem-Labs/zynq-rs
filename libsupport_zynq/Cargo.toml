@@ -12,9 +12,10 @@ target_redpitaya = ["libboard_zynq/target_redpitaya"]
 target_kasli_soc = ["libboard_zynq/target_kasli_soc"]
 panic_handler = []
 dummy_irq_handler = []
+dummy_fiq_handler = []
 alloc_core = []
 
-default = ["panic_handler", "dummy_irq_handler"]
+default = ["panic_handler", "dummy_irq_handler", "dummy_fiq_handler"]
 
 [dependencies]
 r0 = "1"

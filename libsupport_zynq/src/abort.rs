@@ -42,6 +42,7 @@ interrupt_handler!(IRQ, irq, __irq_stack0_start, __irq_stack1_start, {
     loop {}
 });
 
+#[cfg(feature = "dummy_fiq_handler")]
 interrupt_handler!(FIQ, fiq, __irq_stack0_start, __irq_stack1_start, {
     stdio::drop_uart();
     println!("FIQ");
