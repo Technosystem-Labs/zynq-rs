@@ -39,7 +39,7 @@ use libcortex_a9::{
 };
 use libregister::{RegisterR, RegisterW};
 use libsupport_zynq::{
-    boot, ram,
+    abort, boot, ram,
 };
 use log::{info, warn};
 use core::sync::atomic::{AtomicBool, Ordering};
@@ -96,6 +96,7 @@ pub fn restart_core1() {
 
 #[no_mangle]
 pub fn main_core0() {
+    abort::set_vector_table(0x0);
     // zynq::clocks::CpuClocks::enable_io(1_250_000_000);
     enable_l2_cache(0x8);
     println!("\nZynq experiments");
