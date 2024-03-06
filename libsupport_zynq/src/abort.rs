@@ -1,6 +1,10 @@
-use libregister::RegisterR;
-use libcortex_a9::{regs::{DFSR, MPIDR}, interrupt_handler};
-use libboard_zynq::{println, stdio};
+use libregister::{RegisterR, RegisterW};
+use libcortex_a9::{regs::{DFSR, MPIDR, VBAR}, interrupt_handler};
+use libboard_zynq::{println, stdio}; 
+
+pub fn set_vector_table(base_addr: u32){
+    VBAR.write(base_addr);
+}
 
 interrupt_handler!(UndefinedInstruction, undefined_instruction, __irq_stack0_start, __irq_stack1_start, {
     stdio::drop_uart();

@@ -9,7 +9,7 @@ pub extern crate alloc;
 pub extern crate compiler_builtins;
 
 pub mod boot;
-mod abort;
+pub mod abort;
 #[cfg(feature = "panic_handler")]
 mod panic;
 pub mod ram;
