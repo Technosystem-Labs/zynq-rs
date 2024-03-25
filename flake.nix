@@ -6,7 +6,7 @@
 
   outputs = { self, nixpkgs, mozilla-overlay }:
     let
-      pkgs = import nixpkgs { system = "x86_64-linux"; overlays = [ (import mozilla-overlay) ]; };
+      pkgs = import nixpkgs { system = "x86_64-linux"; overlays = [ (import mozilla-overlay) crosspkgs-overlay ]; };
       
       rustManifest = pkgs.fetchurl {
         url = "https://static.rust-lang.org/dist/2021-01-29/channel-rust-nightly.toml";
@@ -26,118 +26,19 @@
         cargo = rust;
       });
 
-      gnu-platform = "arm-none-eabi";
-
-      binutils-pkg = { zlib, extraConfigureFlags ? [] }: pkgs.stdenv.mkDerivation rec {
-        basename = "binutils";
-        version = "2.30";
-        name = "${basename}-${gnu-platform}-${version}";
-        src = pkgs.fetchurl {
-          url = "https://ftp.gnu.org/gnu/binutils/binutils-${version}.tar.bz2";
-          sha256 = "028cklfqaab24glva1ks2aqa1zxa6w6xmc8q34zs1sb7h22dxspg";
+      crosspkgs-overlay = (self: super: {
+        pkgsCross = super.pkgsCross // {
+          zynq-baremetal = import super.path {
+            system = "x86_64-linux";
+            crossSystem = {
+              config = "arm-none-eabihf";
+              libc = "newlib";
+              gcc.cpu = "cortex-a9";
+              gcc.fpu = "vfpv3";
+            };
+          };
         };
-        configureFlags = [
-          "--enable-deterministic-archives"
-          "--target=${gnu-platform}"
-          "--with-cpu=cortex-a9"
-          "--with-fpu=vfpv3"
-          "--with-float=hard"
-          "--with-mode=thumb"
-        ] ++ extraConfigureFlags;
-        outputs = [ "out" "info" "man" ];
-        depsBuildBuild = [ pkgs.buildPackages.stdenv.cc ];
-        buildInputs = [ zlib ];
-        enableParallelBuilding = true;
-        meta = {
-          description = "Tools for manipulating binaries (linker, assembler, etc.)";
-          longDescription = ''
-            The GNU Binutils are a collection of binary tools.  The main
-            ones are `ld' (the GNU linker) and `as' (the GNU assembler).
-            They also include the BFD (Binary File Descriptor) library,
-            `gprof', `nm', `strip', etc.
-          '';
-          homepage = http://www.gnu.org/software/binutils/;
-          license = pkgs.lib.licenses.gpl3Plus;
-          /* Give binutils a lower priority than gcc-wrapper to prevent a
-            collision due to the ld/as wrappers/symlinks in the latter. */
-          priority = "10";
-        };
-      };
-
-      gcc-pkg = { gmp, mpfr, libmpc, platform-binutils, extraConfigureFlags ? [] }: pkgs.stdenv.mkDerivation rec {
-        basename = "gcc";
-        version = "9.1.0";
-        name = "${basename}-${gnu-platform}-${version}";
-        src = pkgs.fetchurl {
-          url = "https://ftp.gnu.org/gnu/gcc/gcc-${version}/gcc-${version}.tar.xz";
-          sha256 = "1817nc2bqdc251k0lpc51cimna7v68xjrnvqzvc50q3ax4s6i9kr";
-        };
-        preConfigure = ''
-          mkdir build
-          cd build
-        '';
-        configureScript = "../configure";
-        configureFlags = [ 
-          "--target=${gnu-platform}"
-          "--with-arch=armv7-a"
-          "--with-tune=cortex-a9"
-          "--with-fpu=vfpv3"
-          "--with-float=hard"
-          "--disable-libssp"
-          "--enable-languages=c"
-          "--with-as=${platform-binutils}/bin/${gnu-platform}-as"
-          "--with-ld=${platform-binutils}/bin/${gnu-platform}-ld" ] ++ extraConfigureFlags;
-        outputs = [ "out" "info" "man" ];
-        hardeningDisable = [ "format" "pie" ];
-        propagatedBuildInputs = [ gmp mpfr libmpc platform-binutils ];
-        enableParallelBuilding = true;
-        dontFixup = true;
-      };
-
-      newlib-pkg = { platform-binutils, platform-gcc }: pkgs.stdenv.mkDerivation rec {
-        pname = "newlib";
-        version = "3.1.0";
-        src = pkgs.fetchurl {
-          url = "ftp://sourceware.org/pub/newlib/newlib-${version}.tar.gz";
-          sha256 = "0ahh3n079zjp7d9wynggwrnrs27440aac04340chf1p9476a2kzv";
-        };
-        nativeBuildInputs = [ platform-binutils platform-gcc ];
-        configureFlags = [
-          "--target=${gnu-platform}"
-
-          "--with-cpu=cortex-a9"
-          "--with-fpu=vfpv3"
-          "--with-float=hard"
-          "--with-mode=thumb"
-          "--enable-interwork"
-          "--disable-multilib"
-
-          "--disable-newlib-supplied-syscalls"
-          "--with-gnu-ld"
-          "--with-gnu-as"
-          "--disable-newlib-io-float"
-          "--disable-werror"
-        ];
-        dontFixup = true;
-      };
-      gnutoolchain = rec {
-        binutils-bootstrap = pkgs.callPackage binutils-pkg { };
-        gcc-bootstrap = pkgs.callPackage gcc-pkg {
-          platform-binutils = binutils-bootstrap;
-          extraConfigureFlags = [ "--disable-libgcc" ];
-        };
-        newlib = pkgs.callPackage newlib-pkg {
-          platform-binutils = binutils-bootstrap;
-          platform-gcc = gcc-bootstrap;
-        };
-        binutils = pkgs.callPackage binutils-pkg {
-          extraConfigureFlags = [ "--with-lib-path=${newlib}/arm-none-eabi/lib" ];
-        };
-        gcc = pkgs.callPackage gcc-pkg {
-          platform-binutils = binutils;
-          extraConfigureFlags = [ "--enable-newlib" "--with-headers=${newlib}/arm-none-eabi/include" ];
-        };
-      };
+      });
 
       mkbootimage = pkgs.stdenv.mkDerivation {
         pname = "mkbootimage";
@@ -172,13 +73,16 @@
           sha256 = "sha256-UDz9KK/Hw3qM1BAeKif30rE8Bi6C2uvuZlvyvtJCMfw=";
         };
         nativeBuildInputs = [
-          pkgs.gnumake
-          gnutoolchain.binutils
-          gnutoolchain.gcc
+          pkgs.pkgsCross.zynq-baremetal.buildPackages.binutils
+          pkgs.pkgsCross.zynq-baremetal.buildPackages.gcc
         ];
         patchPhase = ''
           patchShebangs lib/sw_apps/zynq_fsbl/misc/copy_bsp.sh
-          echo 'SEARCH_DIR("${gnutoolchain.newlib}/arm-none-eabi/lib");' >> lib/sw_apps/zynq_fsbl/src/lscript.ld
+
+          for x in lib/sw_apps/zynq_fsbl/src/Makefile lib/sw_apps/zynq_fsbl/misc/copy_bsp.sh lib/bsp/standalone/src/arm/cortexa9/gcc/Makefile; do
+            substituteInPlace $x \
+              --replace "arm-none-eabi-" "arm-none-eabihf-"
+          done
         '';
         buildPhase = ''
           cd lib/sw_apps/zynq_fsbl/src
