@@ -1,7 +1,7 @@
 {
   description = "Bare-metal Rust on Zynq-7000";
 
-  inputs.nixpkgs.url = github:NixOS/nixpkgs/nixos-23.11;
+  inputs.nixpkgs.url = github:NixOS/nixpkgs/nixos-unstable;
   inputs.mozilla-overlay = { url = github:mozilla/nixpkgs-mozilla; flake = false; };
 
   outputs = { self, nixpkgs, mozilla-overlay }:
