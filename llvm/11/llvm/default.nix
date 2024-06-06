@@ -5,7 +5,7 @@
 , cmake
 , python3
 , libffi
-, enableGoldPlugin ? libbfd.hasPluginAPI
+, enableGoldPlugin ? false
 , libbfd
 , libpfm
 , libxml2

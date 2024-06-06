@@ -33,16 +33,13 @@ let
 
   llvm_meta = {
     license     = lib.licenses.ncsa;
-    maintainers = lib.teams.llvm.members;
 
     # See llvm/cmake/config-ix.cmake.
     platforms   =
       lib.platforms.aarch64 ++
       lib.platforms.arm ++
       lib.platforms.mips ++
-      lib.platforms.power ++
       lib.platforms.riscv ++
-      lib.platforms.s390x ++
       lib.platforms.wasi ++
       lib.platforms.x86;
   };
@@ -294,6 +291,6 @@ let
       inherit llvm_meta targetLlvm;
     };
   });
-  noExtend = extensible: lib.attrsets.removeAttrs extensible [ "extend" ];
+  noExtend = extensible: builtins.removeAttrs extensible [ "extend" ];
 
 in { inherit tools libraries release_version; } // (noExtend libraries) // (noExtend tools)
