@@ -16,6 +16,10 @@ const DDR_FREQ: u32 = 666_666_666;
 /// Micron MT41K256M16HA-125: 800 MHz DDR3L, max supported 533 MHz
 const DDR_FREQ: u32 = 525_000_000;
 
+#[cfg(feature = "target_ebaz4205")]
+/// EtronTech Memory EM6GD16EWKG-12H: 800 MHz DDR3 at 533 MHz
+const DDR_FREQ: u32 = 533_333_333;
+
 #[cfg(feature = "target_redpitaya")]
 /// Alliance Memory AS4C256M16D3B: 800 MHz DDR3 at 533 MHz
 const DDR_FREQ: u32 = 533_333_333;
@@ -147,22 +151,23 @@ impl DdrRam {
                 .output_en(slcr::DdriobOutputEn::Obuf);
             #[cfg(feature = "target_zc706")]
             let data1_config = data0_config.clone();
-            #[cfg(any(feature = "target_coraz7", feature = "target_kasli_soc"))]
+            #[cfg(any(
+                feature = "target_coraz7",
+                feature = "target_ebaz4205",
+                feature = "target_redpitaya",
+                feature = "target_kasli_soc",
+            ))]
             let data0_config = slcr::DdriobConfig::zeroed()
                 .inp_type(slcr::DdriobInputType::VrefDifferential)
                 .term_en(true)
                 .dci_type(slcr::DdriobDciType::Termination)
                 .output_en(slcr::DdriobOutputEn::Obuf);
-            #[cfg(any(feature = "target_coraz7", feature = "target_kasli_soc"))]
-            let data1_config = slcr::DdriobConfig::zeroed()
-                .pullup_en(true);
-            #[cfg(feature = "target_redpitaya")]
-            let data0_config = slcr::DdriobConfig::zeroed()
-                .inp_type(slcr::DdriobInputType::VrefDifferential)
-                .term_en(true)
-                .dci_type(slcr::DdriobDciType::Termination)
-                .output_en(slcr::DdriobOutputEn::Obuf);
-            #[cfg(feature = "target_redpitaya")]
+            #[cfg(any(
+                feature = "target_coraz7",
+                feature = "target_ebaz4205",
+                feature = "target_redpitaya",
+                feature = "target_kasli_soc",
+            ))]
             let data1_config = slcr::DdriobConfig::zeroed()
                 .pullup_en(true);
             slcr.ddriob_data0.write(data0_config);
@@ -176,22 +181,23 @@ impl DdrRam {
                 .output_en(slcr::DdriobOutputEn::Obuf);
             #[cfg(feature = "target_zc706")]
             let diff1_config = diff0_config.clone();
-            #[cfg(any(feature = "target_coraz7", feature = "target_kasli_soc"))]
+            #[cfg(any(
+                feature = "target_coraz7",
+                feature = "target_ebaz4205",
+                feature = "target_redpitaya",
+                feature = "target_kasli_soc",
+            ))]
             let diff0_config = slcr::DdriobConfig::zeroed()
                 .inp_type(slcr::DdriobInputType::Differential)
                 .term_en(true)
                 .dci_type(slcr::DdriobDciType::Termination)
                 .output_en(slcr::DdriobOutputEn::Obuf);
-            #[cfg(any(feature = "target_coraz7", feature = "target_kasli_soc"))]
-            let diff1_config = slcr::DdriobConfig::zeroed()
-                .pullup_en(true);
-            #[cfg(feature = "target_redpitaya")]
-            let diff0_config = slcr::DdriobConfig::zeroed()
-                .inp_type(slcr::DdriobInputType::Differential)
-                .term_en(true)
-                .dci_type(slcr::DdriobDciType::Termination)
-                .output_en(slcr::DdriobOutputEn::Obuf);
-            #[cfg(feature = "target_redpitaya")]
+            #[cfg(any(
+                feature = "target_coraz7",
+                feature = "target_ebaz4205",
+                feature = "target_redpitaya",
+                feature = "target_kasli_soc",
+            ))]
             let diff1_config = slcr::DdriobConfig::zeroed()
                 .pullup_en(true);
             slcr.ddriob_diff0.write(diff0_config);
@@ -210,7 +216,12 @@ impl DdrRam {
                 slcr.ddriob_drive_slew_clock.write(0x00F9861C);
             }
 
-            #[cfg(any(feature = "target_coraz7", feature = "target_kasli_soc"))]
+            #[cfg(any(
+                feature = "target_coraz7",
+                feature = "target_ebaz4205",
+                feature = "target_redpitaya",
+                feature = "target_kasli_soc",
+            ))]
             slcr.ddriob_ddr_ctrl.modify(|_, w| w
                     .vref_int_en(false)
                     .vref_ext_en_lower(true)
@@ -224,13 +235,6 @@ impl DdrRam {
                     .vref_ext_en_lower(false)
                     .vref_ext_en_upper(false)
             );
-            #[cfg(feature = "target_redpitaya")]
-            slcr.ddriob_ddr_ctrl.modify(|_, w| w
-                    .vref_int_en(false)
-                    .vref_ext_en_lower(true)
-                    .vref_ext_en_upper(false)
-                    .refio_en(true)
-            );
         });
     }
 
@@ -240,6 +244,13 @@ impl DdrRam {
             regs::DramParam0::zeroed()
                 .t_rc(0x1a)
                 .t_rfc_min(0x9e)
+                .post_selfref_gap_x32(0x10)
+        );
+        #[cfg(feature = "target_ebaz4205")]
+        self.regs.dram_param0.write(
+            regs::DramParam0::zeroed()
+                .t_rc(0x1a)
+                .t_rfc_min(0x56)
                 .post_selfref_gap_x32(0x10)
         );
         #[cfg(feature = "target_redpitaya")]
@@ -255,6 +266,12 @@ impl DdrRam {
                 .t_rc(0x1b)
                 .t_rfc_min(0x56)
                 .post_selfref_gap_x32(0x10)
+        );
+        #[cfg(feature = "target_ebaz4205")]
+        self.regs.dram_param1.modify(
+            |_, w| w
+                .t_faw(0x16)
+                .t_ras_min(0x13)
         );
         #[cfg(feature = "target_redpitaya")]
         self.regs.dram_param1.modify(
@@ -277,6 +294,11 @@ impl DdrRam {
                 .rd2pre(0x4)
                 .t_rcd(0x7)
         );
+        #[cfg(feature = "target_ebaz4205")]
+        self.regs.dram_param3.modify(
+            |_, w| w
+                .t_rp(7)
+        );
         #[cfg(feature = "target_redpitaya")]
         self.regs.dram_param3.modify(
             |_, w| w
@@ -298,19 +320,21 @@ impl DdrRam {
                 .emr(0x4)
         );
 
-        #[cfg(any(feature = "target_coraz7", feature = "target_kasli_soc"))]
+        #[cfg(any(
+            feature = "target_coraz7",
+            feature = "target_ebaz4205",
+            feature = "target_redpitaya",
+            feature = "target_kasli_soc",
+        ))]
         self.regs.phy_configs[2].modify(
             |_, w| w.data_slice_in_use(false)
         );
-        #[cfg(any(feature = "target_coraz7", feature = "target_kasli_soc"))]
-        self.regs.phy_configs[3].modify(
-            |_, w| w.data_slice_in_use(false)
-        );
-        #[cfg(feature = "target_redpitaya")]
-        self.regs.phy_configs[2].modify(
-            |_, w| w.data_slice_in_use(false)
-        );
-        #[cfg(feature = "target_redpitaya")]
+        #[cfg(any(
+            feature = "target_coraz7",
+            feature = "target_ebaz4205",
+            feature = "target_redpitaya",
+            feature = "target_kasli_soc",
+        ))]
         self.regs.phy_configs[3].modify(
             |_, w| w.data_slice_in_use(false)
         );
@@ -354,7 +378,11 @@ impl DdrRam {
                 .gatelvl_init_ratio(0xee)
         );
 
-        #[cfg(any(feature = "target_coraz7", feature = "target_kasli_soc"))]
+        #[cfg(any(
+            feature = "target_coraz7",
+            feature = "target_ebaz4205",
+            feature = "target_kasli_soc"),
+        )]
         self.regs.reg_64.modify(
             |_, w| w
                 .phy_ctrl_slave_ratio(0x100)
@@ -390,9 +418,12 @@ impl DdrRam {
     fn reset_ddrc<F: FnMut(&mut Self)>(&mut self, mut f: F) {
         #[cfg(feature = "target_zc706")]
         let width = regs::DataBusWidth::Width32bit;
-        #[cfg(any(feature = "target_coraz7", feature = "target_kasli_soc"))]
-        let width = regs::DataBusWidth::Width16bit;
-        #[cfg(feature = "target_redpitaya")]
+        #[cfg(any(
+            feature = "target_coraz7",
+            feature = "target_ebaz4205",
+            feature = "target_redpitaya",
+            feature = "target_kasli_soc",
+        ))]
         let width = regs::DataBusWidth::Width16bit;
         self.regs.ddrc_ctrl.modify(|_, w| w
             .soft_rstb(false)
@@ -410,6 +441,7 @@ impl DdrRam {
         }
         #[cfg(any(
             feature = "target_coraz7",
+            feature = "target_ebaz4205",
             feature = "target_redpitaya",
             feature = "target_kasli_soc",
         ))]
@@ -450,6 +482,8 @@ impl DdrRam {
             feature = "target_kasli_soc",
         ))]
         let megabytes = 512;
+        #[cfg(feature = "target_ebaz4205")]
+        let megabytes = 256;
 
         megabytes * 1024 * 1024
     }

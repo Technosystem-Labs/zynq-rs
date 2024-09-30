@@ -116,6 +116,7 @@ pub fn main_core0() {
 
     #[cfg(any(
         feature = "target_zc706",
+        feature = "target_ebaz4205",
         feature = "target_redpitaya",
         feature = "target_kasli_soc",
     ))]

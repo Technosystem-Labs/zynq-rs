@@ -65,17 +65,31 @@ impl Gem for Gem0 {
             slcr.gem0_clk_ctrl.write(
                 // 0x0050_0801: 8, 5: 100 Mb/s
                 // ...: 8, 1: 1000 Mb/s
+                #[cfg(not(feature = "target_ebaz4205"))]
                 slcr::GemClkCtrl::zeroed()
                     .clkact(true)
                     .srcsel(slcr::PllSource::IoPll)
+                    .divisor(divisor0 as u8)
+                    .divisor1(divisor1 as u8),
+                // ebaz4205 -- EMIO
+                #[cfg(feature = "target_ebaz4205")]
+                slcr::GemClkCtrl::zeroed()
+                    .clkact(true)
+                    .srcsel(slcr::PllSource::Emio)
                     .divisor(divisor0 as u8)
                     .divisor1(divisor1 as u8)
             );
             // Enable gem0 recv clock
             slcr.gem0_rclk_ctrl.write(
                 // 0x0000_0801
+                #[cfg(not(feature = "target_ebaz4205"))]
+                slcr::RclkCtrl::zeroed()
+                    .clkact(true),
+                // ebaz4205 -- EMIO
+                #[cfg(feature = "target_ebaz4205")]
                 slcr::RclkCtrl::zeroed()
                     .clkact(true)
+                    .srcsel(true)
             );
         });
     }
@@ -154,6 +168,7 @@ pub struct Eth<GEM: Gem, RX, TX> {
 
 impl Eth<Gem0, (), ()> {
     pub fn eth0(macaddr: [u8; 6]) -> Self {
+        #[cfg(not(feature = "target_ebaz4205"))]
         slcr::RegisterBlock::unlocked(|slcr| {
             // Manual example: 0x0000_1280
             // MDIO

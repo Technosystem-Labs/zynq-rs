@@ -79,6 +79,39 @@ impl Uart {
         self_
     }
 
+    #[cfg(feature = "target_ebaz4205")]
+    pub fn uart1(baudrate: u32) -> Self {
+        slcr::RegisterBlock::unlocked(|slcr| {
+            // Route UART 1 RxD/TxD Signals to MIO Pins
+            // TX pin
+            slcr.mio_pin_24.write(
+                slcr::MioPin24::zeroed()
+                    .l3_sel(0b111)
+                    .io_type(slcr::IoBufferType::Lvcmos33)
+                    .pullup(true)
+            );
+            // RX pin
+            slcr.mio_pin_25.write(
+                slcr::MioPin25::zeroed()
+                    .tri_enable(true)
+                    .l3_sel(0b111)
+                    .io_type(slcr::IoBufferType::Lvcmos33)
+                    .pullup(true)
+            );
+        });
+
+        slcr::RegisterBlock::unlocked(|slcr| {
+            slcr.uart_rst_ctrl.reset_uart1();
+            slcr.aper_clk_ctrl.enable_uart1();
+            slcr.uart_clk_ctrl.enable_uart1();
+        });
+        let mut self_ = Uart {
+            regs: regs::RegisterBlock::uart1(),
+        };
+        self_.configure(baudrate);
+        self_
+    }
+
     pub fn write_byte(&mut self, value: u8) {
         while self.tx_fifo_full() {}
 

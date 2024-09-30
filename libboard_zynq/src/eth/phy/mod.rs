@@ -83,6 +83,7 @@ pub struct Phy {
 const OUI_MARVELL: u32 = 0x005043;
 const OUI_REALTEK: u32 = 0x000732;
 const OUI_LANTIQ : u32 = 0x355969;
+const OUI_ICPLUS : u32 = 0x0090c3;
 
 //only change pages on Kasli-SoC's Marvel 88E11xx
 #[cfg(feature="target_kasli_soc")]
@@ -116,6 +117,12 @@ impl Phy {
                     // Intel XWAY PHY11G (PEF 7071/PEF 7072) v1.5 / v1.6
                     model: 0,
                     ..
+                }) => true,
+                Some(PhyIdentifier {
+                    oui: OUI_ICPLUS,
+                    // IP101G-DS-R01
+                    model: 5,
+                    rev: 4,
                 }) => true,
                 _ => false,
             }

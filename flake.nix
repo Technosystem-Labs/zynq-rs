@@ -142,7 +142,7 @@
         "${target}-experiments" = build-crate "${target}-experiments" "experiments" "target_${target}";
         "${target}-szl" = build-crate "${target}-szl" "szl" "target_${target}";
       };
-      targets = ["zc706" "coraz7" "redpitaya" "kasli_soc"];
+      targets = ["zc706" "coraz7" "redpitaya" "kasli_soc" "ebaz4205"];
       allTargetCrates = (builtins.foldl' (results: target:
         results // targetCrates target
       ) {} targets);

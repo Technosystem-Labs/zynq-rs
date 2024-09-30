@@ -59,6 +59,10 @@ pub fn get_addresses(cfg: &Config) -> NetAddresses {
     let mut hardware_addr = get_address_from_eeprom();
     #[cfg(feature = "target_kasli_soc")]
     let mut ipv4_addr = IpAddress::v4(192, 168, 1, 56);
+    #[cfg(feature = "target_ebaz4205")]
+    let mut hardware_addr = EthernetAddress([0x02, 0x00, 0x00, 0x00, 0x00, 0x57]);
+    #[cfg(feature = "target_ebaz4205")]
+    let mut ipv4_addr = IpAddress::v4(192, 168, 1, 57);
 
     if let Ok(Ok(addr)) = cfg.read_str("mac").map(|s| s.parse()) {
         hardware_addr = addr;

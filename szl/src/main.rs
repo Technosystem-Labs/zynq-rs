@@ -80,11 +80,14 @@ pub fn main_core0() {
     );
     info!("Simple Zynq Loader starting...");
 
-    #[cfg(not(feature = "target_kasli_soc"))]
+    #[cfg(not(any(feature = "target_kasli_soc", feature = "target_ebaz4205")))]
     const CPU_FREQ: u32 = 800_000_000;
 
     #[cfg(feature = "target_kasli_soc")]
     const CPU_FREQ: u32 = 1_000_000_000;
+
+    #[cfg(feature = "target_ebaz4205")]
+    const CPU_FREQ: u32 = 666_666_666;
 
     ArmPll::setup(2 * CPU_FREQ);
     Clocks::set_cpu_freq(CPU_FREQ);

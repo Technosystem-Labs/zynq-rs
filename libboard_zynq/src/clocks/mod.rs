@@ -1,3 +1,5 @@
+use core::unimplemented;
+
 use libregister::{RegisterR, RegisterRW};
 use super::slcr;
 pub use slcr::ArmPllSource;
@@ -101,6 +103,8 @@ impl Clocks {
                 self.ddr,
             slcr::PllSource::IoPll =>
                 self.io,
+            slcr::PllSource::Emio =>
+                unimplemented!(),
         };
         pll / u32::from(uart_clk_ctrl.divisor())
     }
@@ -115,6 +119,8 @@ impl Clocks {
                 self.ddr,
             slcr::PllSource::IoPll =>
                 self.io,
+            slcr::PllSource::Emio =>
+                unimplemented!(),
         };
         pll / u32::from(sdio_clk_ctrl.divisor())
     }

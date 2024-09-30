@@ -8,6 +8,7 @@ edition = "2018"
 [features]
 target_zc706 = []
 target_coraz7 = []
+target_ebaz4205 = []
 target_redpitaya = []
 target_kasli_soc = []
 ipv6 = [ "smoltcp/proto-ipv6" ]

@@ -9,9 +9,11 @@ use libregister::{
 
 #[repr(u8)]
 pub enum PllSource {
-    IoPll  = 0b00,
-    ArmPll = 0b10,
-    DdrPll = 0b11,
+    IoPll  = 0b000,
+    ArmPll = 0b010,
+    DdrPll = 0b011,
+    // Ethernet controller 0 EMIO clock
+    Emio   = 0b100,
 }
 
 #[repr(u8)]

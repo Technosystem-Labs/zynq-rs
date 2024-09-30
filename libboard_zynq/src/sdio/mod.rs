@@ -116,8 +116,8 @@ impl Sdio {
                         .speed(true),
                 );
             }
-            // redpitaya card detect pin
-            #[cfg(any(feature = "target_redpitaya", feature = "target_kasli_soc"))]
+            // kasli_soc and redpitaya card detect pin
+            #[cfg(any(feature = "target_kasli_soc", feature = "target_redpitaya"))]
             {
                 unsafe {
                     slcr.sd0_wp_cd_sel.write(46 << 16);
@@ -128,6 +128,20 @@ impl Sdio {
                         .speed(true),
                 );
             }
+            // ebaz4205 card detect pin
+            #[cfg(feature = "target_ebaz4205")]
+            {
+                unsafe {
+                    slcr.sd0_wp_cd_sel.write(34 << 16);
+                }
+                slcr.mio_pin_34.write(
+                    slcr::MioPin34::zeroed()
+                        .io_type(slcr::IoBufferType::Lvcmos33)
+                        .pullup(true)
+                        .speed(true),
+                );
+            }
+
             slcr.sdio_rst_ctrl.reset_sdio0();
             slcr.aper_clk_ctrl.enable_sdio0();
             slcr.sdio_clk_ctrl.enable_sdio0();
