@@ -2,10 +2,13 @@
 
 mod regs;
 pub mod eeprom;
+#[cfg(not(feature = "target_ebaz4205"))]
 use super::slcr;
 use super::time::Microseconds;
 use embedded_hal::timer::CountDown;
-use libregister::{RegisterR, RegisterRW, RegisterW};
+use libregister::{RegisterR, RegisterRW};
+#[cfg(not(feature = "target_ebaz4205"))]
+use libregister::RegisterW;
 #[cfg(feature = "target_kasli_soc")]
 use log::info;
 
@@ -22,9 +25,10 @@ pub struct I2c {
 }
 
 impl I2c {
-    #[cfg(any(feature = "target_zc706", feature = "target_kasli_soc"))]
+    #[cfg(any(feature = "target_zc706", feature = "target_kasli_soc", feature = "target_ebaz4205"))]
     pub fn i2c0() -> Self {
         // Route I2C 0 SCL / SDA Signals to MIO Pins 50 / 51
+        #[cfg(not(feature = "target_ebaz4205"))]
         slcr::RegisterBlock::unlocked(|slcr| {
             // SCL
             slcr.mio_pin_50.write(

@@ -4,6 +4,7 @@ use embedded_hal::timer::CountDown;
 
 pub struct EEPROM<'a> {
     i2c: &'a mut I2c,
+    #[cfg(not(feature = "target_ebaz4205"))]
     port: u8,
     address: u8,
     page_size: u8,
@@ -43,6 +44,11 @@ impl<'a> EEPROM<'a> {
     fn select(&mut self) -> Result<(), &'static str> {
         // tca9548 is compatible with pca9548
         self.i2c.pca954x_select(0b1110001, Some(self.port))?;
+        Ok(())
+    }
+
+    #[cfg(feature = "target_ebaz4205")]
+    fn select(&mut self) -> Result<(), &'static str> {
         Ok(())
     }
 

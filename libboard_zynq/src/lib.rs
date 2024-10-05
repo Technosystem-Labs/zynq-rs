@@ -19,7 +19,7 @@ pub mod gic;
 pub mod time;
 pub mod timer;
 pub mod sdio;
-#[cfg(any(feature = "target_zc706", feature = "target_kasli_soc"))]
+#[cfg(any(feature = "target_zc706", feature = "target_kasli_soc", feature = "target_ebaz4205"))]
 pub mod i2c;
 pub mod logger;
 pub mod ps7_init;
