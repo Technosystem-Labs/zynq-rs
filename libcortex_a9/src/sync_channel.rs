@@ -172,13 +172,15 @@ impl<'a, T> Iterator for Receiver<'a, T> where T: Clone {
 
 #[macro_export]
 /// Macro for initializing the sync_channel with static buffer and indexes.
-/// Note that this requires `#![feature(const_in_array_repeat_expressions)]`
 macro_rules! sync_channel {
     ($t: ty, $cap: expr) => {
         {
             use core::sync::atomic::{AtomicUsize, AtomicPtr};
             use $crate::sync_channel::{Sender, Receiver};
-            static LIST: [AtomicPtr<$t>; $cap + 1] = [AtomicPtr::new(core::ptr::null_mut()); $cap + 1];
+            const fn new_atomic() -> AtomicPtr<$t> {
+                AtomicPtr::new(core::ptr::null_mut())
+            }
+            static LIST: [AtomicPtr<$t>; $cap + 1] = [const { new_atomic() }; $cap + 1];
             static WRITE: AtomicUsize = AtomicUsize::new(0);
             static READ: AtomicUsize = AtomicUsize::new(0);
             (Sender::new(&LIST, &WRITE, &READ), Receiver::new(&LIST, &WRITE, &READ))

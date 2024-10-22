@@ -1,7 +1,8 @@
 #![no_std]
 #![no_main]
-#![feature(const_in_array_repeat_expressions)]
 #![feature(naked_functions)]
+#![feature(asm)]
+#![feature(inline_const)]
 
 extern crate alloc;
 
