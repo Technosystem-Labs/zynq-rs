@@ -2,11 +2,11 @@
 #![no_main]
 #![feature(const_in_array_repeat_expressions)]
 #![feature(naked_functions)]
-#![feature(asm)]
 
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
+use core::arch::asm;
 use libasync::{
     delay,
     smoltcp::{Sockets, TcpStream},

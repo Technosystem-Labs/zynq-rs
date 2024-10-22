@@ -2,6 +2,7 @@ use libregister::{
     register_bit, register_bits,
     RegisterR, RegisterW, RegisterRW,
 };
+use core::arch::asm;
 
 macro_rules! def_reg_r {
     ($name:tt, $type: ty, $asm_instr:tt) => {
@@ -11,7 +12,7 @@ macro_rules! def_reg_r {
             #[inline]
             fn read(&self) -> Self::R {
                 let mut value: u32;
-                unsafe { llvm_asm!($asm_instr : "=r" (value) ::: "volatile") }
+                unsafe { asm!($asm_instr, lateout(reg) value) }
                 value.into()
             }
         }
@@ -26,7 +27,7 @@ macro_rules! def_reg_w {
             #[inline]
             fn write(&mut self, value: Self::W) {
                 let value: u32 = value.into();
-                unsafe { llvm_asm!($asm_instr :: "r" (value) :: "volatile") }
+                unsafe { asm!($asm_instr, in(reg) value) }
             }
 
             #[inline]
@@ -71,29 +72,29 @@ macro_rules! wrap_reg {
 
 /// Stack Pointer
 pub struct SP;
-def_reg_r!(SP, u32, "mov $0, sp");
-def_reg_w!(SP, u32, "mov sp, $0");
+def_reg_r!(SP, u32, "mov {}, sp");
+def_reg_w!(SP, u32, "mov sp, {}");
 
 /// Link register (function call return address)
 pub struct LR;
-def_reg_r!(LR, u32, "mov $0, lr");
-def_reg_w!(LR, u32, "mov lr, $0");
+def_reg_r!(LR, u32, "mov {}, lr");
+def_reg_w!(LR, u32, "mov lr, {}");
 
 pub struct VBAR;
-def_reg_r!(VBAR, u32, "mrc p15, 0, $0, c12, c0, 0");
-def_reg_w!(VBAR, u32, "mcr p15, 0, $0, c12, c0, 0");
+def_reg_r!(VBAR, u32, "mrc p15, 0, {}, c12, c0, 0");
+def_reg_w!(VBAR, u32, "mcr p15, 0, {}, c12, c0, 0");
 
 pub struct MVBAR;
-def_reg_r!(MVBAR, u32, "mrc p15, 0, $0, c12, c0, 1");
-def_reg_w!(MVBAR, u32, "mcr p15, 0, $0, c12, c0, 1");
+def_reg_r!(MVBAR, u32, "mrc p15, 0, {}, c12, c0, 1");
+def_reg_w!(MVBAR, u32, "mcr p15, 0, {}, c12, c0, 1");
 
 pub struct HVBAR;
-def_reg_r!(HVBAR, u32, "mrc p15, 4, $0, c12, c0, 0");
-def_reg_w!(HVBAR, u32, "mcr p15, 4, $0, c12, c0, 0");
+def_reg_r!(HVBAR, u32, "mrc p15, 4, {}, c12, c0, 0");
+def_reg_w!(HVBAR, u32, "mcr p15, 4, {}, c12, c0, 0");
 
 /// Multiprocess Affinity Register
 pub struct MPIDR;
-def_reg_r!(MPIDR, mpidr::Read, "mrc p15, 0, $0, c0, c0, 5");
+def_reg_r!(MPIDR, mpidr::Read, "mrc p15, 0, {}, c0, c0, 5");
 wrap_reg!(mpidr);
 register_bits!(mpidr,
                /// CPU core index
@@ -106,15 +107,15 @@ register_bit!(mpidr,
               u, 30);
 
 pub struct DFAR;
-def_reg_r!(DFAR, u32, "mrc p15, 0, $0, c6, c0, 0");
+def_reg_r!(DFAR, u32, "mrc p15, 0, {}, c6, c0, 0");
 
 pub struct DFSR;
-def_reg_r!(DFSR, u32, "mrc p15, 0, $0, c5, c0, 0");
+def_reg_r!(DFSR, u32, "mrc p15, 0, {}, c5, c0, 0");
 
 pub struct SCTLR;
 wrap_reg!(sctlr);
-def_reg_r!(SCTLR, sctlr::Read, "mrc p15, 0, $0, c1, c0, 0");
-def_reg_w!(SCTLR, sctlr::Write, "mcr p15, 0, $0, c1, c0, 0");
+def_reg_r!(SCTLR, sctlr::Read, "mrc p15, 0, {}, c1, c0, 0");
+def_reg_w!(SCTLR, sctlr::Write, "mcr p15, 0, {}, c1, c0, 0");
 register_bit!(sctlr,
               /// Enables MMU
               m, 0);
@@ -147,8 +148,8 @@ register_bit!(sctlr,
 /// Auxiliary Control Register
 pub struct ACTLR;
 wrap_reg!(actlr);
-def_reg_r!(ACTLR, actlr::Read, "mrc p15, 0, $0, c1, c0, 1");
-def_reg_w!(ACTLR, actlr::Write, "mcr p15, 0, $0, c1, c0, 1");
+def_reg_r!(ACTLR, actlr::Read, "mrc p15, 0, {}, c1, c0, 1");
+def_reg_w!(ACTLR, actlr::Write, "mcr p15, 0, {}, c1, c0, 1");
 // SMP bit
 register_bit!(actlr, parity_on, 9);
 register_bit!(actlr, alloc_one_way, 8);
@@ -183,17 +184,17 @@ impl ACTLR {
 
 /// Domain Access Control Register
 pub struct DACR;
-def_reg_r!(DACR, u32, "mrc p15, 0, $0, c3, c0, 0");
-def_reg_w!(DACR, u32, "mcr p15, 0, $0, c3, c0, 0");
+def_reg_r!(DACR, u32, "mrc p15, 0, {}, c3, c0, 0");
+def_reg_w!(DACR, u32, "mcr p15, 0, {}, c3, c0, 0");
 
 /// Translation Table Base Register 0
 pub struct TTBR0;
 /// Translation Table Base Register 1
 pub struct TTBR1;
-def_reg_r!(TTBR0, ttbr::Read, "mrc p15, 0, $0, c2, c0, 0");
-def_reg_w!(TTBR0, ttbr::Write, "mcr p15, 0, $0, c2, c0, 0");
-def_reg_r!(TTBR1, ttbr::Read, "mrc p15, 0, $0, c2, c0, 1");
-def_reg_w!(TTBR1, ttbr::Write, "mcr p15, 0, $0, c2, c0, 1");
+def_reg_r!(TTBR0, ttbr::Read, "mrc p15, 0, {}, c2, c0, 0");
+def_reg_w!(TTBR0, ttbr::Write, "mcr p15, 0, {}, c2, c0, 0");
+def_reg_r!(TTBR1, ttbr::Read, "mrc p15, 0, {}, c2, c0, 1");
+def_reg_w!(TTBR1, ttbr::Write, "mcr p15, 0, {}, c2, c0, 1");
 wrap_reg!(ttbr);
 register_bits!(ttbr, table_base, u32, 14, 31);
 register_bit!(ttbr, irgn0, 6);

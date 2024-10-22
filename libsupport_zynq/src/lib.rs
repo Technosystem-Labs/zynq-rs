@@ -3,6 +3,7 @@
 #![feature(alloc_error_handler)]
 #![feature(panic_info_message)]
 #![feature(naked_functions)]
+#![feature(global_asm)]
 #![feature(asm)]
 
 pub extern crate alloc;

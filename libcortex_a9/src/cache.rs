@@ -1,11 +1,12 @@
 use super::asm::{dmb, dsb};
 use super::l2c::*;
+use core::arch::asm;
 
 /// Invalidate TLBs
 #[inline(always)]
 pub fn tlbiall() {
     unsafe {
-        llvm_asm!("mcr p15, 0, $0, c8, c7, 0" :: "r" (0) :: "volatile");
+        asm!("mcr p15, 0, {}, c8, c7, 0", in(reg) 0);
     }
 }
 
@@ -13,7 +14,7 @@ pub fn tlbiall() {
 #[inline(always)]
 pub fn iciallu() {
     unsafe {
-        llvm_asm!("mcr p15, 0, $0, c7, c5, 0" :: "r" (0) :: "volatile");
+        asm!("mcr p15, 0, {}, c7, c5, 0", in(reg) 0);
     }
 }
 
@@ -21,7 +22,7 @@ pub fn iciallu() {
 #[inline(always)]
 pub fn bpiall() {
     unsafe {
-        llvm_asm!("mcr p15, 0, $0, c7, c5, 6" :: "r" (0) :: "volatile");
+        asm!("mcr p15, 0, {}, c7, c5, 6", in(reg) 0);
     }
 }
 
@@ -29,7 +30,7 @@ pub fn bpiall() {
 #[inline(always)]
 pub fn dccsw(setway: u32) {
     unsafe {
-        llvm_asm!("mcr p15, 0, $0, c7, c10, 2" :: "r" (setway) :: "volatile");
+        asm!("mcr p15, 0, {}, c7, c10, 2", in(reg) setway);
     }
 }
 
@@ -41,7 +42,7 @@ pub fn dcisw(setway: u32) {
         // also see example code (for DCCISW, but DCISW will be
         // analogous) "Example code for cache maintenance operations"
         // on pages B2-1286 and B2-1287.
-        llvm_asm!("mcr p15, 0, $0, c7, c6, 2" :: "r" (setway) :: "volatile");
+        asm!("mcr p15, 0, {}, c7, c6, 2", in(reg) setway);
     }
 }
 
@@ -49,7 +50,7 @@ pub fn dcisw(setway: u32) {
 #[inline(always)]
 pub fn dccisw(setway: u32) {
     unsafe {
-        llvm_asm!("mcr p15, 0, $0, c7, c14, 2" :: "r" (setway) :: "volatile");
+        asm!("mcr p15, 0, {}, c7, c14, 2", in(reg) setway);
     }
 }
 
@@ -69,7 +70,7 @@ pub fn dciall_l1() {
 
     // select L1 data cache
     unsafe {
-        llvm_asm!("mcr p15, 2, $0, c0, c0, 0" :: "r" (0) :: "volatile");
+        asm!("mcr p15, 2, {}, c0, c0, 0", in(reg) 0);
     }
 
     // Invalidate entire D-Cache by iterating every set and every way
@@ -104,7 +105,7 @@ pub fn dcciall_l1() {
 
     // select L1 data cache
     unsafe {
-        llvm_asm!("mcr p15, 2, $0, c0, c0, 0" :: "r" (0) :: "volatile");
+        asm!("mcr p15, 2, {}, c0, c0, 0", in(reg) 0);
     }
 
     // Invalidate entire D-Cache by iterating every set and every way
@@ -156,7 +157,7 @@ fn slice_cache_line_addrs<T>(slice: &[T]) -> impl Iterator<Item = usize> {
 #[inline(always)]
 pub fn dccimvac(addr: usize) {
     unsafe {
-        llvm_asm!("mcr p15, 0, $0, c7, c14, 1" :: "r" (addr) :: "volatile");
+        asm!("mcr p15, 0, {}, c7, c14, 1", in(reg) addr);
     }
 }
 
@@ -198,10 +199,9 @@ pub fn dcci_slice<T>(slice: &[T]) {
 #[inline(always)]
 pub fn dccmvac(addr: usize) {
     unsafe {
-        llvm_asm!("mcr p15, 0, $0, c7, c10, 1" :: "r" (addr) :: "volatile");
+        asm!("mcr p15, 0, {}, c7, c10, 1", in(reg) addr);
     }
 }
-
 /// Data cache clean for an object.
 pub fn dcc<T>(object: &T) {
     dmb();
@@ -239,7 +239,7 @@ pub fn dcc_slice<T>(slice: &[T]) {
 /// affecting more data than intended.
 #[inline(always)]
 pub unsafe fn dcimvac(addr: usize) {
-    llvm_asm!("mcr p15, 0, $0, c7, c6, 1" :: "r" (addr) :: "volatile");
+    asm!("mcr p15, 0, {}, c7, c6, 1", in(reg) addr);
 }
 
 /// Data cache clean and invalidate for an object.

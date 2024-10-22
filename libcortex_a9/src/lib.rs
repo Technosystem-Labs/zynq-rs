@@ -1,7 +1,8 @@
 #![no_std]
-#![feature(llvm_asm, global_asm)]
 #![feature(never_type)]
 #![feature(const_fn)]
+#![feature(global_asm)]
+#![feature(asm)]
 
 extern crate alloc;
 
@@ -17,6 +18,7 @@ pub mod sync_channel;
 mod uncached;
 pub use fpu::enable_fpu;
 pub use uncached::UncachedSlice;
+use core::arch::global_asm;
 
 global_asm!(include_str!("exceptions.s"));
 

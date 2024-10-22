@@ -1,59 +1,60 @@
+use core::arch::asm;
+
 /// The classic no-op
 #[inline]
 pub fn nop() {
-    unsafe { llvm_asm!("nop" :::: "volatile") }
+    unsafe { asm!("nop") }
 }
 
 /// Wait For Event
 #[inline]
 pub fn wfe() {
-    unsafe { llvm_asm!("wfe" :::: "volatile") }
+    unsafe { asm!("wfe") }
 }
 
 /// Send Event
 #[inline]
 pub fn sev() {
-    unsafe { llvm_asm!("sev" :::: "volatile") }
+    unsafe { asm!("sev") }
 }
 
 /// Data Memory Barrier
 #[inline]
 pub fn dmb() {
-    unsafe { llvm_asm!("dmb" :::: "volatile") }
+    unsafe { asm!("dmb") }
 }
 
 /// Data Synchronization Barrier
 #[inline]
 pub fn dsb() {
-    unsafe { llvm_asm!("dsb" :::: "volatile") }
+    unsafe { asm!("dsb") }
 }
 
 /// Instruction Synchronization Barrier
 #[inline]
 pub fn isb() {
-    unsafe { llvm_asm!("isb" :::: "volatile") }
+    unsafe { asm!("isb") }
 }
 
 /// Enable FIQ
 #[inline]
 pub unsafe fn enable_fiq() {
-    llvm_asm!("cpsie f":::: "volatile");
+    asm!("cpsie f");
 }
 
 /// Enable IRQ
 #[inline]
 pub unsafe fn enable_irq() {
-    llvm_asm!("cpsie i":::: "volatile");
+    asm!("cpsie i");
 }
 
 /// Disable IRQ, return if IRQ was originally enabled.
 #[inline]
 pub unsafe fn enter_critical() -> bool {
     let mut cpsr: u32;
-    llvm_asm!(
-        "mrs $0, cpsr
-         cpsid i"
-         : "=r"(cpsr) ::: "volatile");
+    asm!(
+        "mrs {}, cpsr
+         cpsid i", lateout(reg) cpsr);
     (cpsr & (1 << 7)) == 0
 }
 
@@ -65,18 +66,18 @@ pub unsafe fn exit_critical(enable: bool) {
     } else {
         0
     };
-    llvm_asm!(
+    asm!(
         "mrs r1, cpsr
-         bic r1, r1, $0
+         bic r1, r1, {}
          msr cpsr_c, r1"
-         :: "r"(mask) : "r1");
+         , in(reg) mask, out("r1") _);
 }
 
 /// Exiting IRQ
 #[inline]
 pub unsafe fn exit_irq() {
-    llvm_asm!("
+    asm!("
         mrs r0, SPSR
         msr CPSR, r0
-        " ::: "r0");
+        ", out("r0") _);
 }
