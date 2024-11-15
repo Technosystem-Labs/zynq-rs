@@ -55,12 +55,22 @@ impl Status {
     pub fn get_link(&self) -> Option<Link> {
         if ! self.link_status() {
             None
-        } else if self.cap_10base_t_half() {
+        } else if self.cap_100base_tx_full() {
             Some(Link {
-                speed: LinkSpeed::S10,
+                speed: LinkSpeed::S100,
+                duplex: LinkDuplex::Full,
+            })
+        } else if self.cap_100base_tx_half() {
+            Some(Link {
+                speed: LinkSpeed::S100,
                 duplex: LinkDuplex::Half,
             })
-        } else if self.cap_10base_t_full() {
+        } else if self.cap_100base_t4() {
+            Some(Link {
+                speed: LinkSpeed::S100,
+                duplex: LinkDuplex::Half,
+            })
+        } else if self.cap_10base_t2_full() {
             Some(Link {
                 speed: LinkSpeed::S10,
                 duplex: LinkDuplex::Full,
@@ -70,25 +80,15 @@ impl Status {
                 speed: LinkSpeed::S10,
                 duplex: LinkDuplex::Half,
             })
-        } else if self.cap_10base_t2_full() {
+        } else if self.cap_10base_t_full() {
             Some(Link {
                 speed: LinkSpeed::S10,
                 duplex: LinkDuplex::Full,
             })
-        } else if self.cap_100base_t4() {
+        } else if self.cap_10base_t_half() {
             Some(Link {
-                speed: LinkSpeed::S100,
+                speed: LinkSpeed::S10,
                 duplex: LinkDuplex::Half,
-            })
-        } else if self.cap_100base_tx_half() {
-            Some(Link {
-                speed: LinkSpeed::S100,
-                duplex: LinkDuplex::Half,
-            })
-        } else if self.cap_100base_tx_full() {
-            Some(Link {
-                speed: LinkSpeed::S100,
-                duplex: LinkDuplex::Full,
             })
         } else {
             None
