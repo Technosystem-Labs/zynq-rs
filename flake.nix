@@ -2,30 +2,24 @@
   description = "Bare-metal Rust on Zynq-7000";
 
   inputs.nixpkgs.url = github:NixOS/nixpkgs/nixos-24.05;
-  inputs.mozilla-overlay = { url = github:mozilla/nixpkgs-mozilla; flake = false; };
+  inputs.rust-overlay = {
+    url = "github:oxalica/rust-overlay?ref=snapshot/2024-08-01";
+    inputs.nixpkgs.follows = "nixpkgs";
+  };
 
-  outputs = { self, nixpkgs, mozilla-overlay }:
+  outputs = { self, nixpkgs, rust-overlay }:
     let
-      pkgs = import nixpkgs { system = "x86_64-linux"; overlays = [ (import mozilla-overlay) crosspkgs-overlay ]; };
+      pkgs = import nixpkgs { system = "x86_64-linux"; overlays = [ (import rust-overlay) crosspkgs-overlay ]; };
       
-      rustManifest = pkgs.fetchurl {
-        url = "https://static.rust-lang.org/dist/2021-01-29/channel-rust-nightly.toml";
-        sha256 = "sha256-EZKgw89AH4vxaJpUHmIMzMW/80wAFQlfcxRoBD9nz0c=";
+      rust = pkgs.rust-bin.nightly."2021-01-28".default.override {
+        extensions = [ "rust-src" ];
+        targets = [ ];
       };
-      rustTargets = [];
-      rustChannelOfTargets = _channel: _date: targets:
-        (pkgs.lib.rustLib.fromManifestFile rustManifest {
-          inherit (pkgs) stdenv lib fetchurl patchelf;
-          }).rust.override {
-          inherit targets;
-          extensions = ["rust-src"];
-        };
-      rust = rustChannelOfTargets "nightly" null rustTargets;
-      rustPlatform = pkgs.recurseIntoAttrs (pkgs.makeRustPlatform {
+      rustPlatform = pkgs.makeRustPlatform {
         rustc = rust;
         cargo = rust;
-      });
-      
+      };
+
       # https://doc.rust-lang.org/rustc/linker-plugin-lto.html#toolchain-compatibility
       llvmPackages_11 = pkgs.recurseIntoAttrs (pkgs.callPackage (import ./llvm/11) ({
         inherit (pkgs.stdenvAdapters) overrideCC;
