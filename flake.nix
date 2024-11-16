@@ -16,7 +16,12 @@
         targets = [ ];
       };
       rustPlatform = pkgs.makeRustPlatform {
-        rustc = rust;
+        rustc = rust // {
+          # https://github.com/oxalica/rust-overlay/commit/c48c2d76b68dd9ede0815fec53479375c61af857
+          targetPlatforms = pkgs.lib.platforms.all;
+          tier1TargetPlatforms = pkgs.lib.platforms.all;
+          badTargetPlatforms = [ ];
+        };
         cargo = rust;
       };
 
