@@ -2,6 +2,8 @@
 #![no_main]
 #![feature(naked_functions)]
 #![feature(inline_const)]
+#![feature(strict_provenance)]
+#![feature(raw_ref_op)]
 
 extern crate alloc;
 
@@ -71,7 +73,7 @@ interrupt_handler!(IRQ, irq, __irq_stack0_start, __irq_stack1_start, {
             if id.0 == 0 {
                 gic.end_interrupt(id);
                 asm::exit_irq();
-                SP.write(&mut __stack1_start as *mut _ as u32);
+                SP.write((&raw mut __stack1_start).addr() as u32);
                 asm::enable_irq();
                 CORE1_RESTART.store(false, Ordering::Relaxed);
                 notify_spin_lock();

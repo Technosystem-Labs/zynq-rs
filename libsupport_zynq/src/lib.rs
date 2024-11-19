@@ -3,6 +3,8 @@
 #![feature(alloc_error_handler)]
 #![feature(panic_info_message)]
 #![feature(naked_functions)]
+#![feature(strict_provenance)]
+#![feature(raw_ref_op)]
 
 pub extern crate alloc;
 pub extern crate compiler_builtins;

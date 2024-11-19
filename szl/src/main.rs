@@ -1,6 +1,9 @@
 #![no_std]
 #![no_main]
 
+#![feature(strict_provenance)]
+#![feature(raw_ref_op)]
+
 extern crate alloc;
 extern crate log;
 
@@ -116,18 +119,18 @@ pub fn main_core0() {
 
     unsafe {
         let max_len =
-            &__runtime_end as *const usize as usize - &__runtime_start as *const usize as usize;
+            (&raw const __runtime_end).addr() - (&raw const __runtime_start).addr();
         match slcr::RegisterBlock::unlocked(|slcr| slcr.boot_mode.read().boot_mode_pins()) {
             slcr::BootModePins::Jtag => netboot::netboot(
                 &mut bootgen_file,
                 config,
-                &mut __runtime_start as *mut usize as *mut u8,
+                (&raw mut __runtime_start).cast(),
                 max_len,
             ),
             slcr::BootModePins::SdCard => {
                 if boot_sd(
                     &mut bootgen_file,
-                    &mut __runtime_start as *mut usize as *mut u8,
+                    (&raw mut __runtime_start).cast(),
                     max_len,
                 )
                 .is_err()
@@ -137,7 +140,7 @@ pub fn main_core0() {
                     netboot::netboot(
                         &mut bootgen_file,
                         config,
-                        &mut __runtime_start as *mut usize as *mut u8,
+                        (&raw mut __runtime_start).cast(),
                         max_len,
                     )
                 }
@@ -148,7 +151,7 @@ pub fn main_core0() {
                 netboot::netboot(
                     &mut bootgen_file,
                     config,
-                    &mut __runtime_start as *mut usize as *mut u8,
+                    (&raw mut __runtime_start).cast(),
                     max_len,
                 )
             }

@@ -43,7 +43,7 @@ unsafe extern "C" fn boot_core0() -> ! {
     let mpcore = mpcore::RegisterBlock::mpcore();
     mpcore.scu_invalidate.invalidate_all_cores();
 
-    zero_bss(&mut __bss_start, &mut __bss_end);
+    zero_bss(&raw mut __bss_start, &raw mut __bss_end);
 
     let mmu_table = mmu::L1Table::get()
         .setup_flat_layout();
