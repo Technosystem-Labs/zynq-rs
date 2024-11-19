@@ -37,7 +37,7 @@ impl<'a, T> Sender<'a, T> where T: Clone {
             notify_spin_lock();
             if !prev.is_null() {
                 unsafe {
-                    Box::from_raw(prev);
+                    let _ = Box::from_raw(prev);
                 }
             }
             Ok(())
@@ -91,7 +91,7 @@ impl<'a, T> Sender<'a, T> where T: Clone {
         for v in self.list.iter() {
             let original = v.swap(core::ptr::null_mut(), Ordering::Relaxed);
             if !original.is_null() {
-                Box::from_raw(original);
+                let _ = Box::from_raw(original);
             }
         }
     }
