@@ -105,7 +105,13 @@
         src = builtins.filterSource (path: type:
           baseNameOf path != "target"
         ) ./.;
-        cargoLock = { lockFile = ./Cargo.lock; };
+        cargoLock = { 
+          lockFile = ./Cargo.lock;
+          outputHashes = {
+            "core_io-0.1.0" = "sha256-0HINFWRiJx8pjMgUOL/CS336ih7SENSRh3Kah9LPRrw="; 
+            "fatfs-0.3.6" = "sha256-Nz9hCq/1YgSXF8ltJ5ZawV0Hc8WV44KNK0tJdVnNb4U=";
+          };
+        };
 
         nativeBuildInputs = [ cargo-xbuild pkgs.llvmPackages_13.clang-unwrapped ];
         buildPhase = ''
