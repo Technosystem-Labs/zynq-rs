@@ -25,14 +25,6 @@
         cargo = rust;
       };
 
-      # https://doc.rust-lang.org/rustc/linker-plugin-lto.html#toolchain-compatibility
-      llvmPackages_11 = pkgs.recurseIntoAttrs (pkgs.callPackage (import ./llvm/11) ({
-        inherit (pkgs.stdenvAdapters) overrideCC;
-        buildLlvmTools = null;
-        targetLlvmLibraries = null;
-        targetLlvm = null;
-      }));
-
       crosspkgs-overlay = (self: super: {
         pkgsCross = super.pkgsCross // {
           zynq-baremetal = import super.path {
@@ -115,7 +107,7 @@
         ) ./.;
         cargoLock = { lockFile = ./Cargo.lock; };
 
-        nativeBuildInputs = [ cargo-xbuild llvmPackages_11.clang-unwrapped ];
+        nativeBuildInputs = [ cargo-xbuild pkgs.llvmPackages_13.clang-unwrapped ];
         buildPhase = ''
           export XARGO_RUST_SRC="${rust}/lib/rustlib/src/rust/library"
           export CARGO_HOME=$(mktemp -d cargo-home.XXX)
@@ -160,7 +152,7 @@
 
       hydraJobs = packages.x86_64-linux;
 
-      inherit rust rustPlatform llvmPackages_11;
+      inherit rust rustPlatform;
 
       devShell.x86_64-linux = pkgs.mkShell {
         name = "zynq-rs-dev-shell";
@@ -171,7 +163,7 @@
 
           pkgs.openocd pkgs.gdb
           pkgs.openssh pkgs.rsync
-          llvmPackages_11.clang-unwrapped
+          pkgs.llvmPackages_13.clang-unwrapped
           (pkgs.python3.withPackages(ps: [ ps.pyftdi ]))
         ];
       };
