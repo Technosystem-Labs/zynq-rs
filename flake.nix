@@ -11,7 +11,7 @@
     let
       pkgs = import nixpkgs { system = "x86_64-linux"; overlays = [ (import rust-overlay) crosspkgs-overlay ]; };
       
-      rust = pkgs.rust-bin.nightly."2021-01-28".default.override {
+      rust = pkgs.rust-bin.nightly."2021-09-01".default.override {
         extensions = [ "rust-src" ];
         targets = [ ];
       };
