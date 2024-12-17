@@ -2,6 +2,7 @@
 #![feature(never_type)]
 #![feature(global_asm)]
 #![feature(asm)]
+#![allow(incomplete_features)]
 #![feature(inline_const)]
 #![feature(const_fn_trait_bound)]
 
