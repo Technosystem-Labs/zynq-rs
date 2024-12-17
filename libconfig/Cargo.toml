@@ -6,9 +6,18 @@ edition = "2018"
 
 [dependencies]
 libboard_zynq = { path = "../libboard_zynq" }
-core_io = { version = "0.1", features = ["collections"] }
-fatfs = { version = "0.3", features = ["core_io"], default-features = false }
 log = "0.4"
+
+[dependencies.core_io]
+git = "https://git.m-labs.hk/M-Labs/rs-core_io.git"
+rev = "e9d3edf027"
+features = ["collections"]
+
+[dependencies.fatfs]
+git = "https://git.m-labs.hk/M-Labs/rust-fatfs.git"
+rev = "4b5e420084"
+default-features = false
+features = ["core_io"]
 
 [features]
 target_zc706 = []

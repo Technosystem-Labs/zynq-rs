@@ -16,10 +16,14 @@ default = ["target_zc706"]
 [dependencies]
 log = "0.4"
 byteorder = { version = "1.3", default-features = false }
-core_io = { version = "0.1", features = ["collections"] }
-
 libboard_zynq = { path = "../libboard_zynq" }
 libsupport_zynq = { path = "../libsupport_zynq" }
 libcortex_a9 = { path = "../libcortex_a9" }
 libregister = { path = "../libregister" }
 libconfig = { path = "../libconfig" }
+
+[dependencies.core_io]
+git = "https://git.m-labs.hk/M-Labs/rs-core_io.git"
+rev = "e9d3edf027"
+features = ["collections"]
+
