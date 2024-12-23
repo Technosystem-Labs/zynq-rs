@@ -1,9 +1,6 @@
 #![no_std]
 #![feature(never_type)]
-#![feature(global_asm)]
-#![feature(asm)]
 #![feature(inline_const)]
-#![feature(const_fn_trait_bound)]
 
 extern crate alloc;
 
