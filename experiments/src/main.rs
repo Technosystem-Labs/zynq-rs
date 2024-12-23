@@ -1,6 +1,5 @@
 #![no_std]
 #![no_main]
-#![allow(incomplete_features)]
 #![feature(naked_functions)]
 #![feature(asm)]
 #![feature(inline_const)]
