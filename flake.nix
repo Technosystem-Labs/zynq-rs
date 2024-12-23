@@ -113,7 +113,7 @@
           };
         };
 
-        nativeBuildInputs = [ cargo-xbuild pkgs.llvmPackages_13.clang-unwrapped ];
+        nativeBuildInputs = [ cargo-xbuild pkgs.llvmPackages_14.clang-unwrapped ];
         buildPhase = ''
           export XARGO_RUST_SRC="${rust}/lib/rustlib/src/rust/library"
           export CARGO_HOME=$(mktemp -d cargo-home.XXX)
@@ -169,7 +169,7 @@
 
           pkgs.openocd pkgs.gdb
           pkgs.openssh pkgs.rsync
-          pkgs.llvmPackages_13.clang-unwrapped
+          pkgs.llvmPackages_14.clang-unwrapped
           (pkgs.python3.withPackages(ps: [ ps.pyftdi ]))
         ];
       };
