@@ -177,10 +177,7 @@ macro_rules! sync_channel {
         {
             use core::sync::atomic::{AtomicUsize, AtomicPtr};
             use $crate::sync_channel::{Sender, Receiver};
-            const fn new_atomic() -> AtomicPtr<$t> {
-                AtomicPtr::new(core::ptr::null_mut())
-            }
-            static LIST: [AtomicPtr<$t>; $cap + 1] = [const { new_atomic() }; $cap + 1];
+            static LIST: [AtomicPtr<$t>; $cap + 1] = [const { AtomicPtr::new(core::ptr::null_mut()) }; $cap + 1];
             static WRITE: AtomicUsize = AtomicUsize::new(0);
             static READ: AtomicUsize = AtomicUsize::new(0);
             (Sender::new(&LIST, &WRITE, &READ), Receiver::new(&LIST, &WRITE, &READ))
