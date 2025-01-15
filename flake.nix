@@ -1,7 +1,7 @@
 {
   description = "Bare-metal Rust on Zynq-7000";
 
-  inputs.nixpkgs.url = github:NixOS/nixpkgs/nixos-24.05;
+  inputs.nixpkgs.url = github:NixOS/nixpkgs/nixos-24.11;
   inputs.rust-overlay = {
     url = "github:oxalica/rust-overlay?ref=snapshot/2024-08-01";
     inputs.nixpkgs.follows = "nixpkgs";
