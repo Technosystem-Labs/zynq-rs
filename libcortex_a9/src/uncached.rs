@@ -19,8 +19,8 @@ impl<T> UncachedSlice<T> {
             .max(L1_PAGE_SIZE);
         let layout = Layout::from_size_align(size, align)?;
         let ptr = unsafe { alloc::alloc::alloc(layout).cast::<T>() };
+        assert!(!ptr.is_null());
         let start = ptr as usize;
-        assert_eq!(start & (L1_PAGE_SIZE - 1), 0);
 
         for page_start in (start..(start + size)).step_by(L1_PAGE_SIZE) {
             // non-shareable device
@@ -33,9 +33,6 @@ impl<T> UncachedSlice<T> {
         }
 
         let slice = unsafe { core::slice::from_raw_parts_mut(ptr, len) };
-        // verify size
-        assert!(unsafe { slice.get_unchecked(len) } as *const _ as usize <= start + size);
-        // initialize
         for e in slice.iter_mut() {
             *e = default();
         }
