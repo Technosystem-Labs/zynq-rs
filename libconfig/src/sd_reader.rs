@@ -1,5 +1,4 @@
 use core_io::{BufRead, Error, ErrorKind, Read, Result as IoResult, Seek, SeekFrom, Write};
-use fatfs;
 use libboard_zynq::sdio::{sd_card::SdCard, CmdTransferError};
 use log::debug;
 use alloc::vec::Vec;

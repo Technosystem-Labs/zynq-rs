@@ -9,7 +9,6 @@ use super::time::Milliseconds;
 use embedded_hal::timer::CountDown;
 use libregister::{RegisterR, RegisterRW, RegisterW};
 use log::{trace, debug};
-use nb;
 
 /// Basic SDIO Struct with common low-level functions.
 pub struct Sdio {
