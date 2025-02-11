@@ -17,7 +17,7 @@ pub fn block_on<T>(f: impl Future<Output = T>) -> T {
 /// Spawns a task onto the executor
 ///
 /// The spawned task will not make any progress until `block_on` is called.
-pub fn spawn(f: impl Future + 'static) {
+pub fn spawn(f: impl Future<Output = ()> + 'static) {
     executor::current().spawn(f)
 }
 
