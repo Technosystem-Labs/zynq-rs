@@ -66,6 +66,7 @@ unsafe extern "C" fn boot_core0() -> ! {
 unsafe extern "C" fn boot_core1() -> ! {
     l1_cache_init();
 
+    enable_fpu();
     let mpcore = mpcore::RegisterBlock::mpcore();
     mpcore.scu_invalidate.invalidate_core1();
 
