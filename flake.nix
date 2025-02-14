@@ -95,10 +95,6 @@
         dontFixup = true;
       };
 
-      cargo-xbuild = pkgs.cargo-xbuild.overrideAttrs(oa: {
-        postPatch = "substituteInPlace src/sysroot.rs --replace 2021 2018";
-      });
-
       build-crate = name: crate: features: rustPlatform.buildRustPackage rec {
         name = "${crate}";
 
@@ -113,7 +109,7 @@
           };
         };
 
-        nativeBuildInputs = [ cargo-xbuild pkgs.llvmPackages_14.clang-unwrapped ];
+        nativeBuildInputs = [ pkgs.cargo-xbuild pkgs.llvmPackages_14.clang-unwrapped ];
         buildPhase = ''
           export XARGO_RUST_SRC="${rust}/lib/rustlib/src/rust/library"
           export CARGO_HOME=$(mktemp -d cargo-home.XXX)
@@ -152,7 +148,7 @@
       ) "mkdir $out\n" targets);
     in rec {
       packages.x86_64-linux = { 
-        inherit cargo-xbuild szl mkbootimage;
+        inherit szl mkbootimage;
         zc706-fsbl = fsbl { board = "zc706"; };
       } // allTargetCrates ;
 
@@ -164,7 +160,7 @@
         name = "zynq-rs-dev-shell";
         buildInputs = [
           rust
-          cargo-xbuild
+          pkgs.cargo-xbuild
           mkbootimage
 
           pkgs.openocd pkgs.gdb
