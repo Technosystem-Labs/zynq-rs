@@ -1,6 +1,6 @@
 use alloc::{boxed::Box, vec::Vec};
 use core::{
-    cell::UnsafeCell,
+    cell::{UnsafeCell, RefCell, Cell},
     future::Future,
     mem::MaybeUninit,
     pin::Pin,
@@ -38,32 +38,32 @@ fn wrap_waker(ready: &AtomicBool) -> Waker {
 /// This is a singleton
 pub struct Executor {
     // Entered block_on() already?
-    in_block_on: bool,
+    in_block_on: Cell<bool>,
 
     /// Tasks reside on the heap, so that we just queue pointers. They
     /// must also be pinned in memory because our RawWaker is a pointer
     /// to their `ready` field.
-    tasks: Vec<Pin<Box<Task>>>,
+    tasks: RefCell<Vec<Pin<Box<Task>>>>,
 }
 
 impl Executor {
     /// Creates a new instance of the executor
     pub fn new() -> Self {
         Self {
-            in_block_on: false,
-            tasks: Vec::new(),
+            in_block_on: Cell::new(false),
+            tasks: RefCell::new(Vec::new()),
         }
     }
 
-    pub fn block_on<T>(&mut self, f: impl Future<Output = T>) -> T {
+    pub fn block_on<T>(&self, f: impl Future<Output = T>) -> T {
         // we want to avoid reentering `block_on` because then all the code
         // below has to become more complex. It's also likely that the
         // application will only call `block_on` once on an infinite task
         // (`Future<Output = !>`)
-        if self.in_block_on {
+        if self.in_block_on.get() {
             panic!("nested `block_on`");
         }
-        self.in_block_on = true;
+        self.in_block_on.replace(true);
 
         pin_mut!(f);
         let ready = AtomicBool::new(true);
@@ -80,7 +80,7 @@ impl Executor {
             }
 
             // advance all tasks
-            core::mem::swap(&mut self.tasks, &mut backup);
+            core::mem::swap(&mut *self.tasks.borrow_mut(), &mut backup);
             for mut task in backup.drain(..) {
                 // NOTE we don't need a CAS operation here because `wake` invocations that come from
                 // interrupt handlers (the only source of 'race conditions' (!= data races)) are
@@ -99,16 +99,16 @@ impl Executor {
                     }
                 }
                 // Requeue
-                self.tasks.push(task);
+                self.tasks.borrow_mut().push(task);
             }
         };
-        self.in_block_on = false;
+        self.in_block_on.replace(false);
         val
     }
 
-    pub fn spawn(&mut self, f: impl Future<Output = ()> + 'static) {
+    pub fn spawn(&self, f: impl Future<Output = ()> + 'static) {
         let task = Box::pin(Task::new(f));
-        self.tasks.push(task);
+        self.tasks.borrow_mut().push(task);
     }
 }
 
@@ -129,17 +129,17 @@ impl Task {
 /// Returns a handle to the executor singleton
 ///
 /// This lazily initializes the executor and allocator when first called
-pub(crate) fn current() -> &'static mut Executor {
+pub(crate) fn current() -> &'static Executor {
     static INIT: AtomicBool = AtomicBool::new(false);
     static mut EXECUTOR: UnsafeCell<MaybeUninit<Executor>> = UnsafeCell::new(MaybeUninit::uninit());
 
     if INIT.load(Ordering::Relaxed) {
-        unsafe { EXECUTOR.get_mut().assume_init_mut() }
+        unsafe { EXECUTOR.get_mut().assume_init_ref() }
     } else {
         unsafe {
             let executor = EXECUTOR.get_mut().write(Executor::new());
             INIT.store(true, Ordering::Relaxed);
-            executor
+            &*executor
         }
     }
 }
