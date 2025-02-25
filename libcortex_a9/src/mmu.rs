@@ -1,3 +1,4 @@
+use core::cell::UnsafeCell;
 use bit_field::BitField;
 use super::{regs::*, asm::*, cache::*};
 use libregister::RegisterW;
@@ -124,9 +125,9 @@ impl L1Entry {
 }
 
 const L1_TABLE_SIZE: usize = 4096;
-static mut L1_TABLE: L1Table = L1Table {
+static mut L1_TABLE: UnsafeCell<L1Table> = UnsafeCell::new(L1Table {
     table: [L1Entry(0); L1_TABLE_SIZE]
-};
+});
 
 #[repr(C, align(16384))]
 pub struct L1Table {
@@ -135,9 +136,7 @@ pub struct L1Table {
 
 impl L1Table {
     pub fn get() -> &'static mut Self {
-        unsafe {
-            &mut L1_TABLE
-        }
+        unsafe { L1_TABLE.get_mut() }
     }
 
     pub fn setup_flat_layout(&mut self) -> &Self {
