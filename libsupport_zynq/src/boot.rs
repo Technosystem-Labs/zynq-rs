@@ -134,7 +134,7 @@ impl Core1 {
             CORE1_ENABLED.set(true);
         }
         // Flush cache-line
-        cache::dcc(unsafe { &CORE1_ENABLED });
+        cache::dcc(unsafe { &raw const CORE1_ENABLED });
         if sdram {
             cache::dccmvac(0);
             asm::dsb();
@@ -155,7 +155,7 @@ impl Core1 {
     pub fn disable(&self) {
         unsafe {
             CORE1_ENABLED.set(false);
-            cache::dccmvac(&CORE1_ENABLED  as *const _ as usize);
+            cache::dccmvac((&raw const CORE1_ENABLED).addr());
             asm::dsb();
         }
         self.restart();
