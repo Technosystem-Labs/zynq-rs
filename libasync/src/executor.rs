@@ -1,6 +1,6 @@
 use alloc::{boxed::Box, vec::Vec};
 use core::{
-    cell::{UnsafeCell, RefCell, Cell},
+    cell::{RefCell, Cell},
     future::Future,
     mem::MaybeUninit,
     pin::Pin,
@@ -131,13 +131,13 @@ impl Task {
 /// This lazily initializes the executor and allocator when first called
 pub(crate) fn current() -> &'static Executor {
     static INIT: AtomicBool = AtomicBool::new(false);
-    static mut EXECUTOR: UnsafeCell<MaybeUninit<Executor>> = UnsafeCell::new(MaybeUninit::uninit());
+    static mut EXECUTOR: MaybeUninit<Executor> = MaybeUninit::uninit();
 
     if INIT.load(Ordering::Relaxed) {
-        unsafe { EXECUTOR.get_mut().assume_init_ref() }
+        unsafe { EXECUTOR.assume_init_ref() }
     } else {
         unsafe {
-            let executor = EXECUTOR.get_mut().write(Executor::new());
+            let executor = EXECUTOR.write(Executor::new());
             INIT.store(true, Ordering::Relaxed);
             &*executor
         }
