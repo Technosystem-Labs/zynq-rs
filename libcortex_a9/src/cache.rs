@@ -137,15 +137,15 @@ fn cache_line_addrs(first_addr: usize, beyond_addr: usize) -> impl Iterator<Item
     (first_addr..beyond_addr).step_by(CACHE_LINE)
 }
 
-fn object_cache_line_addrs<T>(object: &T) -> impl Iterator<Item = usize> {
-    let first_addr = object as *const _ as usize;
-    let beyond_addr = (object as *const _ as usize) + core::mem::size_of_val(object);
+fn object_cache_line_addrs<T>(object: *const T) -> impl Iterator<Item = usize> {
+    let first_addr = object.addr();
+    let beyond_addr = object.addr() + core::mem::size_of::<T>(); 
     cache_line_addrs(first_addr, beyond_addr)
 }
 
 fn slice_cache_line_addrs<T>(slice: &[T]) -> impl Iterator<Item = usize> {
-    let first_addr = &slice[0] as *const _ as usize;
-    let beyond_addr = (&slice[slice.len() - 1] as *const _ as usize) +
+    let first_addr = (&raw const slice[0]).addr();
+    let beyond_addr = (&raw const slice[slice.len() - 1]).addr() +
         core::mem::size_of_val(&slice[slice.len() - 1]);
     cache_line_addrs(first_addr, beyond_addr)
 }
@@ -162,7 +162,7 @@ pub fn dccimvac(addr: usize) {
 }
 
 /// Data cache clean and invalidate for an object.
-pub fn dcci<T>(object: &T) {
+pub fn dcci<T>(object: *const T) {
     // ref: L2C310 TRM 3.3.10
     dmb();
     for addr in object_cache_line_addrs(object) {
@@ -203,7 +203,7 @@ pub fn dccmvac(addr: usize) {
     }
 }
 /// Data cache clean for an object.
-pub fn dcc<T>(object: &T) {
+pub fn dcc<T>(object: *const T) {
     dmb();
     for addr in object_cache_line_addrs(object) {
         dccmvac(addr);
