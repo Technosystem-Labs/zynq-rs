@@ -3,11 +3,10 @@ use core::{
     cell::{RefCell, Cell},
     future::Future,
     mem::MaybeUninit,
-    pin::Pin,
+    pin::{pin, Pin},
     sync::atomic::{AtomicBool, Ordering},
     task::{Context, Poll, RawWaker, RawWakerVTable, Waker},
 };
-use pin_utils::pin_mut;
 
 // NOTE `*const ()` is &AtomicBool
 static VTABLE: RawWakerVTable = {
@@ -65,7 +64,7 @@ impl Executor {
         }
         self.in_block_on.replace(true);
 
-        pin_mut!(f);
+        let mut pinned_f = pin!(f);
         let ready = AtomicBool::new(true);
         let waker = wrap_waker(&ready);
         let mut backup = Vec::new();
@@ -74,7 +73,7 @@ impl Executor {
             if ready.load(Ordering::Relaxed) {
                 ready.store(false, Ordering::Relaxed);
                 let mut cx = Context::from_waker(&waker);
-                if let Poll::Ready(val) = f.as_mut().poll(&mut cx) {
+                if let Poll::Ready(val) = pinned_f.as_mut().poll(&mut cx) {
                     break val;
                 }
             }
