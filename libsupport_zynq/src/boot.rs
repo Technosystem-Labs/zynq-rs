@@ -47,6 +47,7 @@ unsafe extern "C" fn boot_core0() -> ! {
 
     let mmu_table = mmu::L1Table::get()
         .setup_flat_layout();
+    cache::dcc(mmu_table);
     mmu::with_mmu(mmu_table, || {
         mpcore.scu_control.start();
         ACTLR.enable_smp();
