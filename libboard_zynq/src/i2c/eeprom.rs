@@ -1,4 +1,4 @@
-use super::I2c;
+use super::{I2c, Error};
 use crate::time::Milliseconds;
 use embedded_hal::timer::CountDown;
 
@@ -35,25 +35,25 @@ impl<'a> EEPROM<'a> {
     }
 
     #[cfg(feature = "target_zc706")]
-    fn select(&mut self) -> Result<(), &'static str> {
+    fn select(&mut self) -> Result<(), Error> {
         self.i2c.pca954x_select(0b1110100, Some(self.port))?;
         Ok(())
     }
 
     #[cfg(feature = "target_kasli_soc")]
-    fn select(&mut self) -> Result<(), &'static str> {
+    fn select(&mut self) -> Result<(), Error> {
         // tca9548 is compatible with pca9548
         self.i2c.pca954x_select(0b1110001, Some(self.port))?;
         Ok(())
     }
 
     #[cfg(feature = "target_ebaz4205")]
-    fn select(&mut self) -> Result<(), &'static str> {
+    fn select(&mut self) -> Result<(), Error> {
         Ok(())
     }
 
     /// Random read
-    pub fn read<'r>(&mut self, addr: u8, buf: &'r mut [u8]) -> Result<(), &'static str> {
+    pub fn read<'r>(&mut self, addr: u8, buf: &'r mut [u8]) -> Result<(), Error> {
         self.select()?;
 
         self.i2c.start()?;
@@ -78,7 +78,7 @@ impl<'a> EEPROM<'a> {
     /// (i.e. `addr+buf.len()` < `addr/self.page_size+1`); otherwise, a roll-oever occurs, 
     /// where bytes beyond the page end. This smart function takes care of the scenario to avoid
     /// any roll-over when writing ambiguous memory regions.
-    pub fn write(&mut self, addr: u8, buf: &[u8]) -> Result<(), &'static str> {
+    pub fn write(&mut self, addr: u8, buf: &[u8]) -> Result<(), Error> {
         self.select()?;
 
         let buf_len = buf.len();
@@ -103,26 +103,28 @@ impl<'a> EEPROM<'a> {
     }
 
     /// Poll
-    pub fn poll(&mut self, timeout_ms: u64) -> Result<(), &'static str> {
+    pub fn poll(&mut self, timeout_ms: u64) -> Result<(), Error> {
         self.select()?;
 
         self.count_down.start(Milliseconds(timeout_ms));
         loop {
             self.i2c.start()?;
-            let ack = self.i2c.write(self.address << 1)?;
+            let res = self.i2c.write(self.address << 1);
             self.i2c.stop()?;
-            if ack {
-                break
-            };
+            match res {
+                Ok(()) => break,
+                Err(Error::Nack) => (),
+                Err(e) => return Err(e)
+            }
             if !self.count_down.waiting() {
-                return Err("I2C polling timeout")
+                return Err(Error::PollingTimeout)
             }
         }
 
         Ok(())
     }
 
-    pub fn read_eui48<'r>(&mut self) -> Result<[u8; 6], &'static str> {
+    pub fn read_eui48<'r>(&mut self) -> Result<[u8; 6], Error> {
         let mut buffer = [0u8; 6];
         self.read(0xFA, &mut buffer)?;
         Ok(buffer)

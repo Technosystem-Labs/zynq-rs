@@ -11,11 +11,37 @@ use libregister::{RegisterR, RegisterRW};
 use libregister::RegisterW;
 #[cfg(feature = "target_kasli_soc")]
 use log::info;
+use log::error;
 
 pub enum I2cMultiplexer {
     PCA9548 = 0,
     #[cfg(feature = "target_kasli_soc")]
     PCA9547 = 1,
+}
+
+#[derive(Debug)]
+pub enum Error {
+    Nack,
+    SCLLow,
+    SDALow,
+    ArbitrationLost,
+    UnknownSwitch,
+    PollingTimeout,
+    OtherError,
+}
+
+impl From<Error> for &str {
+    fn from(err: Error) -> &'static str {
+        match err {
+            Error::Nack => "I2C write was not ACKed",
+            Error::SCLLow => "SCL stuck low",
+            Error::SDALow => "SDA stuck low",
+            Error::ArbitrationLost => "SDA arbitration lost",
+            Error::UnknownSwitch => "Unknown response for PCA954X autodetect",
+            Error::PollingTimeout => "I2C polling timeout",
+            Error::OtherError => "other error",
+        }
+    }
 }
 
 pub struct I2c {
@@ -148,7 +174,7 @@ impl I2c {
     }
 
     #[cfg(feature = "target_kasli_soc")]
-    fn pca_autodetect(&mut self) -> Result<I2cMultiplexer, &'static str> {
+    fn pca_autodetect(&mut self) -> Result<I2cMultiplexer, Error> {
         // start with resetting the PCA954X
         // SDA must be clear (before start)
         // reset time is 500ns, unit_delay (100us) to account for propagation
@@ -161,21 +187,26 @@ impl I2c {
 
         self.start()?;
         // read the config register
-        if !self.write(pca954x_read_addr)? {
-            return Err("PCA954X failed to ack read address");
-        }
+        self.write(pca954x_read_addr).map_err(|err| {
+                match err {
+                    Error::Nack => error!("PCA954X failed to ack read address"),
+                    _ => ()
+                }
+                err
+            }
+        )?;
         let config = self.read(false)?;
 
         let pca = match config {
             0x00 => { info!("PCA9548 detected"); I2cMultiplexer::PCA9548 },
             0x08 => { info!("PCA9547 detected"); I2cMultiplexer::PCA9547 },
-            _ => { return Err("Unknown response for PCA954X autodetect")},
+            _ => { return Err(Error::UnknownSwitch)},
         };
         self.stop()?;
         Ok(pca)
     }
 
-    pub fn init(&mut self) -> Result<(), &'static str> {
+    pub fn init(&mut self) -> Result<(), Error> {
         self.scl_oe(false);
         self.sda_oe(false);
         self.scl_o(false);
@@ -195,10 +226,10 @@ impl I2c {
         }
 
         if !self.sda_i() {
-            return Err("SDA is stuck low and doesn't get unstuck");
+            return Err(Error::SDALow);
         }
         if !self.scl_i() {
-            return Err("SCL is stuck low");
+            return Err(Error::SCLLow);
         }
         // postcondition: SCL and SDA high
         
@@ -211,13 +242,13 @@ impl I2c {
         Ok(())
     }
 
-    pub fn start(&mut self) -> Result<(), &'static str> {
+    pub fn start(&mut self) -> Result<(), Error> {
         // precondition: SCL and SDA high
         if !self.scl_i() {
-            return Err("SCL is stuck low");
+            return Err(Error::SCLLow);
         }
         if !self.sda_i() {
-            return Err("SDA arbitration lost");
+            return Err(Error::ArbitrationLost);
         }
         self.sda_oe(true);
         self.unit_delay();
@@ -227,7 +258,7 @@ impl I2c {
         Ok(())
     }
 
-    pub fn restart(&mut self) -> Result<(), &'static str> {
+    pub fn restart(&mut self) -> Result<(), Error> {
         // precondition SCL and SDA low
         self.sda_oe(false);
         self.unit_delay();
@@ -238,7 +269,7 @@ impl I2c {
         Ok(())
     }
 
-    pub fn stop(&mut self) -> Result<(), &'static str> {
+    pub fn stop(&mut self) -> Result<(), Error> {
         // precondition: SCL and SDA low
         self.unit_delay();
         self.scl_oe(false);
@@ -246,13 +277,13 @@ impl I2c {
         self.sda_oe(false);
         self.unit_delay();
         if !self.sda_i() {
-            return Err("SDA arbitration lost");
+            return Err(Error::ArbitrationLost);
         }
         // postcondition: SCL and SDA high
         Ok(())
     }
 
-    pub fn write(&mut self, data: u8) -> Result<bool, &'static str> {
+    pub fn write(&mut self, data: u8) -> Result<(), Error> {
         // precondition: SCL and SDA low
         // MSB first
         for bit in (0..8).rev() {
@@ -274,10 +305,10 @@ impl I2c {
         self.sda_oe(true);
         // postcondition: SCL and SDA low
 
-        Ok(ack)
+        if ack { Ok(()) } else { Err(Error::Nack) }
     }
 
-    pub fn read(&mut self, ack: bool) -> Result<u8, &'static str> {
+    pub fn read(&mut self, ack: bool) -> Result<u8, Error> {
         // precondition: SCL and SDA low
         self.sda_oe(false);
 
@@ -303,7 +334,7 @@ impl I2c {
         Ok(data)
     }
 
-    pub fn pca954x_select(&mut self, address: u8, channel: Option<u8>) -> Result<(), &'static str> {
+    pub fn pca954x_select(&mut self, address: u8, channel: Option<u8>) -> Result<(), Error> {
         self.start()?;
         // PCA9547 supports only one channel at a time
         // for compatibility, PCA9548 is treated as such too
@@ -324,11 +355,13 @@ impl I2c {
             }
         };
 
-        if !self.write(address << 1)? {
-            return Err("PCA954X failed to ack write address")
+        if let Err(err) = self.write(address << 1) {
+            error!("PCA954X write address fail: {:?}", err);
+            return Err(err)
         }
-        if !self.write(setting)? {
-            return Err("PCA954X failed to ack control word")
+        if let Err(err) = self.write(setting) {
+            error!("PCA954X control word fail: {:?}", err);
+            return Err(err)
         }
         self.stop()?;
         Ok(())
