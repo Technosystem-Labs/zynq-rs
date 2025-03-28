@@ -355,15 +355,16 @@ impl I2c {
             }
         };
 
-        if let Err(err) = self.write(address << 1) {
-            error!("PCA954X write address fail: {:?}", err);
-            return Err(err)
-        }
-        if let Err(err) = self.write(setting) {
-            error!("PCA954X control word fail: {:?}", err);
-            return Err(err)
-        }
-        self.stop()?;
-        Ok(())
+        let write_res = self.write(address << 1).or_else( |err| {
+                error!("PCA954X write address fail: {:?}", err);
+                Err(err)
+            }).and_then(|_| self.write(setting).or_else(|err| {
+                error!("PCA954X control word fail: {:?}", err);
+                Err(err)
+            })
+        );
+        let stop_res = self.stop();
+
+        write_res.and(stop_res)
     }
 }
