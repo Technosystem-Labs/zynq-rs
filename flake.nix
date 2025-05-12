@@ -6,8 +6,12 @@
     url = "github:oxalica/rust-overlay?ref=snapshot/2024-08-01";
     inputs.nixpkgs.follows = "nixpkgs";
   };
+  inputs.naersk = {
+    url = "github:nix-community/naersk";
+    inputs.nixpkgs.follows = "nixpkgs";
+  };
 
-  outputs = { self, nixpkgs, rust-overlay }:
+  outputs = { self, nixpkgs, rust-overlay, naersk }:
     let
       pkgs = import nixpkgs { system = "x86_64-linux"; overlays = [ (import rust-overlay) crosspkgs-overlay ]; };
       
@@ -15,13 +19,8 @@
         extensions = [ "rust-src" ];
         targets = [ ];
       };
-      rustPlatform = pkgs.makeRustPlatform {
-        rustc = rust // {
-          # https://github.com/oxalica/rust-overlay/commit/c48c2d76b68dd9ede0815fec53479375c61af857
-          targetPlatforms = pkgs.lib.platforms.all;
-          tier1TargetPlatforms = pkgs.lib.platforms.all;
-          badTargetPlatforms = [ ];
-        };
+      naerskLib = pkgs.callPackage naersk {
+        rustc = rust;
         cargo = rust;
       };
 
@@ -95,41 +94,26 @@
         dontFixup = true;
       };
 
-      build-crate = name: crate: features: rustPlatform.buildRustPackage rec {
+      build-crate = name: crate: features: naerskLib.buildPackage rec {
         name = "${crate}";
-
-        src = builtins.filterSource (path: type:
-          baseNameOf path != "target"
-        ) ./.;
-        cargoLock = { 
-          lockFile = ./Cargo.lock;
-          outputHashes = {
-            "core_io-0.1.0" = "sha256-0HINFWRiJx8pjMgUOL/CS336ih7SENSRh3Kah9LPRrw="; 
-            "fatfs-0.3.6" = "sha256-Nz9hCq/1YgSXF8ltJ5ZawV0Hc8WV44KNK0tJdVnNb4U=";
-          };
+        src = ./.;
+        additionalCargoLock = "${rust}/lib/rustlib/src/rust/Cargo.lock";
+        nativeBuildInputs = [ pkgs.llvmPackages_18.clang-unwrapped ];       
+        singleStep = true;
+        release = true;
+        cargoBuildOptions = options: options ++ [
+          "-p ${crate}"
+          "--no-default-features"
+          "--features=${features}"
+        ];
+        overrideMain = _: {
+          installPhase = ''
+            mkdir -p $out $out/nix-support
+            cp target/armv7-none-eabihf/release/${name} $out/${name}.elf
+            echo file binary-dist $out/${name}.elf >> $out/nix-support/hydra-build-products
+          '';
+          dontFixup = true;
         };
-
-        nativeBuildInputs = [ pkgs.cargo-xbuild pkgs.llvmPackages_18.clang-unwrapped ];
-
-        buildPhase = ''
-          export XARGO_RUST_SRC="${rust}/lib/rustlib/src/rust/library"
-          export CARGO_HOME=$(mktemp -d cargo-home.XXX)
-          pushd ${crate}
-          cargo xbuild --release --frozen \
-            --no-default-features \
-            --features=${features}
-          popd
-        '';
-
-        installPhase = ''
-          mkdir -p $out $out/nix-support
-          cp target/armv7-none-eabihf/release/${name} $out/${name}.elf
-          echo file binary-dist $out/${name}.elf >> $out/nix-support/hydra-build-products
-        '';
-
-        doCheck = false;
-        dontFixup = true;
-        auditable = false;
       };
 
       targetCrates = target: {
@@ -155,7 +139,7 @@
 
       hydraJobs = packages.x86_64-linux;
 
-      inherit rust rustPlatform;
+      inherit rust naerskLib;
 
       devShell.x86_64-linux = pkgs.mkShell {
         name = "zynq-rs-dev-shell";

@@ -7,7 +7,6 @@
 #![feature(raw_ref_op)]
 
 pub extern crate alloc;
-pub extern crate compiler_builtins;
 
 pub mod boot;
 pub mod exception_vectors;
