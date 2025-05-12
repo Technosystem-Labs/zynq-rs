@@ -28,11 +28,11 @@ You can build SZL or experiments crate for the platform of your choice by using 
 nix build .#coraz7-experiments
 ```
 
-Alternatively, you can still use ``cargo xbuild`` within ``nix develop`` shell.
+Alternatively, you can still use ``cargo build`` within a ``nix develop`` shell.
 
 ```shell
 nix develop
-cargo xbuild --release -p experiments
+cargo build --release -p experiments
 ```
 
 Currently the ELF output is placed at `target/armv7-none-eabihf/release/experiments`, or `result/experiments.elf` for Nix Flakes build.
@@ -43,7 +43,7 @@ Currently the ELF output is placed at `target/armv7-none-eabihf/release/experime
 
 ```shell
 nix develop
-cargo xbuild --release -p experiments
+cargo build --release -p experiments
 cd openocd
 openocd -f zc706.cfg
 ```
@@ -52,7 +52,7 @@ openocd -f zc706.cfg
 
 ```shell
 nix develop
-cargo xbuild --release -p experiments --no-default-features --features=target_coraz7
+cargo build --release -p experiments --no-default-features --features=target_coraz7
 cd openocd
 openocd -f cora-z7-10.cfg
 ```
