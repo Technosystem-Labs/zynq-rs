@@ -5,7 +5,7 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use core::arch::asm;
+use core::arch::naked_asm;
 use libasync::{
     delay,
     smoltcp::{Sockets, TcpStream},

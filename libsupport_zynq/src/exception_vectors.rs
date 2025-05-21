@@ -1,7 +1,7 @@
 use libregister::{RegisterR, RegisterW};
 use libcortex_a9::{regs::{DFSR, MPIDR, VBAR}, interrupt_handler};
 use libboard_zynq::{println, stdio}; 
-use core::arch::asm;
+use core::arch::naked_asm;
 
 pub fn set_vector_table(base_addr: u32){
     VBAR.write(base_addr);

@@ -51,8 +51,8 @@ macro_rules! interrupt_handler {
         #[link_section = ".text.boot"]
         #[no_mangle]
         #[naked]
-        pub unsafe extern "C" fn $name() -> ! {
-            asm!(
+        pub unsafe extern "C" fn $name() {
+            naked_asm!(
                 // setup SP, depending on CPU 0 or 1
                 // and preserve registers
                 "sub lr, lr, #4",
@@ -69,8 +69,7 @@ macro_rules! interrupt_handler {
                 concat!("bl ", stringify!($name2)),
                 "pop {{r0, r1}}",
                 "mov sp, r0",
-                "ldmfd sp!, {{r0-r12, pc}}^",                           // caret ^ : copy SPSR to the CPSR  
-                options(noreturn)
+                "ldmfd sp!, {{r0-r12, pc}}^"                           // caret ^ : copy SPSR to the CPSR  
             );
         }
 

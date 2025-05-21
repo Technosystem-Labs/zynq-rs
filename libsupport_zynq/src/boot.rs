@@ -1,6 +1,6 @@
 use r0::zero_bss;
 use core::ptr::write_volatile;
-use core::arch::asm;
+use core::arch::naked_asm;
 use libregister::{
     VolatileCell,
     RegisterR, RegisterRW,
