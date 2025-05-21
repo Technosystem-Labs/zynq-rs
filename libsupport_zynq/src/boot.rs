@@ -26,6 +26,7 @@ interrupt_handler!(Reset, reset_irq, __stack0_start, __stack1_start, {
             boot_core0();
         }
         1 => {
+            #[allow(static_mut_refs)]
             while !CORE1_ENABLED.get() {
                 spin_lock_yield();
             }
@@ -35,6 +36,7 @@ interrupt_handler!(Reset, reset_irq, __stack0_start, __stack1_start, {
     }
 });
 
+#[allow(static_mut_refs)]
 #[inline(never)]
 unsafe extern "C" fn boot_core0() -> ! {
     l1_cache_init();
@@ -109,6 +111,7 @@ fn l1_cache_init() {
 pub struct Core1 {
 }
 
+#[allow(static_mut_refs)]
 impl Core1 {
     /// Reset and start core1
     pub fn start(sdram: bool) -> Self {

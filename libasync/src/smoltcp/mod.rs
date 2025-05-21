@@ -70,6 +70,7 @@ impl Sockets {
         })
     }
 
+    #[allow(static_mut_refs)]
     pub(crate) fn instance() -> &'static Self {
         unsafe { SOCKETS.as_ref().expect("Sockets") }
     }

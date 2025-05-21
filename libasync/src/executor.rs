@@ -128,6 +128,7 @@ impl Task {
 /// Returns a handle to the executor singleton
 ///
 /// This lazily initializes the executor and allocator when first called
+#[allow(static_mut_refs)]
 pub(crate) fn current() -> &'static Executor {
     static INIT: AtomicBool = AtomicBool::new(false);
     static mut EXECUTOR: MaybeUninit<Executor> = MaybeUninit::uninit();

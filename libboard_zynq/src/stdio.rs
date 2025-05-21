@@ -6,6 +6,7 @@ const UART_RATE: u32 = 115_200;
 static mut UART: Mutex<LazyUart> = Mutex::new(LazyUart::Uninitialized);
 
 #[doc(hidden)]
+#[allow(static_mut_refs)]
 pub fn get_uart<'a>() -> MutexGuard<'a, LazyUart> {
     unsafe { UART.lock() }
 }
