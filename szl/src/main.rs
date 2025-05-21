@@ -114,36 +114,24 @@ pub fn main_core0() {
     let mut bootgen_file = root_dir.and_then(|root_dir| root_dir.open_file("/BOOT.BIN").ok());
     let config = Config::from_fs(fs.clone());
 
-    unsafe {
-        let max_len =
-            (&raw const __runtime_end).addr() - (&raw const __runtime_start).addr();
-        match slcr::RegisterBlock::unlocked(|slcr| slcr.boot_mode.read().boot_mode_pins()) {
-            slcr::BootModePins::Jtag => netboot::netboot(
+    let max_len =
+        (&raw const __runtime_end).addr() - (&raw const __runtime_start).addr();
+    match slcr::RegisterBlock::unlocked(|slcr| slcr.boot_mode.read().boot_mode_pins()) {
+        slcr::BootModePins::Jtag => netboot::netboot(
+            &mut bootgen_file,
+            config,
+            (&raw mut __runtime_start).cast(),
+            max_len,
+        ),
+        slcr::BootModePins::SdCard => {
+            if boot_sd(
                 &mut bootgen_file,
-                config,
                 (&raw mut __runtime_start).cast(),
                 max_len,
-            ),
-            slcr::BootModePins::SdCard => {
-                if boot_sd(
-                    &mut bootgen_file,
-                    (&raw mut __runtime_start).cast(),
-                    max_len,
-                )
-                .is_err()
-                {
-                    log::error!("Error booting from SD card");
-                    log::info!("Fall back on netboot");
-                    netboot::netboot(
-                        &mut bootgen_file,
-                        config,
-                        (&raw mut __runtime_start).cast(),
-                        max_len,
-                    )
-                }
-            }
-            v => {
-                log::error!("Boot mode {:?} not supported", v);
+            )
+            .is_err()
+            {
+                log::error!("Error booting from SD card");
                 log::info!("Fall back on netboot");
                 netboot::netboot(
                     &mut bootgen_file,
@@ -152,8 +140,18 @@ pub fn main_core0() {
                     max_len,
                 )
             }
-        };
-    }
+        }
+        v => {
+            log::error!("Boot mode {:?} not supported", v);
+            log::info!("Fall back on netboot");
+            netboot::netboot(
+                &mut bootgen_file,
+                config,
+                (&raw mut __runtime_start).cast(),
+                max_len,
+            )
+        }
+    };
 
     info!("Preparing for runtime execution");
     // Flush data cache entries for all of L1 cache, including
