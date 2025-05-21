@@ -1,9 +1,6 @@
 #![no_std]
 #![no_main]
 
-#![feature(strict_provenance)]
-#![feature(raw_ref_op)]
-
 extern crate alloc;
 extern crate log;
 

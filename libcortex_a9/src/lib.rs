@@ -1,8 +1,5 @@
 #![no_std]
 #![feature(never_type)]
-#![feature(inline_const)]
-#![feature(strict_provenance)]
-#![feature(raw_ref_op)]
 
 extern crate alloc;
 
