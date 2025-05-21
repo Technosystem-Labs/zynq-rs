@@ -10,11 +10,8 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
     } else {
         print!("unknown location");
     }
-    if let Some(message) = info.message() {
-        println!(": {}", message);
-    } else {
-        println!("");
-    }
+    println!(": {}", info.message());
+    
     #[cfg(feature = "target_kasli_soc")]
     {
         let mut err_led = ErrorLED::error_led();
