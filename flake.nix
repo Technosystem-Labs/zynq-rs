@@ -1,9 +1,9 @@
 {
   description = "Bare-metal Rust on Zynq-7000";
 
-  inputs.nixpkgs.url = github:NixOS/nixpkgs/nixos-24.11;
+  inputs.nixpkgs.url = github:NixOS/nixpkgs/nixos-unstable;
   inputs.rust-overlay = {
-    url = "github:oxalica/rust-overlay?ref=snapshot/2024-08-01";
+    url = "github:oxalica/rust-overlay";
     inputs.nixpkgs.follows = "nixpkgs";
   };
   inputs.naersk = {
@@ -15,7 +15,7 @@
     let
       pkgs = import nixpkgs { system = "x86_64-linux"; overlays = [ (import rust-overlay) crosspkgs-overlay ]; };
       
-      rust = pkgs.rust-bin.nightly."2024-04-06".default.override {
+      rust = pkgs.rust-bin.nightly."2025-03-28".default.override {
         extensions = [ "rust-src" ];
         targets = [ ];
       };
@@ -97,8 +97,8 @@
       build-crate = name: crate: features: naerskLib.buildPackage rec {
         name = "${crate}";
         src = ./.;
-        additionalCargoLock = "${rust}/lib/rustlib/src/rust/Cargo.lock";
-        nativeBuildInputs = [ pkgs.llvmPackages_18.clang-unwrapped ];       
+        additionalCargoLock = "${rust}/lib/rustlib/src/rust/library/Cargo.lock";
+        nativeBuildInputs = [ pkgs.llvmPackages_20.clang-unwrapped ];
         singleStep = true;
         release = true;
         cargoBuildOptions = options: options ++ [
@@ -150,7 +150,7 @@
 
           pkgs.openocd pkgs.gdb
           pkgs.openssh pkgs.rsync
-          pkgs.llvmPackages_18.clang-unwrapped
+          pkgs.llvmPackages_20.clang-unwrapped
           (pkgs.python3.withPackages(ps: [ ps.pyftdi ]))
         ];
       };
