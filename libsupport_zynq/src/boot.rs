@@ -134,7 +134,7 @@ impl Core1 {
             CORE1_ENABLED.set(true);
         }
         // Flush cache-line
-        cache::dcc(unsafe { &raw const CORE1_ENABLED });
+        cache::dcc(&raw const CORE1_ENABLED);
         if sdram {
             cache::dccmvac(0);
             asm::dsb();
