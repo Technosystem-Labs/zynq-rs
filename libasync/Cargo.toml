@@ -6,12 +6,10 @@ authors = ["M-Labs"]
 edition = "2018"
 
 [dependencies]
-#futures = { version = "0.3", default-features = false }
 embedded-hal = "0.2"
 nb = "1.0"
-libcortex_a9 = { path = "../libcortex_a9" }
 
 [dependencies.smoltcp]
 version = "0.7"
 default-features = false
-features = ["alloc"]
+features = ["alloc", "ethernet", "proto-ipv4", "socket-tcp"]

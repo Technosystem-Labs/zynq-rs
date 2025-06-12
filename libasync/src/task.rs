@@ -37,7 +37,6 @@ pub async fn r#yield() {
                 self.yielded = true;
                 // wake ourselves
                 cx.waker().wake_by_ref();
-                //asm::sev();
                 Poll::Pending
             }
         }

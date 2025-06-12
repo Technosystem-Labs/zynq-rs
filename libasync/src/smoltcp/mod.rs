@@ -41,7 +41,6 @@ impl Sockets {
             sockets,
             wakers,
         };
-        // println!("sockets initialized");
         unsafe { SOCKETS = Some(instance); }
     }
 
