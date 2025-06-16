@@ -21,7 +21,7 @@ use libboard_zynq::{
     gic,
     smoltcp::{
         iface::{EthernetInterfaceBuilder, NeighborCache, Routes},
-        time::Instant,
+        time::{Duration, Instant},
         wire::{EthernetAddress, IpAddress, IpCidr},
     },
     time::Milliseconds,
@@ -297,8 +297,22 @@ pub fn main_core0() {
         }
     });
 
-    Sockets::run(&mut iface, || {
-        Instant::from_millis(timer.get_time().0 as i64)
+    task::block_on(async {
+        let mut last_link_check = Instant::from_millis(0);
+        const LINK_CHECK_INTERVAL: u64 = 500;
+
+        loop {
+            let instant = Instant::from_millis(timer.get_time().0 as i64);
+            Sockets::instance().poll(&mut iface, instant);
+
+            let dev = iface.device_mut();
+            if dev.is_idle() && instant >= last_link_check + Duration::from_millis(LINK_CHECK_INTERVAL) {
+                dev.check_link_change();
+                last_link_check = instant;
+            }
+
+            task::r#yield().await;
+        }
     })
 }
 

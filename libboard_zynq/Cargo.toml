@@ -22,7 +22,6 @@ void = { version = "1", default-features = false }
 log = "0.4"
 libregister = { path = "../libregister" }
 libcortex_a9 = { path = "../libcortex_a9" }
-libasync = { path = "../libasync" }
 
 [dependencies.smoltcp]
 version = "0.7"

@@ -438,16 +438,12 @@ impl<GEM: Gem, TX> Eth<GEM, rx::DescList, TX> {
             Ok(None)
         }
     }
-}
 
-impl<GEM: Gem, TX> libasync::smoltcp::LinkCheck for &mut Eth<GEM, rx::DescList, TX> {
-    type Link = Option<phy::Link>;
-
-    fn check_link_change(&mut self) -> Option<Self::Link> {
+    pub fn check_link_change(&mut self) -> Option<Option<phy::Link>> {
         self.inner.check_link_change(&self.phy)
     }
 
-    fn is_idle(&self) -> bool {
+    pub fn is_idle(&self) -> bool {
         self.idle
     }
 }
