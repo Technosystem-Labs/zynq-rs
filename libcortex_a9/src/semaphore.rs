@@ -1,26 +1,32 @@
-use super::{spin_lock_yield, notify_spin_lock};
-use core::{
-    task::{Context, Poll},
-    pin::Pin,
-    future::Future,
-    sync::atomic::{AtomicI32, Ordering}
-};
+use core::{future::Future,
+           pin::Pin,
+           sync::atomic::{AtomicI32, Ordering},
+           task::{Context, Poll}};
+
+use super::{notify_spin_lock, spin_lock_yield};
 
 pub struct Semaphore {
     value: AtomicI32,
-    max: i32
+    max: i32,
 }
 
 impl Semaphore {
     pub const fn new(value: i32, max: i32) -> Self {
-        Semaphore { value: AtomicI32::new(value), max}
+        Semaphore {
+            value: AtomicI32::new(value),
+            max,
+        }
     }
 
     pub fn try_wait(&self) -> Option<()> {
         loop {
             let value = self.value.load(Ordering::Relaxed);
             if value > 0 {
-                if self.value.compare_exchange_weak(value, value - 1, Ordering::SeqCst, Ordering::Relaxed).is_ok() {
+                if self
+                    .value
+                    .compare_exchange_weak(value, value - 1, Ordering::SeqCst, Ordering::Relaxed)
+                    .is_ok()
+                {
                     return Some(());
                 }
             } else {
@@ -58,7 +64,11 @@ impl Semaphore {
         loop {
             let value = self.value.load(Ordering::Relaxed);
             if value < self.max {
-                if self.value.compare_exchange_weak(value, value + 1, Ordering::SeqCst, Ordering::Relaxed).is_ok() {
+                if self
+                    .value
+                    .compare_exchange_weak(value, value + 1, Ordering::SeqCst, Ordering::Relaxed)
+                    .is_ok()
+                {
                     notify_spin_lock();
                     return;
                 }
@@ -68,4 +78,3 @@ impl Semaphore {
         }
     }
 }
-

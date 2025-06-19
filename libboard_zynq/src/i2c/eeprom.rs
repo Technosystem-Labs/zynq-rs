@@ -1,6 +1,7 @@
-use super::{I2c, Error};
-use crate::time::Milliseconds;
 use embedded_hal::timer::CountDown;
+
+use super::{Error, I2c};
+use crate::time::Milliseconds;
 
 pub struct EEPROM<'a> {
     i2c: &'a mut I2c,
@@ -8,7 +9,7 @@ pub struct EEPROM<'a> {
     port: u8,
     address: u8,
     page_size: u8,
-    count_down: crate::timer::global::CountDown<Milliseconds>
+    count_down: crate::timer::global::CountDown<Milliseconds>,
 }
 
 impl<'a> EEPROM<'a> {
@@ -19,7 +20,7 @@ impl<'a> EEPROM<'a> {
             port: 2,
             address: 0b1010100,
             page_size: page_size,
-            count_down: unsafe { crate::timer::GlobalTimer::get() }.countdown()
+            count_down: unsafe { crate::timer::GlobalTimer::get() }.countdown(),
         }
     }
 
@@ -30,7 +31,7 @@ impl<'a> EEPROM<'a> {
             port: 3,
             address: 0x57,
             page_size: page_size,
-            count_down: unsafe { crate::timer::GlobalTimer::get() }.countdown()
+            count_down: unsafe { crate::timer::GlobalTimer::get() }.countdown(),
         }
     }
 
@@ -74,8 +75,8 @@ impl<'a> EEPROM<'a> {
 
     /// Smart multi-page writing
     /// Using the "Page Write" function of an EEPROM, the memory region for each transaction
-    /// (i.e. from byte `addr` to byte `addr+buf.len()`) should fit under each page 
-    /// (i.e. `addr+buf.len()` < `addr/self.page_size+1`); otherwise, a roll-oever occurs, 
+    /// (i.e. from byte `addr` to byte `addr+buf.len()`) should fit under each page
+    /// (i.e. `addr+buf.len()` < `addr/self.page_size+1`); otherwise, a roll-oever occurs,
     /// where bytes beyond the page end. This smart function takes care of the scenario to avoid
     /// any roll-over when writing ambiguous memory regions.
     pub fn write(&mut self, addr: u8, buf: &[u8]) -> Result<(), Error> {
@@ -92,7 +93,7 @@ impl<'a> EEPROM<'a> {
             self.i2c.write(*byte)?;
             pb += 1;
 
-            if (i == buf_len-1) || (pb == self.page_size) {
+            if (i == buf_len - 1) || (pb == self.page_size) {
                 self.i2c.stop()?;
                 self.poll(1_000)?;
                 pb = 0;
@@ -114,10 +115,10 @@ impl<'a> EEPROM<'a> {
             match res {
                 Ok(()) => break,
                 Err(Error::Nack) => (),
-                Err(e) => return Err(e)
+                Err(e) => return Err(e),
             }
             if !self.count_down.waiting() {
-                return Err(Error::PollingTimeout)
+                return Err(Error::PollingTimeout);
             }
         }
 

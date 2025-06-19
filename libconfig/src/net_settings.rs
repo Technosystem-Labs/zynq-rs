@@ -10,20 +10,19 @@ pub struct NetAddresses {
     #[cfg(feature = "ipv6")]
     pub ipv6_ll_addr: IpAddress,
     #[cfg(feature = "ipv6")]
-    pub ipv6_addr: Option<IpAddress>
+    pub ipv6_addr: Option<IpAddress>,
 }
 
 impl fmt::Display for NetAddresses {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "MAC={} IPv4={} ",
-            self.hardware_addr, self.ipv4_addr)?;
+        write!(f, "MAC={} IPv4={} ", self.hardware_addr, self.ipv4_addr)?;
 
         #[cfg(feature = "ipv6")]
         {
             write!(f, "IPv6-LL={}", self.ipv6_ll_addr)?;
             match self.ipv6_addr {
                 Some(addr) => write!(f, " {}", addr)?,
-                None => write!(f, " IPv6: no configured address")?
+                None => write!(f, " IPv6: no configured address")?,
             }
         }
         Ok(())
@@ -75,11 +74,15 @@ pub fn get_addresses(cfg: &Config) -> NetAddresses {
 
     #[cfg(feature = "ipv6")]
     let ipv6_ll_addr = IpAddress::v6(
-        0xfe80, 0x0000, 0x0000, 0x0000,
+        0xfe80,
+        0x0000,
+        0x0000,
+        0x0000,
         (((hardware_addr.0[0] ^ 0x02) as u16) << 8) | (hardware_addr.0[1] as u16),
         ((hardware_addr.0[2] as u16) << 8) | 0x00ff,
         0xfe00 | (hardware_addr.0[3] as u16),
-        ((hardware_addr.0[4] as u16) << 8) | (hardware_addr.0[5] as u16));
+        ((hardware_addr.0[4] as u16) << 8) | (hardware_addr.0[5] as u16),
+    );
 
     NetAddresses {
         hardware_addr,
@@ -87,6 +90,6 @@ pub fn get_addresses(cfg: &Config) -> NetAddresses {
         #[cfg(feature = "ipv6")]
         ipv6_ll_addr,
         #[cfg(feature = "ipv6")]
-        ipv6_addr
+        ipv6_addr,
     }
 }

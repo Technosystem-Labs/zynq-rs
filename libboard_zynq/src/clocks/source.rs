@@ -1,5 +1,6 @@
+use libregister::{RegisterR, RegisterRW, RegisterW};
 use log::debug;
-use libregister::{RegisterR, RegisterW, RegisterRW};
+
 use super::slcr;
 
 #[cfg(feature = "target_zc706")]
@@ -39,11 +40,13 @@ const PLL_FDIV_LOCK_PARAM: &[(u16, (u8, u8, u16))] = &[
 
 pub trait ClockSource {
     /// picks this ClockSource's registers from the SLCR block
-    fn pll_regs(slcr: &mut crate::slcr::RegisterBlock)
-                -> (&mut crate::slcr::PllCtrl,
-                    &mut crate::slcr::PllCfg,
-                    &mut crate::slcr::PllStatus
-                   );
+    fn pll_regs(
+        slcr: &mut crate::slcr::RegisterBlock,
+    ) -> (
+        &mut crate::slcr::PllCtrl,
+        &mut crate::slcr::PllCfg,
+        &mut crate::slcr::PllStatus,
+    );
 
     /// query PLL lock status
     fn pll_locked(pll_status: &mut crate::slcr::PllStatus) -> bool;
@@ -61,39 +64,34 @@ pub trait ClockSource {
     /// 25.10.4 PLLs
     fn setup(target_freq: u32) {
         let fdiv = (target_freq / PS_CLK).min(66) as u16;
-        let (pll_cp, pll_res, lock_cnt) = PLL_FDIV_LOCK_PARAM.iter()
+        let (pll_cp, pll_res, lock_cnt) = PLL_FDIV_LOCK_PARAM
+            .iter()
             .filter(|(fdiv_max, _)| fdiv <= *fdiv_max)
             .nth(0)
             .expect("PLL_FDIV_LOCK_PARAM")
-            .1.clone();
+            .1
+            .clone();
 
         debug!("Set {} to {} Hz", Self::name(), target_freq);
         slcr::RegisterBlock::unlocked(|slcr| {
             let (pll_ctrl, pll_cfg, pll_status) = Self::pll_regs(slcr);
 
             // Bypass
-            pll_ctrl.modify(|_, w| w
-                            .pll_pwrdwn(false)
-                            .pll_bypass_force(true)
-                            .pll_fdiv(fdiv)
-            );
+            pll_ctrl.modify(|_, w| w.pll_pwrdwn(false).pll_bypass_force(true).pll_fdiv(fdiv));
             // Configure
             pll_cfg.write(
                 slcr::PllCfg::zeroed()
                     .pll_res(pll_res)
                     .pll_cp(pll_cp)
-                    .lock_cnt(lock_cnt)
+                    .lock_cnt(lock_cnt),
             );
             // Reset
             pll_ctrl.modify(|_, w| w.pll_reset(true));
             pll_ctrl.modify(|_, w| w.pll_reset(false));
             // Wait for PLL lock
-            while ! Self::pll_locked(pll_status) {}
+            while !Self::pll_locked(pll_status) {}
             // Remove bypass
-            pll_ctrl.modify(|_, w| w
-                            .pll_bypass_force(false)
-                            .pll_bypass_qual(false)
-            );
+            pll_ctrl.modify(|_, w| w.pll_bypass_force(false).pll_bypass_qual(false));
         });
     }
 }
@@ -103,15 +101,14 @@ pub struct ArmPll;
 
 impl ClockSource for ArmPll {
     #[inline]
-    fn pll_regs(slcr: &mut crate::slcr::RegisterBlock)
-                -> (&mut crate::slcr::PllCtrl,
-                    &mut crate::slcr::PllCfg,
-                    &mut crate::slcr::PllStatus
+    fn pll_regs(
+        slcr: &mut crate::slcr::RegisterBlock,
+    ) -> (
+        &mut crate::slcr::PllCtrl,
+        &mut crate::slcr::PllCfg,
+        &mut crate::slcr::PllStatus,
     ) {
-        (&mut slcr.arm_pll_ctrl,
-         &mut slcr.arm_pll_cfg,
-         &mut slcr.pll_status
-        )
+        (&mut slcr.arm_pll_ctrl, &mut slcr.arm_pll_cfg, &mut slcr.pll_status)
     }
 
     #[inline]
@@ -129,15 +126,14 @@ pub struct DdrPll;
 
 impl ClockSource for DdrPll {
     #[inline]
-    fn pll_regs(slcr: &mut crate::slcr::RegisterBlock)
-                -> (&mut crate::slcr::PllCtrl,
-                    &mut crate::slcr::PllCfg,
-                    &mut crate::slcr::PllStatus
+    fn pll_regs(
+        slcr: &mut crate::slcr::RegisterBlock,
+    ) -> (
+        &mut crate::slcr::PllCtrl,
+        &mut crate::slcr::PllCfg,
+        &mut crate::slcr::PllStatus,
     ) {
-        (&mut slcr.ddr_pll_ctrl,
-         &mut slcr.ddr_pll_cfg,
-         &mut slcr.pll_status
-        )
+        (&mut slcr.ddr_pll_ctrl, &mut slcr.ddr_pll_cfg, &mut slcr.pll_status)
     }
 
     #[inline]
@@ -153,18 +149,16 @@ impl ClockSource for DdrPll {
 /// I/O PLL: Recommended clock for I/O peripherals
 pub struct IoPll;
 
-
 impl ClockSource for IoPll {
     #[inline]
-    fn pll_regs(slcr: &mut crate::slcr::RegisterBlock)
-                -> (&mut crate::slcr::PllCtrl,
-                    &mut crate::slcr::PllCfg,
-                    &mut crate::slcr::PllStatus
+    fn pll_regs(
+        slcr: &mut crate::slcr::RegisterBlock,
+    ) -> (
+        &mut crate::slcr::PllCtrl,
+        &mut crate::slcr::PllCfg,
+        &mut crate::slcr::PllStatus,
     ) {
-        (&mut slcr.io_pll_ctrl,
-         &mut slcr.io_pll_cfg,
-         &mut slcr.pll_status
-        )
+        (&mut slcr.io_pll_ctrl, &mut slcr.io_pll_cfg, &mut slcr.pll_status)
     }
 
     #[inline]

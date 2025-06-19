@@ -1,5 +1,4 @@
 #![no_std]
-
 #![feature(alloc_error_handler)]
 #![feature(naked_functions)]
 
@@ -10,4 +9,3 @@ pub mod exception_vectors;
 #[cfg(feature = "panic_handler")]
 mod panic;
 pub mod ram;
-

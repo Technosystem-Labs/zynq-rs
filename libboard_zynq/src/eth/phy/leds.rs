@@ -1,5 +1,6 @@
 use bit_field::BitField;
-use super::{PhyRegister, Led0Control, Led1Control};
+
+use super::{Led0Control, Led1Control, PhyRegister};
 
 #[derive(Clone, Copy, Debug)]
 /// LED Control Register
@@ -24,7 +25,7 @@ impl Leds {
             0b1101 => Led0Control::Mode2,
             0b1110 => Led0Control::Mode3,
             0b1111 => Led0Control::Mode4,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
     pub fn led1(&self) -> Led1Control {
@@ -41,7 +42,7 @@ impl Leds {
             0b1001 => Led1Control::ForceOn,
             0b1010 => Led1Control::ForceHiZ,
             0b1011 => Led1Control::ForceBlink,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -60,7 +61,7 @@ impl PhyRegister for Leds {
     fn addr() -> u8 {
         0x10
     }
-        
+
     fn page() -> u8 {
         3
     }

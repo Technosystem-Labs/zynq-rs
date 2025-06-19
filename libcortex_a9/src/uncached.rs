@@ -1,8 +1,7 @@
-use core::{
-    ops::{Deref, DerefMut},
-    mem::{align_of, size_of},
-};
-use alloc::alloc::{dealloc, Layout, LayoutError};
+use alloc::alloc::{Layout, LayoutError, dealloc};
+use core::{mem::{align_of, size_of},
+           ops::{Deref, DerefMut}};
+
 use crate::mmu::{L1_PAGE_SIZE, L1Table};
 
 pub struct UncachedSlice<T: 'static> {
@@ -15,8 +14,7 @@ impl<T> UncachedSlice<T> {
     pub fn new<F: Fn() -> T>(len: usize, default: F) -> Result<Self, LayoutError> {
         // round to full pages
         let size = ((len * size_of::<T>() - 1) | (L1_PAGE_SIZE - 1)) + 1;
-        let align = align_of::<T>()
-            .max(L1_PAGE_SIZE);
+        let align = align_of::<T>().max(L1_PAGE_SIZE);
         let layout = Layout::from_size_align(size, align)?;
         let ptr = unsafe { alloc::alloc::alloc(layout).cast::<T>() };
         assert!(!ptr.is_null());
@@ -24,12 +22,11 @@ impl<T> UncachedSlice<T> {
 
         for page_start in (start..(start + size)).step_by(L1_PAGE_SIZE) {
             // non-shareable device
-            L1Table::get()
-                .update(page_start as *const (), |l1_section| {
-                    l1_section.tex = 0b10;
-                    l1_section.cacheable = true;
-                    l1_section.bufferable = false;
-                });
+            L1Table::get().update(page_start as *const (), |l1_section| {
+                l1_section.tex = 0b10;
+                l1_section.cacheable = true;
+                l1_section.bufferable = false;
+            });
         }
 
         let slice = unsafe { core::slice::from_raw_parts_mut(ptr, len) };

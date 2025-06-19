@@ -1,7 +1,8 @@
-use core_io::{BufRead, Error, ErrorKind, Read, Result as IoResult, Seek, SeekFrom, Write};
-use libboard_zynq::sdio::{sd_card::SdCard, CmdTransferError};
-use log::debug;
 use alloc::vec::Vec;
+
+use core_io::{BufRead, Error, ErrorKind, Read, Result as IoResult, Seek, SeekFrom, Write};
+use libboard_zynq::sdio::{CmdTransferError, sd_card::SdCard};
+use log::debug;
 
 const MBR_SIGNATURE: [u8; 2] = [0x55, 0xAA];
 const PARTID_FAT12: u8 = 0x01;
@@ -160,8 +161,8 @@ impl SdReader {
         self.read_exact(&mut buffer[..1])?;
         debug!("Partition ID: {:0X}", buffer[0]);
         match buffer[0] {
-            PARTID_FAT12 | PARTID_FAT16_LESS32M | PARTID_FAT16 |
-            PARTID_FAT16_LBA | PARTID_FAT32 | PARTID_FAT32_LBA => {}
+            PARTID_FAT12 | PARTID_FAT16_LESS32M | PARTID_FAT16 | PARTID_FAT16_LBA | PARTID_FAT32 | PARTID_FAT32_LBA => {
+            }
             _ => {
                 return Err(Error::new(
                     ErrorKind::InvalidData,
@@ -192,11 +193,10 @@ impl Read for SdReader {
         if b.len() > 0 {
             // invalidate internal buffer
             self.invalidate_buffer();
-            if let Err(_) = self.sd.read_block(
-                self.byte_addr / BLOCK_SIZE as u32,
-                (b.len() / BLOCK_SIZE) as u16,
-                b,
-            ) {
+            if let Err(_) = self
+                .sd
+                .read_block(self.byte_addr / BLOCK_SIZE as u32, (b.len() / BLOCK_SIZE) as u16, b)
+            {
                 // we have to allow partial read, as per the trait required
                 return Ok(a.len());
             }
@@ -239,11 +239,10 @@ impl Write for SdReader {
         if b.len() > 0 {
             self.flush()?;
             self.invalidate_buffer();
-            if let Err(_) = self.sd.write_block(
-                self.byte_addr / BLOCK_SIZE as u32,
-                (b.len() / BLOCK_SIZE) as u16,
-                b,
-            ) {
+            if let Err(_) = self
+                .sd
+                .write_block(self.byte_addr / BLOCK_SIZE as u32, (b.len() / BLOCK_SIZE) as u16, b)
+            {
                 return Ok(a.len());
             }
             self.byte_addr += b.len() as u32;
@@ -277,8 +276,7 @@ impl Seek for SdReader {
             return Err(Error::new(ErrorKind::InvalidInput, "Invalid address"));
         }
         let target_byte_addr = raw_target as u32;
-        let address_same_block =
-            self.byte_addr / (BLOCK_SIZE as u32) == target_byte_addr / (BLOCK_SIZE as u32);
+        let address_same_block = self.byte_addr / (BLOCK_SIZE as u32) == target_byte_addr / (BLOCK_SIZE as u32);
         // if the buffer was invalidated, we consider seek as different block
         let same_block = address_same_block && self.index != BLOCK_SIZE;
         if !same_block {

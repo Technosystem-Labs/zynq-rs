@@ -1,7 +1,9 @@
-use core::ops::{Deref, DerefMut};
 use alloc::{vec, vec::Vec};
-use libcortex_a9::{cache::dcc_slice, UncachedSlice};
+use core::ops::{Deref, DerefMut};
+
+use libcortex_a9::{UncachedSlice, cache::dcc_slice};
 use libregister::*;
+
 use super::{Buffer, regs};
 
 /// Descriptor entry
@@ -32,8 +34,12 @@ register_bit!(desc_word1,
 impl DescEntry {
     pub fn zeroed() -> Self {
         DescEntry {
-            word0: DescWord0 { inner: VolatileCell::new(0) },
-            word1: DescWord1 { inner: VolatileCell::new(0) },
+            word0: DescWord0 {
+                inner: VolatileCell::new(0),
+            },
+            word1: DescWord1 {
+                inner: VolatileCell::new(0),
+            },
         }
     }
 }
@@ -50,8 +56,7 @@ pub struct DescList {
 
 impl DescList {
     pub fn new(size: usize) -> Self {
-        let mut list = UncachedSlice::new(size, || DescEntry::zeroed())
-            .unwrap();
+        let mut list = UncachedSlice::new(size, || DescEntry::zeroed()).unwrap();
         let mut buffers = vec![Buffer::new(); size];
 
         let last = list.len().min(buffers.len()) - 1;
@@ -65,24 +70,17 @@ impl DescList {
             let is_last = i == last;
             let buffer_addr = &mut buffer.0[0] as *mut _ as u32;
             assert!(buffer_addr & 0b11 == 0);
-            entry.word0.write(
-                DescWord0::zeroed()
-                    .address(buffer_addr)
-            );
+            entry.word0.write(DescWord0::zeroed().address(buffer_addr));
             entry.word1.write(
                 DescWord1::zeroed()
                     .used(true)
                     .wrap(is_last)
                     // every frame contains 1 packet
-                    .last_buffer(true)
+                    .last_buffer(true),
             );
         }
 
-        DescList {
-            list,
-            buffers,
-            next: 0,
-        }
+        DescList { list, buffers, next: 0 }
     }
 
     pub fn len(&self) -> usize {
@@ -98,11 +96,12 @@ impl DescList {
         let entry = &mut self.list[self.next];
         if entry.word1.read().used() {
             let buffer = &mut self.buffers[self.next][0..length];
-            entry.word1.write(DescWord1::zeroed()
-                .length(length as u16)
-                .last_buffer(true)
-                .wrap(self.next >= list_len - 1)
-                .used(true)
+            entry.word1.write(
+                DescWord1::zeroed()
+                    .length(length as u16)
+                    .last_buffer(true)
+                    .wrap(self.next >= list_len - 1)
+                    .used(true),
             );
 
             self.next += 1;
@@ -158,14 +157,10 @@ pub struct Token<'a> {
 
 impl<'a> smoltcp::phy::TxToken for Token<'a> {
     fn consume<R, F>(self, _timestamp: smoltcp::time::Instant, len: usize, f: F) -> smoltcp::Result<R>
-        where F: FnOnce(&mut [u8]) -> smoltcp::Result<R>
-    {
+    where F: FnOnce(&mut [u8]) -> smoltcp::Result<R> {
         match self.desc_list.send(self.regs, len) {
-            None =>
-                Err(smoltcp::Error::Exhausted),
-            Some(mut pktref) => {
-                f(pktref.deref_mut())
-            }
+            None => Err(smoltcp::Error::Exhausted),
+            Some(mut pktref) => f(pktref.deref_mut()),
         }
     }
 }

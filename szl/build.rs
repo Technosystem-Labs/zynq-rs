@@ -1,7 +1,4 @@
-use std::env;
-use std::fs::File;
-use std::io::Write;
-use std::path::PathBuf;
+use std::{env, fs::File, io::Write, path::PathBuf};
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
@@ -19,4 +16,3 @@ fn main() {
     // instead of when any part of the source code changes.
     println!("cargo:rerun-if-changed=link.x");
 }
-

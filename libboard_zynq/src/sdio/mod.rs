@@ -3,12 +3,11 @@ pub mod sd_card;
 mod adma;
 mod cmd;
 mod regs;
-use super::clocks::Clocks;
-use super::slcr;
-use super::time::Milliseconds;
 use embedded_hal::timer::CountDown;
 use libregister::{RegisterR, RegisterRW, RegisterW};
-use log::{trace, debug};
+use log::{debug, trace};
+
+use super::{clocks::Clocks, slcr, time::Milliseconds};
 
 /// Basic SDIO Struct with common low-level functions.
 pub struct Sdio {
@@ -209,9 +208,7 @@ impl Sdio {
 
         // reset all
         debug!("Reset SDIO!");
-        self.regs
-            .clock_control
-            .modify(|_, w| w.software_reset_all(true));
+        self.regs.clock_control.modify(|_, w| w.software_reset_all(true));
         while self.regs.clock_control.read().software_reset_all() {}
 
         // set power to 3.3V
@@ -233,20 +230,15 @@ impl Sdio {
         };
         self.regs.control.modify(|_, w| w.bus_voltage(voltage));
 
-        self.regs
-            .control
-            .modify(|_, w| w.dma_select(regs::DmaSelect::ADMA2_32));
+        self.regs.control.modify(|_, w| w.dma_select(regs::DmaSelect::ADMA2_32));
 
         // enable all interrupt status except card interrupt
-        self.regs.interrupt_status_en.write(
-            (regs::interrupt_status_en::Write { inner: 0xFFFFFFFF })
-                .card_interrupt_status_en(false),
-        );
+        self.regs
+            .interrupt_status_en
+            .write((regs::interrupt_status_en::Write { inner: 0xFFFFFFFF }).card_interrupt_status_en(false));
 
         // disable all interrupt signals
-        self.regs
-            .interrupt_signal_en
-            .write(regs::InterruptSignalEn::zeroed());
+        self.regs.interrupt_signal_en.write(regs::InterruptSignalEn::zeroed());
 
         // set block size to 512 by default
         self.regs
@@ -263,12 +255,7 @@ impl Sdio {
     /// Send SD command. Basically `cmd_transfer_with_mode` with mode
     /// `regs::TransferModeCommand::zeroed()`.
     /// Return: Ok if success, Err(status) if failed.
-    fn cmd_transfer(
-        &mut self,
-        cmd: cmd::SdCmd,
-        arg: u32,
-        block_cnt: u16,
-    ) -> Result<(), CmdTransferError> {
+    fn cmd_transfer(&mut self, cmd: cmd::SdCmd, arg: u32, block_cnt: u16) -> Result<(), CmdTransferError> {
         self.cmd_transfer_with_mode(cmd, arg, block_cnt, regs::TransferModeCommand::zeroed())
     }
 
@@ -290,9 +277,7 @@ impl Sdio {
         self.regs
             .block_size_block_count
             .modify(|_, w| w.blocks_count(block_cnt));
-        self.regs
-            .clock_control
-            .modify(|_, w| w.timeout_counter_value(0xE));
+        self.regs.clock_control.modify(|_, w| w.timeout_counter_value(0xE));
         unsafe {
             self.regs.argument.write(arg);
         }
@@ -303,9 +288,7 @@ impl Sdio {
         let is_sd_card = self.card_type == CardType::CardSd;
         // Check DAT Line
         if cmd != cmd::SdCmd::CMD21 && cmd != cmd::SdCmd::CMD19 {
-            if self.regs.present_state.read().command_inhibit_dat()
-                && cmd::require_dat(cmd, is_sd_card)
-            {
+            if self.regs.present_state.read().command_inhibit_dat() && cmd::require_dat(cmd, is_sd_card) {
                 return Err(CmdTransferError::DatLineInhibited);
             }
         }
@@ -320,9 +303,7 @@ impl Sdio {
             let status = self.regs.interrupt_status.read();
             if cmd == cmd::SdCmd::CMD21 || cmd == cmd::SdCmd::CMD19 {
                 if status.buffer_read_ready() {
-                    self.regs
-                        .interrupt_status
-                        .modify(|_, w| w.buffer_read_ready());
+                    self.regs.interrupt_status.modify(|_, w| w.buffer_read_ready());
                     break;
                 }
             }
@@ -333,9 +314,7 @@ impl Sdio {
         }
         // wait for command complete
         while !self.regs.interrupt_status.read().command_complete() {}
-        self.regs
-            .interrupt_status
-            .modify(|_, w| w.command_complete());
+        self.regs.interrupt_status.modify(|_, w| w.command_complete());
         Ok(())
     }
 
@@ -364,9 +343,7 @@ impl Sdio {
             .clock_control
             .modify(|_, w| w.sd_clk_en(false).internal_clk_en(false));
         // enabling 1.8v in controller
-        self.regs
-            .control
-            .modify(|_, w| w.bus_voltage(regs::BusVoltage::V18));
+        self.regs.control.modify(|_, w| w.bus_voltage(regs::BusVoltage::V18));
 
         // wait minimum 5ms
         self.delay(5);
@@ -378,9 +355,7 @@ impl Sdio {
         }
 
         // wait for internal clock to stabilize
-        self.regs
-            .clock_control
-            .modify(|_, w| w.internal_clk_en(true));
+        self.regs.clock_control.modify(|_, w| w.internal_clk_en(true));
         while !self.regs.clock_control.read().internal_clk_stable() {}
 
         // enable SD clock
@@ -406,7 +381,7 @@ impl Sdio {
     /// Detect inserted card type, and set the corresponding field.
     /// Return Ok(CardType) on success, Err(CmdTransferError) when failed to identify.
     pub fn identify_card(&mut self) -> Result<CardType, CmdTransferError> {
-        use cmd::{args::*, SdCmd::*};
+        use cmd::{SdCmd::*, args::*};
         // actually the delay for this one is unclear in the xilinx code.
         self.delay(10);
         self.cmd_transfer(CMD0, 0, 0)?;
@@ -419,9 +394,7 @@ impl Sdio {
         self.regs
             .interrupt_status
             .write(regs::interrupt_status::Write { inner: 0xF3FFFFFF });
-        self.regs
-            .clock_control
-            .modify(|_, w| w.software_reset_cmd(true));
+        self.regs.clock_control.modify(|_, w| w.software_reset_cmd(true));
         // wait for reset completion
         while self.regs.clock_control.read().software_reset_cmd() {}
         Ok(self.card_type)
@@ -451,17 +424,12 @@ impl Sdio {
 
     /// Check if error occured, and reset the error status.
     /// Return Err(CmdTransferError) if error occured, Ok(()) otherwise.
-    fn check_error(
-        &mut self,
-        status: &regs::interrupt_status::Read,
-    ) -> Result<(), CmdTransferError> {
+    fn check_error(&mut self, status: &regs::interrupt_status::Read) -> Result<(), CmdTransferError> {
         if status.error_interrupt() {
             let err_status = if status.inner & 0xFFFE0000 == 0 {
                 CmdTransferError::CmdTimeout
             } else {
-                CmdTransferError::Other(regs::interrupt_status::Read {
-                    inner: status.inner,
-                })
+                CmdTransferError::Other(regs::interrupt_status::Read { inner: status.inner })
             };
             // reset all error status
             self.regs

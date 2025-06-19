@@ -1,19 +1,15 @@
-use alloc::vec;
-use alloc::vec::Vec;
+use alloc::{vec, vec::Vec};
+
 use byteorder::{ByteOrder, NetworkEndian};
 use core_io::{Read, Seek};
-use libboard_zynq::{
-    devc,
-    eth::Eth,
-    smoltcp::{
-        self,
-        iface::{EthernetInterfaceBuilder, NeighborCache},
-        time::Instant,
-        wire::IpCidr,
-    },
-    timer::GlobalTimer,
-};
-use libconfig::{bootgen, net_settings, Config};
+use libboard_zynq::{devc,
+                    eth::Eth,
+                    smoltcp::{self,
+                              iface::{EthernetInterfaceBuilder, NeighborCache},
+                              time::Instant,
+                              wire::IpCidr},
+                    timer::GlobalTimer};
+use libconfig::{Config, bootgen, net_settings};
 
 enum NetConnState {
     WaitCommand,
@@ -153,9 +149,7 @@ impl NetConn {
                     self.state = NetConnState::WaitCommand;
                     self.firmware_downloaded = true;
                     {
-                        let dest = unsafe {
-                            core::slice::from_raw_parts_mut(runtime_start, storage.len())
-                        };
+                        let dest = unsafe { core::slice::from_raw_parts_mut(runtime_start, storage.len()) };
                         dest.copy_from_slice(storage);
                     }
                     Ok(1)
@@ -256,9 +250,8 @@ impl NetConn {
                     }
                     unsafe {
                         // align to 64 bytes
-                        let ptr = alloc::alloc::alloc(
-                            alloc::alloc::Layout::from_size_align(bitstream.len(), 64).unwrap(),
-                        );
+                        let ptr =
+                            alloc::alloc::alloc(alloc::alloc::Layout::from_size_align(bitstream.len(), 64).unwrap());
                         let buffer = core::slice::from_raw_parts_mut(ptr, bitstream.len());
                         buffer.copy_from_slice(bitstream);
 
@@ -366,16 +359,9 @@ pub fn netboot<File: Read + Seek>(
                         (
                             data.len(),
                             net_conn
-                                .input(
-                                    bootgen_file,
-                                    runtime_start,
-                                    runtime_max_len,
-                                    data,
-                                    &mut storage,
-                                    || {
-                                        boot_flag = true;
-                                    },
-                                )
+                                .input(bootgen_file, runtime_start, runtime_max_len, data, &mut storage, || {
+                                    boot_flag = true;
+                                })
                                 .is_err(),
                         )
                     })

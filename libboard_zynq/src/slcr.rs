@@ -1,26 +1,21 @@
+use libregister::{RegisterRW, RegisterW, register, register_at, register_bit, register_bits, register_bits_typed};
 ///! Register definitions for System Level Control
-
 use volatile_register::{RO, RW};
-use libregister::{
-    register, register_at,
-    register_bit, register_bits, register_bits_typed,
-    RegisterW, RegisterRW,
-};
 
 #[repr(u8)]
 pub enum PllSource {
-    IoPll  = 0b000,
+    IoPll = 0b000,
     ArmPll = 0b010,
     DdrPll = 0b011,
     // Ethernet controller 0 EMIO clock
-    Emio   = 0b100,
+    Emio = 0b100,
 }
 
 #[repr(u8)]
 pub enum ArmPllSource {
     ArmPll = 0b00,
     DdrPll = 0b10,
-    IoPll  = 0b11,
+    IoPll = 0b11,
 }
 
 #[repr(u8)]
@@ -48,7 +43,6 @@ pub enum DdriobOutputEn {
     Obuf = 0b11,
 }
 
-
 #[repr(u8)]
 pub enum DdriobVrefSel {
     /// For LPDDR2 with 1.2V IO
@@ -67,7 +61,6 @@ pub enum LevelShifterEnable {
     EnablePsToPl = 0xA,
     EnableAll = 0xF,
 }
-
 
 #[repr(C)]
 pub struct RegisterBlock {
@@ -274,29 +267,21 @@ impl RegisterBlock {
                 .fpga0_out_rst(true)
                 .fpga1_out_rst(true)
                 .fpga2_out_rst(true)
-                .fpga3_out_rst(true)
+                .fpga3_out_rst(true),
         );
         // Disable level shifters
-        self.lvl_shftr_en.write(
-            LvlShftr::zeroed()
-        );
+        self.lvl_shftr_en.write(LvlShftr::zeroed());
         // Enable output level shifters
-        self.lvl_shftr_en.write(
-            LvlShftr::zeroed()
-                .user_lvl_shftr_en(LevelShifterEnable::EnablePsToPl)
-        );
+        self.lvl_shftr_en
+            .write(LvlShftr::zeroed().user_lvl_shftr_en(LevelShifterEnable::EnablePsToPl));
     }
 
     pub fn init_postload_fpga(&mut self) {
         // Enable level shifters
-        self.lvl_shftr_en.write(
-            LvlShftr::zeroed()
-                .user_lvl_shftr_en(LevelShifterEnable::EnableAll)
-        );
+        self.lvl_shftr_en
+            .write(LvlShftr::zeroed().user_lvl_shftr_en(LevelShifterEnable::EnableAll));
         // Deassert AXI interface resets
-        self.fpga_rst_ctrl.write(
-            FpgaRstCtrl::zeroed()
-        );
+        self.fpga_rst_ctrl.write(FpgaRstCtrl::zeroed());
     }
 }
 
@@ -304,10 +289,7 @@ register!(slcr_lock, SlcrLock, WO, u32);
 register_bits!(slcr_lock, lock_key, u16, 0, 15);
 impl SlcrLock {
     pub fn lock(&mut self) {
-        self.write(
-            Self::zeroed()
-                .lock_key(0x767B)
-        );
+        self.write(Self::zeroed().lock_key(0x767B));
     }
 }
 
@@ -315,10 +297,7 @@ register!(slcr_unlock, SlcrUnlock, WO, u32);
 register_bits!(slcr_unlock, unlock_key, u16, 0, 15);
 impl SlcrUnlock {
     pub fn unlock(&mut self) {
-        self.write(
-            Self::zeroed()
-                .unlock_key(0xDF0D)
-        );
+        self.write(Self::zeroed().unlock_key(0xDF0D));
     }
 }
 
@@ -339,13 +318,15 @@ register_bit!(pll_status, io_pll_stable, 5);
 
 impl core::fmt::Display for pll_status::Read {
     fn fmt(&self, fmt: &mut core::fmt::Formatter) -> Result<(), core::fmt::Error> {
-        write!(fmt, "ARM: {}/{} DDR: {}/{} IO: {}/{}",
-               if self.arm_pll_lock() { "locked" } else { "NOT locked" },
-               if self.arm_pll_stable() { "stable" } else { "UNSTABLE" },
-               if self.ddr_pll_lock() { "locked" } else { "NOT locked" },
-               if self.ddr_pll_stable() { "stable" } else { "UNSTABLE" },
-               if self.io_pll_lock() { "locked" } else { "NOT locked" },
-               if self.io_pll_stable() { "stable" } else { "UNSTABLE" },
+        write!(
+            fmt,
+            "ARM: {}/{} DDR: {}/{} IO: {}/{}",
+            if self.arm_pll_lock() { "locked" } else { "NOT locked" },
+            if self.arm_pll_stable() { "stable" } else { "UNSTABLE" },
+            if self.ddr_pll_lock() { "locked" } else { "NOT locked" },
+            if self.ddr_pll_stable() { "stable" } else { "UNSTABLE" },
+            if self.io_pll_lock() { "locked" } else { "NOT locked" },
+            if self.io_pll_stable() { "stable" } else { "UNSTABLE" },
         )
     }
 }
@@ -434,14 +415,10 @@ register_bits!(sdio_clk_ctrl, divisor, u8, 8, 13);
 register_bits_typed!(sdio_clk_ctrl, srcsel, u8, PllSource, 4, 5);
 impl SdioClkCtrl {
     pub fn enable_sdio0(&mut self) {
-        self.modify(|_, w| {
-            w.divisor(0x14).srcsel(PllSource::IoPll).clkact0(true)
-        })
+        self.modify(|_, w| w.divisor(0x14).srcsel(PllSource::IoPll).clkact0(true))
     }
     pub fn enable_sdio1(&mut self) {
-        self.modify(|_, w| {
-            w.divisor(0x14).srcsel(PllSource::IoPll).clkact1(true)
-        })
+        self.modify(|_, w| w.divisor(0x14).srcsel(PllSource::IoPll).clkact1(true))
     }
 }
 
@@ -457,9 +434,7 @@ impl UartClkCtrl {
             // a. Clock divisor, slcr.UART_CLK_CTRL[DIVISOR] = 0x14.
             // b. Select the IO PLL, slcr.UART_CLK_CTRL[SRCSEL] = 0.
             // c. Enable the UART 0 Reference clock, slcr.UART_CLK_CTRL [CLKACT0] = 1.
-            w.divisor(0x14)
-             .srcsel(PllSource::IoPll)
-             .clkact0(true)
+            w.divisor(0x14).srcsel(PllSource::IoPll).clkact0(true)
         })
     }
 
@@ -468,9 +443,7 @@ impl UartClkCtrl {
             // a. Clock divisor, slcr.UART_CLK_CTRL[DIVISOR] = 0x14.
             // b. Select the IO PLL, slcr.UART_CLK_CTRL[SRCSEL] = 0.
             // c. Enable the UART 1 Reference clock, slcr.UART_CLK_CTRL [CLKACT1] = 1.
-            w.divisor(0x14)
-             .srcsel(PllSource::IoPll)
-             .clkact1(true)
+            w.divisor(0x14).srcsel(PllSource::IoPll).clkact1(true)
         })
     }
 }
@@ -482,24 +455,12 @@ register_bit!(sdio_rst_ctrl, sdio1_cpu1x_rst, 1);
 register_bit!(sdio_rst_ctrl, sdio0_cpu1x_rst, 0);
 impl SdioRstCtrl {
     pub fn reset_sdio0(&mut self) {
-        self.modify(|_, w|
-            w.sdio0_ref_rst(true)
-             .sdio0_cpu1x_rst(true)
-        );
-        self.modify(|_, w|
-            w.sdio0_ref_rst(false)
-             .sdio0_cpu1x_rst(false)
-        );
+        self.modify(|_, w| w.sdio0_ref_rst(true).sdio0_cpu1x_rst(true));
+        self.modify(|_, w| w.sdio0_ref_rst(false).sdio0_cpu1x_rst(false));
     }
     pub fn reset_sdio1(&mut self) {
-        self.modify(|_, w|
-            w.sdio1_ref_rst(true)
-             .sdio1_cpu1x_rst(true)
-        );
-        self.modify(|_, w|
-            w.sdio1_ref_rst(false)
-             .sdio1_cpu1x_rst(false)
-        );
+        self.modify(|_, w| w.sdio1_ref_rst(true).sdio1_cpu1x_rst(true));
+        self.modify(|_, w| w.sdio1_ref_rst(false).sdio1_cpu1x_rst(false));
     }
 }
 
@@ -511,25 +472,13 @@ register_bit!(uart_rst_ctrl, uart1_cpu1x_rst, 0);
 register_at!(UartRstCtrl, 0xF8000228, new);
 impl UartRstCtrl {
     pub fn reset_uart0(&mut self) {
-        self.modify(|_, w|
-            w.uart0_ref_rst(true)
-             .uart0_cpu1x_rst(true)
-        );
-        self.modify(|_, w|
-            w.uart0_ref_rst(false)
-             .uart0_cpu1x_rst(false)
-        );
+        self.modify(|_, w| w.uart0_ref_rst(true).uart0_cpu1x_rst(true));
+        self.modify(|_, w| w.uart0_ref_rst(false).uart0_cpu1x_rst(false));
     }
 
     pub fn reset_uart1(&mut self) {
-        self.modify(|_, w|
-            w.uart1_ref_rst(true)
-             .uart1_cpu1x_rst(true)
-        );
-        self.modify(|_, w|
-            w.uart1_ref_rst(false)
-             .uart1_cpu1x_rst(false)
-        );
+        self.modify(|_, w| w.uart1_ref_rst(true).uart1_cpu1x_rst(true));
+        self.modify(|_, w| w.uart1_ref_rst(false).uart1_cpu1x_rst(false));
     }
 }
 
@@ -538,12 +487,8 @@ register_bit!(gpio_rst_ctrl, gpio_cpu1x_rst, 0);
 register_at!(GpioRstCtrl, 0xF800022C, new);
 impl GpioRstCtrl {
     pub fn reset_gpio(&mut self) {
-        self.modify(|_, w|
-            w.gpio_cpu1x_rst(true)
-        );
-        self.modify(|_, w|
-            w.gpio_cpu1x_rst(false)
-        );
+        self.modify(|_, w| w.gpio_cpu1x_rst(true));
+        self.modify(|_, w| w.gpio_cpu1x_rst(false));
     }
 }
 
@@ -590,15 +535,12 @@ register_bit!(a9_cpu_rst_ctrl, a9_rst1, 1);
 register_bit!(a9_cpu_rst_ctrl, a9_rst0, 0);
 
 pub fn reboot() {
-    RegisterBlock::unlocked(|slcr| {
-        unsafe {
-            let reboot = slcr.reboot_status.read();
-            slcr.reboot_status.write(reboot & 0xF0FFFFFF);
-            slcr.pss_rst_ctrl.modify(|_, w| w.soft_rst(true));
-        }
+    RegisterBlock::unlocked(|slcr| unsafe {
+        let reboot = slcr.reboot_status.read();
+        slcr.reboot_status.write(reboot & 0xF0FFFFFF);
+        slcr.pss_rst_ctrl.modify(|_, w| w.soft_rst(true));
     });
 }
-
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[repr(u8)]
@@ -626,11 +568,11 @@ pub enum IoBufferType {
     Lvcmos18 = 0b001,
     Lvcmos25 = 0b010,
     Lvcmos33 = 0b011,
-    Hstl     = 0b100,
+    Hstl = 0b100,
 }
 
 macro_rules! mio_pin_register {
-    ($mod_name: ident, $struct_name: ident) => (
+    ($mod_name:ident, $struct_name:ident) => {
         register!($mod_name, $struct_name, RW, u32);
         register_bit!($mod_name, disable_rcvr, 13);
         register_bit!($mod_name, pullup, 12);
@@ -641,7 +583,7 @@ macro_rules! mio_pin_register {
         register_bit!($mod_name, l1_sel, 2);
         register_bit!($mod_name, l0_sel, 1);
         register_bit!($mod_name, tri_enable, 0);
-    );
+    };
 }
 
 mio_pin_register!(mio_pin_00, MioPin00);

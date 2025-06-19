@@ -1,14 +1,7 @@
-use core::{
-    cell::RefCell,
-    task::Waker,
-};
 use alloc::vec::Vec;
-use smoltcp::{
-    iface::EthernetInterface,
-    phy::Device,
-    socket::SocketSet,
-    time::Instant,
-};
+use core::{cell::RefCell, task::Waker};
+
+use smoltcp::{iface::EthernetInterface, phy::Device, socket::SocketSet, time::Instant};
 
 mod tcp_stream;
 pub use tcp_stream::TcpStream;
@@ -30,11 +23,10 @@ impl Sockets {
 
         let wakers = RefCell::new(Vec::new());
 
-        let instance = Sockets {
-            sockets,
-            wakers,
-        };
-        unsafe { SOCKETS = Some(instance); }
+        let instance = Sockets { sockets, wakers };
+        unsafe {
+            SOCKETS = Some(instance);
+        }
     }
 
     #[allow(static_mut_refs)]
@@ -42,11 +34,7 @@ impl Sockets {
         unsafe { SOCKETS.as_ref().expect("Sockets") }
     }
 
-    pub fn poll<'b, D: for<'d> Device<'d>>(
-        &self,
-        iface: &mut EthernetInterface<'b, D>,
-        instant: Instant
-    ) {
+    pub fn poll<'b, D: for<'d> Device<'d>>(&self, iface: &mut EthernetInterface<'b, D>, instant: Instant) {
         let processed = {
             let mut sockets = self.sockets.borrow_mut();
             match iface.poll(&mut sockets, instant) {

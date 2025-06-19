@@ -3,9 +3,9 @@
 
 #![no_std]
 
-pub use vcell::VolatileCell;
-pub use volatile_register::{RO, WO, RW};
 pub use bit_field::BitField;
+pub use vcell::VolatileCell;
+pub use volatile_register::{RO, RW, WO};
 
 /// A readable register
 pub trait RegisterR {
@@ -52,7 +52,7 @@ macro_rules! register_common {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! register_r {
-    ($mod_name: ident, $struct_name: ident) => (
+    ($mod_name:ident, $struct_name:ident) => {
         impl $crate::RegisterR for $struct_name {
             type R = $mod_name::Read;
 
@@ -62,12 +62,12 @@ macro_rules! register_r {
                 $mod_name::Read { inner }
             }
         }
-    );
+    };
 }
 #[doc(hidden)]
 #[macro_export]
 macro_rules! register_w {
-    ($mod_name: ident, $struct_name: ident) => (
+    ($mod_name:ident, $struct_name:ident) => {
         impl $crate::RegisterW for $struct_name {
             type W = $mod_name::Write;
 
@@ -83,43 +83,46 @@ macro_rules! register_w {
                 }
             }
         }
-     );
+    };
 }
 #[doc(hidden)]
 #[macro_export]
 macro_rules! register_rw {
-    ($mod_name: ident, $struct_name: ident) => (
+    ($mod_name:ident, $struct_name:ident) => {
+        impl $crate::RegisterRW for $struct_name {
+            #[inline]
+            fn modify<F: FnOnce(Self::R, Self::W) -> Self::W>(&mut self, f: F) {
+                unsafe {
+                    self.inner
+                        .modify(|inner| f($mod_name::Read { inner }, $mod_name::Write { inner }).inner);
+                }
+            }
+        }
+    };
+    ($mod_name:ident, $struct_name:ident, $mask:expr) => {
         impl $crate::RegisterRW for $struct_name {
             #[inline]
             fn modify<F: FnOnce(Self::R, Self::W) -> Self::W>(&mut self, f: F) {
                 unsafe {
                     self.inner.modify(|inner| {
-                        f($mod_name::Read { inner }, $mod_name::Write { inner })
-                            .inner
+                        f(
+                            $mod_name::Read { inner },
+                            $mod_name::Write {
+                                inner: inner & ($mask),
+                            },
+                        )
+                        .inner
                     });
                 }
             }
         }
-    );
-    ($mod_name: ident, $struct_name: ident, $mask: expr) => (
-        impl $crate::RegisterRW for $struct_name {
-            #[inline]
-            fn modify<F: FnOnce(Self::R, Self::W) -> Self::W>(&mut self, f: F) {
-                unsafe {
-                    self.inner.modify(|inner| {
-                        f($mod_name::Read { inner }, $mod_name::Write { inner: inner & ($mask) })
-                            .inner
-                    });
-                }
-            }
-        }
-    );
+    };
 }
 
 #[doc(hidden)]
 #[macro_export]
 macro_rules! register_vcell {
-    ($mod_name: ident, $struct_name: ident) => (
+    ($mod_name:ident, $struct_name:ident) => {
         impl $crate::RegisterR for $struct_name {
             type R = $mod_name::Read;
 
@@ -151,7 +154,7 @@ macro_rules! register_vcell {
                 self.write(w);
             }
         }
-    );
+    };
 }
 
 /// Main macro for register definition
@@ -328,7 +331,7 @@ macro_rules! register_bits_typed {
 
 #[macro_export]
 macro_rules! register_at {
-    ($name: ident, $addr: expr, $ctor: ident) => (
+    ($name:ident, $addr:expr, $ctor:ident) => {
         impl $name {
             #[allow(unused)]
             #[inline]
@@ -337,5 +340,5 @@ macro_rules! register_at {
                 unsafe { &mut *addr }
             }
         }
-    )
+    };
 }

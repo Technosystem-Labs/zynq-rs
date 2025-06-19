@@ -1,7 +1,4 @@
-use libregister::{
-    register, register_at,
-    register_bit, register_bits, register_bits_typed,
-};
+use libregister::{register, register_at, register_bit, register_bits, register_bits_typed};
 use volatile_register::WO;
 
 #[repr(C)]
@@ -33,22 +30,22 @@ pub struct RegisterBlock {
 }
 register_at!(RegisterBlock, 0xF8007000, devc);
 register!(control, Control, RW, u32);
-register_bit!(control,  force_rst, 31);
-register_bit!(control,  pcfg_prog_b, 30);
-register_bit!(control,  pcfg_pro_cnt_4k, 29);
-register_bit!(control,  pcap_pr, 27);
-register_bit!(control,  pcap_mode, 26);
-register_bit!(control,  pcap_rate_en, 25);
-register_bit!(control,  multiboot_en, 24);
-register_bit!(control,  jtag_chain_dis, 23);
-register_bit!(control,  pcfg_aes_fuse, 12);
+register_bit!(control, force_rst, 31);
+register_bit!(control, pcfg_prog_b, 30);
+register_bit!(control, pcfg_pro_cnt_4k, 29);
+register_bit!(control, pcap_pr, 27);
+register_bit!(control, pcap_mode, 26);
+register_bit!(control, pcap_rate_en, 25);
+register_bit!(control, multiboot_en, 24);
+register_bit!(control, jtag_chain_dis, 23);
+register_bit!(control, pcfg_aes_fuse, 12);
 register_bits!(control, pcfg_aes_en, u8, 9, 11);
-register_bit!(control,  seu_en, 8);
-register_bit!(control,  sec_en, 7);
-register_bit!(control,  spniden, 6);
-register_bit!(control,  spiden, 5);
-register_bit!(control,  niden, 4);
-register_bit!(control,  dbgen, 3);
+register_bit!(control, seu_en, 8);
+register_bit!(control, sec_en, 7);
+register_bit!(control, spniden, 6);
+register_bit!(control, spiden, 5);
+register_bit!(control, niden, 4);
+register_bit!(control, dbgen, 3);
 register_bits!(control, dap_en, u8, 0, 2);
 
 register!(lock, Lock, RW, u32);
@@ -62,19 +59,19 @@ register!(cfg, Cfg, RW, u32);
 #[allow(unused)]
 #[repr(u8)]
 pub enum RFifoTh {
-    OneFourthFull    = 0b00, // One fourth full for read
-    HalfFull         = 0b01, // Half full for read
-    ThreeFourthFull  = 0b10, // Three fourth full for read
-    Full             = 0b11, // Full for read
+    OneFourthFull = 0b00,   // One fourth full for read
+    HalfFull = 0b01,        // Half full for read
+    ThreeFourthFull = 0b10, // Three fourth full for read
+    Full = 0b11,            // Full for read
 }
 register_bits_typed!(cfg, rfifo_th, u8, RFifoTh, 10, 11);
 #[allow(unused)]
 #[repr(u8)]
 pub enum WFifoTh {
-    OneFourthEmpty   = 0b00, // One fourth empty for write
-    HalfEmpty        = 0b01, // Half empty for write
+    OneFourthEmpty = 0b00,   // One fourth empty for write
+    HalfEmpty = 0b01,        // Half empty for write
     ThreeFourthEmpty = 0b10, // Three fourth empty for write
-    Empty            = 0b11, // Empty for write
+    Empty = 0b11,            // Empty for write
 }
 register_bits_typed!(cfg, wfifo_th, u8, WFifoTh, 8, 9);
 register_bit!(cfg, rclk_edge, 7);
@@ -145,7 +142,7 @@ register_bit!(status, pss_fst_cfg_b, 10);
 register_bit!(status, pss_gpwrdwn_b, 9);
 register_bit!(status, pss_gts_cfg_b, 8);
 register_bit!(status, secure_rst, 7);
-register_bit!(status, illegal_apb_access , 6);
+register_bit!(status, illegal_apb_access, 6);
 register_bit!(status, pss_cfg_reset_b, 5);
 register_bit!(status, pcfg_init, 4);
 register_bit!(status, efuse_sw_reserve, 3);

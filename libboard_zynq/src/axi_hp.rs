@@ -1,8 +1,7 @@
 //! AXI_HP Interface (AFI)
 
-use volatile_register::RW;
-
 use libregister::{register, register_bit, register_bits};
+use volatile_register::RW;
 
 pub unsafe fn axi_hp0() -> &'static RegisterBlock {
     &*(0xF8008000 as *const _)

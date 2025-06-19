@@ -1,27 +1,32 @@
-use core::{
-    pin::Pin,
-    future::Future,
-    sync::atomic::{AtomicPtr, AtomicUsize, Ordering},
-    task::{Context, Poll},
-};
 use alloc::boxed::Box;
-use super::{spin_lock_yield, notify_spin_lock};
+use core::{future::Future,
+           pin::Pin,
+           sync::atomic::{AtomicPtr, AtomicUsize, Ordering},
+           task::{Context, Poll}};
 
-pub struct Sender<'a, T> where T: Clone {
+use super::{notify_spin_lock, spin_lock_yield};
+
+pub struct Sender<'a, T>
+where T: Clone
+{
     list: &'a [AtomicPtr<T>],
     write: &'a AtomicUsize,
     read: &'a AtomicUsize,
 }
 
-pub struct Receiver<'a, T> where T: Clone {
+pub struct Receiver<'a, T>
+where T: Clone
+{
     list: &'a [AtomicPtr<T>],
     write: &'a AtomicUsize,
     read: &'a AtomicUsize,
 }
 
-impl<'a, T> Sender<'a, T> where T: Clone {
+impl<'a, T> Sender<'a, T>
+where T: Clone
+{
     pub const fn new(list: &'static [AtomicPtr<T>], write: &'static AtomicUsize, read: &'static AtomicUsize) -> Self {
-        Sender {list, write, read}
+        Sender { list, write, read }
     }
 
     pub fn try_send<B: Into<Box<T>>>(&mut self, content: B) -> Result<(), B> {
@@ -53,12 +58,18 @@ impl<'a, T> Sender<'a, T> where T: Clone {
     }
 
     pub async fn async_send<B: Into<Box<T>>>(&mut self, content: B) {
-        struct Send<'a, 'b, T> where T: Clone, 'b: 'a {
+        struct Send<'a, 'b, T>
+        where
+            T: Clone,
+            'b: 'a,
+        {
             sender: &'a mut Sender<'b, T>,
             content: Result<(), Box<T>>,
         }
 
-        impl<T> Future for Send<'_, '_, T> where T: Clone {
+        impl<T> Future for Send<'_, '_, T>
+        where T: Clone
+        {
             type Output = ();
 
             fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -82,7 +93,8 @@ impl<'a, T> Sender<'a, T> where T: Clone {
         Send {
             sender: self,
             content: Err(content.into()),
-        }.await
+        }
+        .await
     }
 
     /// free all items in the queue. It is the user's responsibility to
@@ -107,9 +119,11 @@ impl<'a, T> Sender<'a, T> where T: Clone {
     }
 }
 
-impl<'a, T> Receiver<'a, T> where T: Clone {
+impl<'a, T> Receiver<'a, T>
+where T: Clone
+{
     pub const fn new(list: &'static [AtomicPtr<T>], write: &'static AtomicUsize, read: &'static AtomicUsize) -> Self {
-        Receiver {list, write, read}
+        Receiver { list, write, read }
     }
 
     pub fn try_recv(&mut self) -> Result<T, ()> {
@@ -139,11 +153,17 @@ impl<'a, T> Receiver<'a, T> where T: Clone {
     }
 
     pub async fn async_recv(&mut self) -> T {
-        struct Recv<'a, 'b, T> where T: Clone, 'b: 'a {
+        struct Recv<'a, 'b, T>
+        where
+            T: Clone,
+            'b: 'a,
+        {
             receiver: &'a mut Receiver<'b, T>,
         }
 
-        impl<T> Future for Recv<'_, '_, T> where T: Clone {
+        impl<T> Future for Recv<'_, '_, T>
+        where T: Clone
+        {
             type Output = T;
 
             fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -156,13 +176,13 @@ impl<'a, T> Receiver<'a, T> where T: Clone {
             }
         }
 
-        Recv {
-            receiver: self,
-        }.await
+        Recv { receiver: self }.await
     }
 }
 
-impl<'a, T> Iterator for Receiver<'a, T> where T: Clone {
+impl<'a, T> Iterator for Receiver<'a, T>
+where T: Clone
+{
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -173,14 +193,13 @@ impl<'a, T> Iterator for Receiver<'a, T> where T: Clone {
 #[macro_export]
 /// Macro for initializing the sync_channel with static buffer and indexes.
 macro_rules! sync_channel {
-    ($t: ty, $cap: expr) => {
-        {
-            use core::sync::atomic::{AtomicUsize, AtomicPtr};
-            use $crate::sync_channel::{Sender, Receiver};
-            static LIST: [AtomicPtr<$t>; $cap + 1] = [const { AtomicPtr::new(core::ptr::null_mut()) }; $cap + 1];
-            static WRITE: AtomicUsize = AtomicUsize::new(0);
-            static READ: AtomicUsize = AtomicUsize::new(0);
-            (Sender::new(&LIST, &WRITE, &READ), Receiver::new(&LIST, &WRITE, &READ))
-        }
-    };
+    ($t:ty, $cap:expr) => {{
+        use core::sync::atomic::{AtomicPtr, AtomicUsize};
+
+        use $crate::sync_channel::{Receiver, Sender};
+        static LIST: [AtomicPtr<$t>; $cap + 1] = [const { AtomicPtr::new(core::ptr::null_mut()) }; $cap + 1];
+        static WRITE: AtomicUsize = AtomicUsize::new(0);
+        static READ: AtomicUsize = AtomicUsize::new(0);
+        (Sender::new(&LIST, &WRITE, &READ), Receiver::new(&LIST, &WRITE, &READ))
+    }};
 }

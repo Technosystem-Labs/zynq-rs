@@ -1,7 +1,9 @@
-use core::ops::Deref;
 use alloc::{vec, vec::Vec};
-use libcortex_a9::{asm::*, cache::*, UncachedSlice};
+use core::ops::Deref;
+
+use libcortex_a9::{UncachedSlice, asm::*, cache::*};
 use libregister::*;
+
 use super::Buffer;
 
 #[derive(Debug)]
@@ -22,8 +24,12 @@ pub struct DescEntry {
 impl DescEntry {
     pub fn zeroed() -> Self {
         DescEntry {
-            word0: DescWord0 { inner: VolatileCell::new(0) },
-            word1: DescWord1 { inner: VolatileCell::new(0) },
+            word0: DescWord0 {
+                inner: VolatileCell::new(0),
+            },
+            word1: DescWord1 {
+                inner: VolatileCell::new(0),
+            },
         }
     }
 }
@@ -63,8 +69,7 @@ pub struct DescList {
 
 impl DescList {
     pub fn new(size: usize) -> Self {
-        let mut list = UncachedSlice::new(size, || DescEntry::zeroed())
-            .unwrap();
+        let mut list = UncachedSlice::new(size, || DescEntry::zeroed()).unwrap();
         let mut buffers = vec![Buffer::new(); size];
 
         let last = list.len().min(buffers.len()) - 1;
@@ -72,25 +77,16 @@ impl DescList {
             let is_last = i == last;
             let buffer_addr = &mut buffer.0[0] as *mut _ as u32;
             assert!(buffer_addr & 0b11 == 0);
-            entry.word0.write(
-                DescWord0::zeroed()
-                    .used(false)
-                    .wrap(is_last)
-                    .address(buffer_addr >> 2)
-            );
-            entry.word1.write(
-                DescWord1::zeroed()
-            );
+            entry
+                .word0
+                .write(DescWord0::zeroed().used(false).wrap(is_last).address(buffer_addr >> 2));
+            entry.word1.write(DescWord1::zeroed());
             // Flush buffer from cache, to be filled by the peripheral
             // before next read
             dcci_slice(&buffer[..]);
         }
 
-        DescList {
-            list,
-            buffers,
-            next: 0,
-        }
+        DescList { list, buffers, next: 0 }
     }
 
     pub fn len(&self) -> usize {
@@ -110,11 +106,7 @@ impl DescList {
             let len = word1.frame_length_lsbs().into();
             let padding = {
                 let diff = len % 0x20;
-                if diff == 0 {
-                    0
-                } else {
-                    0x20 - diff
-                }
+                if diff == 0 { 0 } else { 0x20 - diff }
             };
             unsafe {
                 // invalidate the buffer
@@ -163,9 +155,7 @@ impl<'a> Deref for PktRef<'a> {
 
 impl<'a> smoltcp::phy::RxToken for PktRef<'a> {
     fn consume<R, F>(self, _timestamp: smoltcp::time::Instant, f: F) -> smoltcp::Result<R>
-    where
-        F: FnOnce(&mut [u8]) -> smoltcp::Result<R>
-    {
+    where F: FnOnce(&mut [u8]) -> smoltcp::Result<R> {
         f(self.buffer)
     }
 }

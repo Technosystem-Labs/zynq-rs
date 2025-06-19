@@ -1,8 +1,6 @@
-use libregister::{
-    register_bit, register_bits,
-    RegisterR, RegisterW, RegisterRW,
-};
 use core::arch::asm;
+
+use libregister::{RegisterR, RegisterRW, RegisterW, register_bit, register_bits};
 
 macro_rules! def_reg_r {
     ($name:tt, $type: ty, $asm_instr:tt) => {
@@ -39,7 +37,7 @@ macro_rules! def_reg_w {
 }
 
 macro_rules! wrap_reg {
-    ($mod_name: ident) => {
+    ($mod_name:ident) => {
         pub mod $mod_name {
             pub struct Read {
                 pub inner: u32,
@@ -67,7 +65,7 @@ macro_rules! wrap_reg {
                 }
             }
         }
-    }
+    };
 }
 
 /// Stack Pointer

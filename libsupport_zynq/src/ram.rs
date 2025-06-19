@@ -1,20 +1,14 @@
 use alloc::alloc::Layout;
-use core::alloc::GlobalAlloc;
-use core::ptr::NonNull;
-use libcortex_a9::{
-    mutex::Mutex,
-    regs::MPIDR
-};
-use libregister::RegisterR;
-use linked_list_allocator::Heap;
+use core::{alloc::GlobalAlloc, ptr::NonNull};
+
 #[cfg(not(feature = "alloc_core"))]
 use libboard_zynq::ddr::DdrRam;
+use libcortex_a9::{mutex::Mutex, regs::MPIDR};
+use libregister::RegisterR;
+use linked_list_allocator::Heap;
 
 #[global_allocator]
-static ALLOCATOR: CortexA9Alloc = CortexA9Alloc(
-    Mutex::new(Heap::empty()),
-    Mutex::new(Heap::empty()),
-);
+static ALLOCATOR: CortexA9Alloc = CortexA9Alloc(Mutex::new(Heap::empty()), Mutex::new(Heap::empty()));
 
 struct CortexA9Alloc(Mutex<Heap>, Mutex<Heap>);
 
@@ -50,10 +44,7 @@ unsafe impl GlobalAlloc for CortexA9Alloc {
 #[cfg(not(feature = "alloc_core"))]
 pub fn init_alloc_ddr(ddr: &mut DdrRam) {
     unsafe {
-        ALLOCATOR
-            .0
-            .lock()
-            .init(ddr.ptr::<u8>() as usize, ddr.size());
+        ALLOCATOR.0.lock().init(ddr.ptr::<u8>() as usize, ddr.size());
     }
 }
 
@@ -91,10 +82,5 @@ fn alloc_error(layout: core::alloc::Layout) -> ! {
     } else {
         ALLOCATOR.1.lock().used()
     };
-    panic!(
-        "Core {} alloc_error, layout: {:?}, used memory: {}",
-        id,
-        layout,
-        used
-    );
+    panic!("Core {} alloc_error, layout: {:?}, used memory: {}", id, layout, used);
 }

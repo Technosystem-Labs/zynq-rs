@@ -2,22 +2,17 @@
 //!
 //! TODO: implement futures AsyncRead/AsyncWrite/Stream/Sink interfaces
 
-use core::{
-    future::Future,
-    pin::Pin,
-    task::{Context, Poll},
-};
 use alloc::vec::Vec;
-use smoltcp::{
-    Error, Result,
-    socket::{
-        SocketHandle, SocketRef,
-        TcpSocketBuffer, TcpSocket, TcpState,
-    },
-    time::Duration,
-};
-use crate::task;
+use core::{future::Future,
+           pin::Pin,
+           task::{Context, Poll}};
+
+use smoltcp::{Error, Result,
+              socket::{SocketHandle, SocketRef, TcpSocket, TcpSocketBuffer, TcpState},
+              time::Duration};
+
 use super::Sockets;
+use crate::task;
 
 /// References a smoltcp TcpSocket
 pub struct TcpStream {
@@ -26,25 +21,27 @@ pub struct TcpStream {
 
 /// Wait while letting `$f()` poll a stream's socket
 macro_rules! poll_stream {
-    ($stream: expr, $output: ty, $f: expr) => (async {
-        struct Adhoc<'a> {
-            stream: &'a TcpStream,
-        }
-
-        impl<'a> Future for Adhoc<'a> {
-            type Output = $output;
-
-            fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-                let result = self.stream.with_socket($f);
-                if !result.is_ready() {
-                    Sockets::register_waker(cx.waker().clone());
-                }
-                result
+    ($stream:expr, $output:ty, $f:expr) => {
+        async {
+            struct Adhoc<'a> {
+                stream: &'a TcpStream,
             }
-        }
 
-        Adhoc { stream: $stream }.await
-    })
+            impl<'a> Future for Adhoc<'a> {
+                type Output = $output;
+
+                fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+                    let result = self.stream.with_socket($f);
+                    if !result.is_ready() {
+                        Sockets::register_waker(cx.waker().clone());
+                    }
+                    result
+                }
+            }
+
+            Adhoc { stream: $stream }.await
+        }
+    };
 }
 
 impl TcpStream {
@@ -64,16 +61,13 @@ impl TcpStream {
         let rx_buffer = TcpSocketBuffer::new(uninit_vec(rx_bufsize));
         let tx_buffer = TcpSocketBuffer::new(uninit_vec(tx_bufsize));
         let socket = TcpSocket::new(rx_buffer, tx_buffer);
-        let handle = Sockets::instance().sockets.borrow_mut()
-            .add(socket);
+        let handle = Sockets::instance().sockets.borrow_mut().add(socket);
         TcpStream { handle }
     }
 
     /// Operate on the referenced TCP socket
     fn with_socket<F, R>(&self, f: F) -> R
-    where
-        F: FnOnce(SocketRef<TcpSocket>) -> R,
-    {
+    where F: FnOnce(SocketRef<TcpSocket>) -> R {
         let mut sockets = Sockets::instance().sockets.borrow_mut();
         let socket_ref = sockets.get::<TcpSocket>(self.handle);
         f(socket_ref)
@@ -96,7 +90,8 @@ impl TcpStream {
             } else {
                 Poll::Pending
             }
-        }).await;
+        })
+        .await;
 
         Ok(stream)
     }
@@ -107,9 +102,7 @@ impl TcpStream {
     /// and it must consume at least one byte. It returns a tuple with the
     /// number of bytes it consumed, and a user-defined return value of type R.
     pub async fn recv<F, R>(&self, f: F) -> Result<R>
-    where
-        F: Fn(&[u8]) -> (usize, R),
-    {
+    where F: Fn(&[u8]) -> (usize, R) {
         struct Recv<'a, F: FnOnce(&[u8]) -> (usize, R), R> {
             stream: &'a TcpStream,
             f: F,
@@ -139,19 +132,13 @@ impl TcpStream {
                         Sockets::register_waker(cx.waker().clone());
                         Poll::Pending
                     }
-                    Ok(result) => {
-                        result
-                    }
-                    Err(e) =>
-                        Poll::Ready(Err(e)),
+                    Ok(result) => result,
+                    Err(e) => Poll::Ready(Err(e)),
                 }
             }
         }
 
-        Recv {
-            stream: self,
-            f,
-        }.await
+        Recv { stream: self, f }.await
     }
 
     /// Wait until there is any space in the socket's send queue
@@ -161,12 +148,13 @@ impl TcpStream {
                 Poll::Pending
             } else if socket.can_send() {
                 Poll::Ready(Ok(()))
-            } else if ! socket.may_send() {
+            } else if !socket.may_send() {
                 Poll::Ready(Err(Error::Truncated))
             } else {
                 Poll::Pending
             }
-        }).await
+        })
+        .await
     }
 
     /// Yields to wait for more buffer space
@@ -183,7 +171,7 @@ impl TcpStream {
                             buf[i] = byte;
                         } else {
                             done = true;
-                            return (i, ())
+                            return (i, ());
                         }
                     }
                     (buf.len(), ())
@@ -228,7 +216,8 @@ impl TcpStream {
             } else {
                 Poll::Ready(Err(Error::Truncated))
             }
-        }).await
+        })
+        .await
     }
 
     /// Close the transmit half of the connection
@@ -276,16 +265,13 @@ impl Drop for TcpStream {
     /// Free item in the socket set, which leads to deallocation of
     /// the rx/tx buffers associated with this socket.
     fn drop(&mut self) {
-        Sockets::instance().sockets.borrow_mut()
-            .remove(self.handle);
+        Sockets::instance().sockets.borrow_mut().remove(self.handle);
     }
 }
 
 fn socket_is_handhshaking(socket: &SocketRef<TcpSocket>) -> bool {
     match socket.state() {
-        TcpState::SynSent | TcpState::SynReceived =>
-            true,
-        _ =>
-            false,
+        TcpState::SynSent | TcpState::SynReceived => true,
+        _ => false,
     }
 }

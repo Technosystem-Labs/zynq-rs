@@ -1,8 +1,9 @@
 use core::unimplemented;
 
 use libregister::{RegisterR, RegisterRW};
-use super::slcr;
 pub use slcr::ArmPllSource;
+
+use super::slcr;
 
 pub mod source;
 use source::*;
@@ -53,10 +54,8 @@ impl Clocks {
         }
 
         slcr::RegisterBlock::unlocked(|slcr| {
-            slcr.arm_clk_ctrl.modify(|_, w| w
-                .srcsel(ArmPllSource::ArmPll)
-                .divisor(div)
-            );
+            slcr.arm_clk_ctrl
+                .modify(|_, w| w.srcsel(ArmPllSource::ArmPll).divisor(div));
         })
     }
 
@@ -77,19 +76,15 @@ impl Clocks {
 
     pub fn cpu_2x(&self) -> u32 {
         match CpuClockMode::get() {
-            CpuClockMode::C421 =>
-                self.cpu_6x4x() / 2,
-            CpuClockMode::C621 =>
-                self.cpu_6x4x() / 3,
+            CpuClockMode::C421 => self.cpu_6x4x() / 2,
+            CpuClockMode::C621 => self.cpu_6x4x() / 3,
         }
     }
 
     pub fn cpu_1x(&self) -> u32 {
         match CpuClockMode::get() {
-            CpuClockMode::C421 =>
-                self.cpu_6x4x() / 4,
-            CpuClockMode::C621 =>
-                self.cpu_6x4x() / 6,
+            CpuClockMode::C421 => self.cpu_6x4x() / 4,
+            CpuClockMode::C621 => self.cpu_6x4x() / 6,
         }
     }
 
@@ -97,14 +92,10 @@ impl Clocks {
         let regs = slcr::RegisterBlock::slcr();
         let uart_clk_ctrl = regs.uart_clk_ctrl.read();
         let pll = match uart_clk_ctrl.srcsel() {
-            slcr::PllSource::ArmPll =>
-                self.arm,
-            slcr::PllSource::DdrPll =>
-                self.ddr,
-            slcr::PllSource::IoPll =>
-                self.io,
-            slcr::PllSource::Emio =>
-                unimplemented!(),
+            slcr::PllSource::ArmPll => self.arm,
+            slcr::PllSource::DdrPll => self.ddr,
+            slcr::PllSource::IoPll => self.io,
+            slcr::PllSource::Emio => unimplemented!(),
         };
         pll / u32::from(uart_clk_ctrl.divisor())
     }
@@ -113,14 +104,10 @@ impl Clocks {
         let regs = slcr::RegisterBlock::slcr();
         let sdio_clk_ctrl = regs.sdio_clk_ctrl.read();
         let pll = match sdio_clk_ctrl.srcsel() {
-            slcr::PllSource::ArmPll =>
-                self.arm,
-            slcr::PllSource::DdrPll =>
-                self.ddr,
-            slcr::PllSource::IoPll =>
-                self.io,
-            slcr::PllSource::Emio =>
-                unimplemented!(),
+            slcr::PllSource::ArmPll => self.arm,
+            slcr::PllSource::DdrPll => self.ddr,
+            slcr::PllSource::IoPll => self.io,
+            slcr::PllSource::Emio => unimplemented!(),
         };
         pll / u32::from(sdio_clk_ctrl.divisor())
     }

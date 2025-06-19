@@ -11,9 +11,7 @@ fn compile_memcpy() {
     cfg.no_default_flags(true);
     cfg.warnings(false);
     cfg.flag("--target=armv7-none-eabihf");
-    let sources = vec![
-        "memcpy.S",
-    ];
+    let sources = vec!["memcpy.S"];
     let root = Path::new("src/asm");
     for src in sources {
         println!("cargo:rerun-if-changed={}", src);
@@ -21,4 +19,3 @@ fn compile_memcpy() {
     }
     cfg.compile("memcpy");
 }
-

@@ -1,9 +1,10 @@
-use super::time::Milliseconds;
-use crate::slcr;
 use embedded_hal::timer::CountDown;
 use libcortex_a9::cache;
 use libregister::*;
 use log::{debug, trace};
+
+use super::time::Milliseconds;
+use crate::slcr;
 
 mod regs;
 
@@ -54,10 +55,7 @@ impl core::fmt::Display for DevcError {
             ResetTimeout => write!(f, "DevC driver reset timeout."),
             DmaBusy => write!(f, "DevC driver DMA busy."),
             DmaTimeout => write!(f, "DevC driver DMA timeout."),
-            DoneTimeout => write!(
-                f,
-                "FPGA DONE signal timeout. Check if the bitstream is correct."
-            ),
+            DoneTimeout => write!(f, "FPGA DONE signal timeout. Check if the bitstream is correct."),
             Unknown(reg) => write!(f, "Unknown error, interrupt status register = 0x{:0X}", reg),
         }
     }
@@ -88,9 +86,7 @@ impl DevC {
             // unlock register with magic pattern
             self.regs.unlock.write(UNLOCK_PATTERN);
         }
-        self.regs
-            .control
-            .modify(|_, w| w.pcap_mode(true).pcap_pr(true));
+        self.regs.control.modify(|_, w| w.pcap_mode(true).pcap_pr(true));
         self.regs
             .int_mask
             .write(self::regs::int_mask::Write { inner: 0xFFFFFFFF });
@@ -102,9 +98,7 @@ impl DevC {
     /// `enable` has to be called before further `program` or
     /// `start_dma_transaction`.
     pub fn disable(&mut self) {
-        self.regs
-            .control
-            .modify(|_, w| w.pcap_mode(false).pcap_pr(false));
+        self.regs.control.modify(|_, w| w.pcap_mode(false).pcap_pr(false));
         self.enabled = false;
     }
 
@@ -116,11 +110,7 @@ impl DevC {
     }
 
     /// Wait on a certain condition with hardcoded timeout.
-    fn wait_condition<F: Fn(&mut Self) -> bool>(
-        &mut self,
-        fun: F,
-        err: DevcError,
-    ) -> Result<(), DevcError> {
+    fn wait_condition<F: Fn(&mut Self) -> bool>(&mut self, fun: F, err: DevcError) -> Result<(), DevcError> {
         self.count_down.start(self.timeout_ms);
         while let Err(nb::Error::WouldBlock) = self.count_down.wait() {
             if fun(self) {
@@ -154,17 +144,11 @@ impl DevC {
         self.regs.control.modify(|_, w| w.pcfg_prog_b(false));
 
         // wait until init is false
-        self.wait_condition(
-            |s| !s.regs.status.read().pcfg_init(),
-            DevcError::ResetTimeout,
-        )?;
+        self.wait_condition(|s| !s.regs.status.read().pcfg_init(), DevcError::ResetTimeout)?;
 
         self.regs.control.modify(|_, w| w.pcfg_prog_b(true));
         // wait until init is true
-        self.wait_condition(
-            |s| s.regs.status.read().pcfg_init(),
-            DevcError::ResetTimeout,
-        )?;
+        self.wait_condition(|s| s.regs.status.read().pcfg_init(), DevcError::ResetTimeout)?;
 
         self.regs.int_sts.write(
             self::regs::IntSts::zeroed()
@@ -217,9 +201,7 @@ impl DevC {
         };
 
         self.regs.dma_src_addr.modify(|_, w| w.src_addr(src_addr));
-        self.regs
-            .dma_dest_addr
-            .modify(|_, w| w.dest_addr(dest_addr));
+        self.regs.dma_dest_addr.modify(|_, w| w.dest_addr(dest_addr));
         self.regs.dma_src_len.modify(|_, w| w.dma_len(src_len));
         self.regs.dma_dest_len.modify(|_, w| w.dma_len(dest_len));
     }
@@ -247,9 +229,7 @@ impl DevC {
             return Err(DevcError::DmaBusy);
         }
 
-        if transfer_type != TransferType::ConcurrentReadWrite
-            && !self.regs.status.read().pcfg_init()
-        {
+        if transfer_type != TransferType::ConcurrentReadWrite && !self.regs.status.read().pcfg_init() {
             return Err(DevcError::NotInitialized);
         }
         match &transfer_type {
@@ -279,13 +259,8 @@ impl DevC {
 
     fn wait_dma_transfer_complete(&mut self) -> Result<(), DevcError> {
         trace!("Wait for DMA done");
-        self.wait_condition(
-            |s| s.regs.int_sts.read().ixr_dma_done(),
-            DevcError::DmaTimeout,
-        )?;
-        self.regs
-            .int_sts
-            .write(self::regs::IntSts::zeroed().ixr_dma_done(true));
+        self.wait_condition(|s| s.regs.int_sts.read().ixr_dma_done(), DevcError::DmaTimeout)?;
+        self.regs.int_sts.write(self::regs::IntSts::zeroed().ixr_dma_done(true));
         Ok(())
     }
 

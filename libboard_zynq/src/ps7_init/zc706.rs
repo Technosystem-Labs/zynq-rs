@@ -8,17 +8,17 @@ pub const INIT_DATA: &'static [InitOp] = &[
     // .. .. KEY = 0xC5ACCE55
     // .. .. ==> 0xF8898FB0[31:0] = 0xC5ACCE55U
     // .. ..     ==> MASK : 0xFFFFFFFFU    VAL : 0xC5ACCE55U
-    // .. .. 
+    // .. ..
     MaskWrite(0xF8898FB0, 0xFFFFFFFF, 0xC5ACCE55),
     // .. .. KEY = 0xC5ACCE55
     // .. .. ==> 0xF8899FB0[31:0] = 0xC5ACCE55U
     // .. ..     ==> MASK : 0xFFFFFFFFU    VAL : 0xC5ACCE55U
-    // .. .. 
+    // .. ..
     MaskWrite(0xF8899FB0, 0xFFFFFFFF, 0xC5ACCE55),
     // .. .. KEY = 0xC5ACCE55
     // .. .. ==> 0xF8809FB0[31:0] = 0xC5ACCE55U
     // .. ..     ==> MASK : 0xFFFFFFFFU    VAL : 0xC5ACCE55U
-    // .. .. 
+    // .. ..
     MaskWrite(0xF8809FB0, 0xFFFFFFFF, 0xC5ACCE55),
     // .. .. FINISH: UNLOCKING CTI REGISTERS
     // .. .. START: ENABLING CTI MODULES AND CHANNELS

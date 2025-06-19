@@ -6,43 +6,33 @@
 extern crate alloc;
 
 use alloc::collections::BTreeMap;
-use core::arch::naked_asm;
-use libasync::{
-    delay,
-    smoltcp::{Sockets, TcpStream},
-    task,
-};
-use libboard_zynq::{
-    self as zynq,
-    clocks::source::{ArmPll, ClockSource, IoPll},
-    clocks::Clocks,
-    println, stdio,
-    mpcore,
-    gic,
-    smoltcp::{
-        iface::{EthernetInterfaceBuilder, NeighborCache, Routes},
-        time::{Duration, Instant},
-        wire::{EthernetAddress, IpAddress, IpCidr},
-    },
-    time::Milliseconds,
-};
+use core::{arch::naked_asm,
+           sync::atomic::{AtomicBool, Ordering}};
+
+use libasync::{delay,
+               smoltcp::{Sockets, TcpStream},
+               task};
 #[cfg(feature = "target_zc706")]
 use libboard_zynq::print;
-use libcortex_a9::{
-    mutex::Mutex,
-    l2c::enable_l2_cache,
-    sync_channel::{Sender, Receiver},
-    sync_channel,
-    regs::{MPIDR, SP},
-    spin_lock_yield, notify_spin_lock,
-    asm, interrupt_handler
-};
+use libboard_zynq::{self as zynq,
+                    clocks::{Clocks,
+                             source::{ArmPll, ClockSource, IoPll}},
+                    gic, mpcore, println,
+                    smoltcp::{iface::{EthernetInterfaceBuilder, NeighborCache, Routes},
+                              time::{Duration, Instant},
+                              wire::{EthernetAddress, IpAddress, IpCidr}},
+                    stdio,
+                    time::Milliseconds};
+use libcortex_a9::{asm, interrupt_handler,
+                   l2c::enable_l2_cache,
+                   mutex::Mutex,
+                   notify_spin_lock,
+                   regs::{MPIDR, SP},
+                   spin_lock_yield, sync_channel,
+                   sync_channel::{Receiver, Sender}};
 use libregister::{RegisterR, RegisterW};
-use libsupport_zynq::{
-    boot, exception_vectors, ram,
-};
+use libsupport_zynq::{boot, exception_vectors, ram};
 use log::{info, warn};
-use core::sync::atomic::{AtomicBool, Ordering};
 
 const HWADDR: [u8; 6] = [0, 0x23, 0xde, 0xea, 0xbe, 0xef];
 
@@ -59,14 +49,14 @@ interrupt_handler!(IRQ, irq, __irq_stack0_start, __irq_stack1_start, {
     let mpcore = mpcore::RegisterBlock::mpcore();
     let mut gic = gic::InterruptController::gic(mpcore);
     let id = gic.get_interrupt_id();
-    match MPIDR.read().cpu_id(){
+    match MPIDR.read().cpu_id() {
         0 => {
             if id.0 == 0 {
                 println!("Interrupting core0...");
                 gic.end_interrupt(id);
                 return;
             }
-        },
+        }
         1 => {
             if id.0 == 0 {
                 gic.end_interrupt(id);
@@ -77,7 +67,7 @@ interrupt_handler!(IRQ, irq, __irq_stack0_start, __irq_stack1_start, {
                 notify_spin_lock();
                 main_core1();
             }
-        },
+        }
         _ => {}
     }
     stdio::drop_uart();
@@ -108,10 +98,7 @@ pub fn main_core0() {
 
     info!(
         "Boot mode: {:?}",
-        zynq::slcr::RegisterBlock::slcr()
-            .boot_mode
-            .read()
-            .boot_mode_pins()
+        zynq::slcr::RegisterBlock::slcr().boot_mode.read().boot_mode_pins()
     );
 
     #[cfg(any(
@@ -175,9 +162,8 @@ pub fn main_core0() {
         let mut eeprom = zynq::i2c::eeprom::EEPROM::new(&mut i2c, 16);
         // Write to 0x00 and 0x08
         let eeprom_buffer: [u8; 22] = [
-            0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb,
-            0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee,
-            0xef, 0xcd, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01,
+            0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xef, 0xcd, 0xab, 0x89,
+            0x67, 0x45, 0x23, 0x01,
         ];
         eeprom.write(0x00, &eeprom_buffer[0..6]).unwrap();
         eeprom.write(0x08, &eeprom_buffer[6..22]).unwrap();
@@ -204,7 +190,7 @@ pub fn main_core0() {
         let mut err_cdwn = timer.countdown();
         let mut err_state = true;
         let mut led = zynq::error_led::ErrorLED::error_led();
-        task::spawn( async move { 
+        task::spawn(async move {
             loop {
                 led.toggle(err_state);
                 err_state = !err_state;
@@ -254,7 +240,7 @@ pub fn main_core0() {
                         Ok(_len) => stats_tx.borrow_mut().1 += tx_data.len(), //CHUNK_SIZE,
                         Err(e) => {
                             warn!("tx: {:?}", e);
-                            break
+                            break;
                         }
                     }
                 }
@@ -263,7 +249,7 @@ pub fn main_core0() {
     });
     let stats_rx = stats.clone();
     task::spawn(async move {
-        while let Ok(stream) = TcpStream::accept(TCP_PORT+1, 0x10_0000, 0x10_0000).await {
+        while let Ok(stream) = TcpStream::accept(TCP_PORT + 1, 0x10_0000, 0x10_0000).await {
             let stats_rx = stats_rx.clone();
             task::spawn(async move {
                 loop {
@@ -271,7 +257,7 @@ pub fn main_core0() {
                         Ok(len) => stats_rx.borrow_mut().0 += len,
                         Err(e) => {
                             warn!("rx: {:?}", e);
-                            break
+                            break;
                         }
                     }
                 }
@@ -293,7 +279,13 @@ pub fn main_core0() {
                 *stats = (0, 0);
                 result
             };
-            info!("time: {:6}.{:06}s, rx: {}k/s, tx: {}k/s", seconds, micros, rx / 1024, tx / 1024);
+            info!(
+                "time: {:6}.{:06}s, rx: {}k/s, tx: {}k/s",
+                seconds,
+                micros,
+                rx / 1024,
+                tx / 1024
+            );
         }
     });
 

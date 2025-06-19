@@ -1,6 +1,7 @@
-use libregister::{register, register_at, register_bit, register_bits, RegisterRW, RegisterR, RegisterW};
-use super::asm::dmb;
+use libregister::{RegisterR, RegisterRW, RegisterW, register, register_at, register_bit, register_bits};
 use volatile_register::RW;
+
+use super::asm::dmb;
 
 /// enable L2 cache with specific prefetch offset
 /// prefetch offset requires manual tuning, it seems that 8 is good for ZC706 current settings
@@ -10,14 +11,14 @@ pub fn enable_l2_cache(offset: u8) {
     // disable L2 cache
     regs.reg1_control.modify(|_, w| w.l2_enable(false));
 
-    regs.reg15_prefetch_ctrl.modify(|_, w|
+    regs.reg15_prefetch_ctrl.modify(|_, w| {
         w.instr_prefetch_en(true)
             .data_prefetch_en(true)
             .double_linefill_en(true)
             .incr_double_linefill_en(true)
             .pref_drop_en(true)
             .prefetch_offset(offset)
-    );
+    });
     regs.reg1_aux_control.modify(|_, w| {
         w.early_bresp_en(true)
             .instr_prefetch_en(true)
@@ -25,8 +26,10 @@ pub fn enable_l2_cache(offset: u8) {
             .cache_replace_policy(true)
             .way_size(3)
     });
-    regs.reg1_tag_ram_control.modify(|_, w| w.ram_wr_access_lat(1).ram_rd_access_lat(1).ram_setup_lat(1));
-    regs.reg1_data_ram_control.modify(|_, w| w.ram_wr_access_lat(1).ram_rd_access_lat(2).ram_setup_lat(1));
+    regs.reg1_tag_ram_control
+        .modify(|_, w| w.ram_wr_access_lat(1).ram_rd_access_lat(1).ram_setup_lat(1));
+    regs.reg1_data_ram_control
+        .modify(|_, w| w.ram_wr_access_lat(1).ram_rd_access_lat(2).ram_setup_lat(1));
     // invalidate L2 ways
     unsafe {
         regs.reg7_inv_way.write(0xFFFF);
@@ -45,7 +48,7 @@ pub fn enable_l2_cache(offset: u8) {
 }
 
 #[inline(always)]
-pub fn l2_cache_invalidate_all()  {
+pub fn l2_cache_invalidate_all() {
     let regs = RegisterBlock::new();
     unsafe {
         regs.reg7_inv_way.write(0xFFFF);
@@ -55,9 +58,9 @@ pub fn l2_cache_invalidate_all()  {
 }
 
 #[inline(always)]
-pub fn l2_cache_clean_all()  {
+pub fn l2_cache_clean_all() {
     let regs = RegisterBlock::new();
-    unsafe  {
+    unsafe {
         regs.reg7_clean_way.write(0xFFFF);
     }
     // poll for completion
@@ -65,7 +68,7 @@ pub fn l2_cache_clean_all()  {
 }
 
 #[inline(always)]
-pub fn l2_cache_clean_invalidate_all()  {
+pub fn l2_cache_clean_invalidate_all() {
     let regs = RegisterBlock::new();
     unsafe {
         regs.reg7_clean_inv_way.write(0xFFFF);
@@ -330,4 +333,3 @@ register_bit!(reg15_prefetch_ctrl, data_prefetch_en, 28);
 register_bit!(reg15_prefetch_ctrl, pref_drop_en, 24);
 register_bit!(reg15_prefetch_ctrl, incr_double_linefill_en, 23);
 register_bits!(reg15_prefetch_ctrl, prefetch_offset, u8, 0, 4);
-

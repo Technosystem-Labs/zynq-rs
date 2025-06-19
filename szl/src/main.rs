@@ -8,19 +8,16 @@ mod netboot;
 
 use alloc::rc::Rc;
 use core::mem;
+
 use core_io::{Read, Seek};
-use libboard_zynq::{
-    self as zynq,
-    clocks::source::{ArmPll, ClockSource, IoPll},
-    clocks::Clocks,
-    logger, println, sdio, slcr,
-    timer::GlobalTimer,
-};
-use libconfig::{bootgen, sd_reader, Config};
-use libcortex_a9::{
-    asm::{dsb, isb},
-    cache::{bpiall, dcciall, iciallu},
-};
+use libboard_zynq::{self as zynq,
+                    clocks::{Clocks,
+                             source::{ArmPll, ClockSource, IoPll}},
+                    logger, println, sdio, slcr,
+                    timer::GlobalTimer};
+use libconfig::{Config, bootgen, sd_reader};
+use libcortex_a9::{asm::{dsb, isb},
+                   cache::{bpiall, dcciall, iciallu}};
 use libregister::RegisterR;
 use libsupport_zynq::ram;
 use log::info;
@@ -30,11 +27,7 @@ extern "C" {
     static mut __runtime_end: usize;
 }
 
-fn boot_sd<File: Read + Seek>(
-    file: &mut Option<File>,
-    runtime_start: *mut u8,
-    runtime_max: usize,
-) -> Result<(), ()> {
+fn boot_sd<File: Read + Seek>(file: &mut Option<File>, runtime_start: *mut u8, runtime_max: usize) -> Result<(), ()> {
     if file.is_none() {
         log::error!("No bootgen file");
         return Err(());
@@ -44,8 +37,7 @@ fn boot_sd<File: Read + Seek>(
     bootgen::load_bitstream(&mut file).map_err(|e| log::error!("Cannot load gateware: {:?}", e))?;
 
     info!("Loading runtime");
-    let runtime =
-        bootgen::get_runtime(&mut file).map_err(|e| log::error!("Cannot load runtime: {:?}", e))?;
+    let runtime = bootgen::get_runtime(&mut file).map_err(|e| log::error!("Cannot load runtime: {:?}", e))?;
 
     if runtime.len() > runtime_max {
         log::error!(
@@ -114,42 +106,22 @@ pub fn main_core0() {
     let mut bootgen_file = root_dir.and_then(|root_dir| root_dir.open_file("/BOOT.BIN").ok());
     let config = Config::from_fs(fs.clone());
 
-    let max_len =
-        (&raw const __runtime_end).addr() - (&raw const __runtime_start).addr();
+    let max_len = (&raw const __runtime_end).addr() - (&raw const __runtime_start).addr();
     match slcr::RegisterBlock::unlocked(|slcr| slcr.boot_mode.read().boot_mode_pins()) {
-        slcr::BootModePins::Jtag => netboot::netboot(
-            &mut bootgen_file,
-            config,
-            (&raw mut __runtime_start).cast(),
-            max_len,
-        ),
+        slcr::BootModePins::Jtag => {
+            netboot::netboot(&mut bootgen_file, config, (&raw mut __runtime_start).cast(), max_len)
+        }
         slcr::BootModePins::SdCard => {
-            if boot_sd(
-                &mut bootgen_file,
-                (&raw mut __runtime_start).cast(),
-                max_len,
-            )
-            .is_err()
-            {
+            if boot_sd(&mut bootgen_file, (&raw mut __runtime_start).cast(), max_len).is_err() {
                 log::error!("Error booting from SD card");
                 log::info!("Fall back on netboot");
-                netboot::netboot(
-                    &mut bootgen_file,
-                    config,
-                    (&raw mut __runtime_start).cast(),
-                    max_len,
-                )
+                netboot::netboot(&mut bootgen_file, config, (&raw mut __runtime_start).cast(), max_len)
             }
         }
         v => {
             log::error!("Boot mode {:?} not supported", v);
             log::info!("Fall back on netboot");
-            netboot::netboot(
-                &mut bootgen_file,
-                config,
-                (&raw mut __runtime_start).cast(),
-                max_len,
-            )
+            netboot::netboot(&mut bootgen_file, config, (&raw mut __runtime_start).cast(), max_len)
         }
     };
 

@@ -1,10 +1,9 @@
 //! Asynchronous tasks
 
-use core::{
-    future::Future,
-    pin::Pin,
-    task::{Context, Poll},
-};
+use core::{future::Future,
+           pin::Pin,
+           task::{Context, Poll}};
+
 use super::executor;
 
 /// Drives the future `f` to completion

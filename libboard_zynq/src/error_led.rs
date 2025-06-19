@@ -1,5 +1,5 @@
-use libregister::{RegisterRW, RegisterW};
-use libregister::{register, register_at, register_bit, register_bits};
+use libregister::{RegisterRW, RegisterW, register, register_at, register_bit, register_bits};
+
 use super::slcr;
 
 pub struct ErrorLED {
@@ -16,7 +16,7 @@ impl ErrorLED {
                     .l3_sel(0b000)
                     .io_type(slcr::IoBufferType::Lvcmos25)
                     .pullup(true)
-                    .disable_rcvr(true)
+                    .disable_rcvr(true),
             );
         });
 
@@ -30,27 +30,19 @@ impl ErrorLED {
         };
 
         // Setup GPIO output mask
-        self_.regs.gpio_output_mask.modify(|_, w| {
-            w.mask(gpio_output_mask)
-        });
+        self_.regs.gpio_output_mask.modify(|_, w| w.mask(gpio_output_mask));
 
-        self_.regs.gpio_direction.modify(|_, w| {
-            w.lederr(true)
-        });
+        self_.regs.gpio_direction.modify(|_, w| w.lederr(true));
 
         self_
     }
 
     fn led_oe(&mut self, oe: bool) {
-        self.regs.gpio_output_enable.modify(|_, w| {
-             w.lederr(oe)
-        })
+        self.regs.gpio_output_enable.modify(|_, w| w.lederr(oe))
     }
 
     fn led_o(&mut self, o: bool) {
-        self.regs.gpio_output_mask.modify(|_, w| {
-             w.lederr_o(o)
-        })
+        self.regs.gpio_output_mask.modify(|_, w| w.lederr_o(o))
     }
 
     pub fn toggle(&mut self, state: bool) {
@@ -58,7 +50,6 @@ impl ErrorLED {
         self.led_oe(state);
     }
 }
-
 
 pub struct RegisterBlock {
     pub gpio_output_mask: &'static mut GPIOOutputMask,
@@ -71,7 +62,7 @@ impl RegisterBlock {
         Self {
             gpio_output_mask: GPIOOutputMask::new(),
             gpio_direction: GPIODirection::new(),
-            gpio_output_enable: GPIOOutputEnable::new()
+            gpio_output_enable: GPIOOutputEnable::new(),
         }
     }
 }
@@ -87,8 +78,7 @@ register_bit!(gpio_output_mask,
               /// Output for LED_ERR (MIO[37])
               lederr_o, 5);
 #[cfg(feature = "target_kasli_soc")]
-register_bits!(gpio_output_mask,
-               mask, u16, 16, 31);
+register_bits!(gpio_output_mask, mask, u16, 16, 31);
 
 register!(gpio_direction,
           /// DIRM_1:
@@ -111,4 +101,3 @@ register_at!(GPIOOutputEnable, 0xE000A248, new);
 register_bit!(gpio_output_enable,
               /// Output enable for LED_ERR
               lederr, 5);
-              

@@ -13,9 +13,10 @@ pub mod regs;
 pub mod semaphore;
 pub mod sync_channel;
 mod uncached;
+use core::arch::global_asm;
+
 pub use fpu::enable_fpu;
 pub use uncached::UncachedSlice;
-use core::arch::global_asm;
 
 global_asm!(include_str!("exceptions.s"));
 
@@ -37,7 +38,7 @@ pub fn notify_spin_lock() {
 #[macro_export]
 /// Interrupt handler, which setup the stack and preserve registers before jumping to actual interrupt handler.
 /// Registers r0-r12, PC, SP and CPSR are restored after the actual handler.
-/// 
+///
 /// - `name` is the name of the interrupt, should be the same as the one defined in vector table.
 /// - `name2` is the name for the actual handler, should be different from name.
 /// - `stack0` is the stack for the interrupt handler when called from core0.
@@ -65,11 +66,11 @@ macro_rules! interrupt_handler {
                 concat!("movtne r1, :upper16:", stringify!($stack1)),
                 "mov r0, sp",
                 "mov sp, r1",
-                "push {{r0, r1}}",                                      // 2 registers are pushed to maintain 8 byte stack alignment 
+                "push {{r0, r1}}",                                      // 2 registers are pushed to maintain 8 byte stack alignment
                 concat!("bl ", stringify!($name2)),
                 "pop {{r0, r1}}",
                 "mov sp, r0",
-                "ldmfd sp!, {{r0-r12, pc}}^"                           // caret ^ : copy SPSR to the CPSR  
+                "ldmfd sp!, {{r0-r12, pc}}^"                           // caret ^ : copy SPSR to the CPSR
             );
         }
 

@@ -1,6 +1,5 @@
-use volatile_register::{RO, RW};
-
 use libregister::{register, register_at, register_bit, register_bits, register_bits_typed};
+use volatile_register::{RO, RW};
 
 #[allow(unused)]
 #[derive(Clone, Copy)]
@@ -22,8 +21,6 @@ pub enum ControllerStatus {
     Powerdown3 = 6,
     Powerdown4 = 7,
 }
-
-
 
 #[repr(C)]
 pub struct RegisterBlock {
@@ -266,8 +263,7 @@ register_bit!(reg_65, dis_calib_rst, 17);
 register_bits!(reg_65, ctrl_slave_delay, u8, 18, 19);
 
 // Controller operation mode status
-register!(mode_sts_reg,
-          ModeStsReg, RO, u32);
+register!(mode_sts_reg, ModeStsReg, RO, u32);
 register_bits_typed!(mode_sts_reg, operating_mode, u8, ControllerStatus, 0, 2);
 // (mode_sts_reg) ...
 

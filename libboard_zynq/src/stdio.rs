@@ -1,5 +1,8 @@
 use core::ops::{Deref, DerefMut};
-use libcortex_a9::{asm, mutex::{Mutex, MutexGuard}};
+
+use libcortex_a9::{asm,
+                   mutex::{Mutex, MutexGuard}};
+
 use crate::uart::Uart;
 
 const UART_RATE: u32 = 115_200;
@@ -20,7 +23,9 @@ pub fn drop_uart() {
         asm::nop();
     }
 
-    unsafe { UART = Mutex::new(LazyUart::Uninitialized); }
+    unsafe {
+        UART = Mutex::new(LazyUart::Uninitialized);
+    }
 }
 
 /// Initializes the UART on first use through `.deref_mut()` for debug
@@ -34,10 +39,8 @@ impl Deref for LazyUart {
     type Target = Uart;
     fn deref(&self) -> &Uart {
         match self {
-            LazyUart::Uninitialized =>
-                panic!("stdio not initialized!"),
-            LazyUart::Initialized(uart) =>
-                uart,
+            LazyUart::Uninitialized => panic!("stdio not initialized!"),
+            LazyUart::Initialized(uart) => uart,
         }
     }
 }
@@ -48,17 +51,12 @@ impl DerefMut for LazyUart {
             LazyUart::Uninitialized => {
                 #[cfg(any(feature = "target_coraz7", feature = "target_redpitaya"))]
                 let uart = Uart::uart0(UART_RATE);
-                #[cfg(any(
-                    feature = "target_zc706",
-                    feature = "target_ebaz4205",
-                    feature = "target_kasli_soc",
-                ))]
+                #[cfg(any(feature = "target_zc706", feature = "target_ebaz4205", feature = "target_kasli_soc",))]
                 let uart = Uart::uart1(UART_RATE);
                 *self = LazyUart::Initialized(uart);
                 self
             }
-            LazyUart::Initialized(uart) =>
-                uart,
+            LazyUart::Initialized(uart) => uart,
         }
     }
 }

@@ -1,12 +1,10 @@
 use alloc::{boxed::Box, vec::Vec};
-use core::{
-    cell::{RefCell, Cell},
-    future::Future,
-    mem::MaybeUninit,
-    pin::{pin, Pin},
-    sync::atomic::{AtomicBool, Ordering},
-    task::{Context, Poll, RawWaker, RawWakerVTable, Waker},
-};
+use core::{cell::{Cell, RefCell},
+           future::Future,
+           mem::MaybeUninit,
+           pin::{Pin, pin},
+           sync::atomic::{AtomicBool, Ordering},
+           task::{Context, Poll, RawWaker, RawWakerVTable, Waker}};
 
 // NOTE `*const ()` is &AtomicBool
 static VTABLE: RawWakerVTable = {

@@ -1,12 +1,9 @@
+use core::{arch::naked_asm, ptr::write_volatile};
+
+use libboard_zynq::{mpcore, slcr};
+use libcortex_a9::{asm, cache, enable_fpu, interrupt_handler, l2c, mmu, notify_spin_lock, regs::*, spin_lock_yield};
+use libregister::{RegisterR, RegisterRW, VolatileCell};
 use r0::zero_bss;
-use core::ptr::write_volatile;
-use core::arch::naked_asm;
-use libregister::{
-    VolatileCell,
-    RegisterR, RegisterRW,
-};
-use libcortex_a9::{asm, l2c, regs::*, cache, mmu, spin_lock_yield, notify_spin_lock, enable_fpu, interrupt_handler};
-use libboard_zynq::{slcr, mpcore};
 
 extern "C" {
     static mut __bss_start: u32;
@@ -47,8 +44,7 @@ unsafe extern "C" fn boot_core0() -> ! {
 
     zero_bss(&raw mut __bss_start, &raw mut __bss_end);
 
-    let mmu_table = mmu::L1Table::get()
-        .setup_flat_layout();
+    let mmu_table = mmu::L1Table::get().setup_flat_layout();
     cache::dcc(mmu_table);
     mmu::with_mmu(mmu_table, || {
         mpcore.scu_control.start();
@@ -108,8 +104,7 @@ fn l1_cache_init() {
     dciall_l1();
 }
 
-pub struct Core1 {
-}
+pub struct Core1 {}
 
 #[allow(static_mut_refs)]
 impl Core1 {
@@ -128,7 +123,7 @@ impl Core1 {
             for i in 0..8 {
                 unsafe {
                     // this is the ARM instruction "b +0x00100000"
-                    write_volatile((i*4) as *mut u32, 0xea03fffe);
+                    write_volatile((i * 4) as *mut u32, 0xea03fffe);
                 }
             }
         }

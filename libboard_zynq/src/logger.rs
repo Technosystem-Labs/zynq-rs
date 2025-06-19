@@ -17,14 +17,18 @@ impl log::Log for Logger {
 
     fn log(&self, record: &log::Record) {
         if self.enabled(record.metadata()) {
-            let timestamp = unsafe {
-                GlobalTimer::get()
-            }.get_us().0;
-            let seconds   = timestamp / 1_000_000;
-            let micros    = timestamp % 1_000_000;
+            let timestamp = unsafe { GlobalTimer::get() }.get_us().0;
+            let seconds = timestamp / 1_000_000;
+            let micros = timestamp % 1_000_000;
 
-            println!("[{:6}.{:06}s] {:>5}({}): {}",
-                     seconds, micros, record.level(), record.target(), record.args());
+            println!(
+                "[{:6}.{:06}s] {:>5}({}): {}",
+                seconds,
+                micros,
+                record.level(),
+                record.target(),
+                record.args()
+            );
         }
     }
     fn flush(&self) {

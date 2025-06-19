@@ -1,14 +1,17 @@
 #![no_std]
 extern crate alloc;
 
+use alloc::{rc::Rc,
+            string::{FromUtf8Error, String},
+            vec::Vec};
 use core::fmt;
-use alloc::{string::FromUtf8Error, string::String, vec::Vec, rc::Rc};
-use core_io::{self as io, BufRead, BufReader, Read, Write, Seek, SeekFrom};
+
+use core_io::{self as io, BufRead, BufReader, Read, Seek, SeekFrom, Write};
 use libboard_zynq::sdio;
 
-pub mod sd_reader;
-pub mod net_settings;
 pub mod bootgen;
+pub mod net_settings;
+pub mod sd_reader;
 
 #[derive(Debug)]
 pub enum Error<'a> {
@@ -51,11 +54,7 @@ impl<'a> From<FromUtf8Error> for Error<'a> {
     }
 }
 
-fn parse_config<'a>(
-    key: &'a str,
-    buffer: &mut Vec<u8>,
-    file: fatfs::File<sd_reader::SdReader>,
-) -> Result<'a, ()> {
+fn parse_config<'a>(key: &'a str, buffer: &mut Vec<u8>, file: fatfs::File<sd_reader::SdReader>) -> Result<'a, ()> {
     let prefix = [key, "="].concat().to_ascii_lowercase();
     for line in BufReader::new(file).lines() {
         let line = line?.to_ascii_lowercase();
@@ -135,8 +134,8 @@ impl Config {
                                 }
                             }
                             Ok(())
-                        },
-                        Err(_) => Err(Error::KeyNotFoundError(key))
+                        }
+                        Err(_) => Err(Error::KeyNotFoundError(key)),
                     }
                 }
             }

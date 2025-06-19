@@ -1,4 +1,5 @@
 use alloc::vec::Vec;
+
 use core_io::{Error, Read, Seek, SeekFrom};
 use libboard_zynq::devc;
 use log::debug;
@@ -28,10 +29,7 @@ impl core::fmt::Display for BootgenLoadingError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         use BootgenLoadingError::*;
         match self {
-            InvalidBootImageHeader => write!(
-                f,
-                "Invalid boot image header. Check if the file is correct."
-            ),
+            InvalidBootImageHeader => write!(f, "Invalid boot image header. Check if the file is correct."),
             MissingPartition => write!(f, "Partition not found. Check your compile configuration."),
             EncryptedBitstream => write!(f, "Encrypted bitstream is not supported."),
             IoError(e) => write!(f, "Error while reading: {}", e),
@@ -69,9 +67,7 @@ fn read_u32<Reader: Read>(reader: &mut Reader) -> Result<u32, BootgenLoadingErro
 }
 
 /// Load PL partition header.
-fn load_pl_header<File: Read + Seek>(
-    file: &mut File,
-) -> Result<Option<PartitionHeader>, BootgenLoadingError> {
+fn load_pl_header<File: Read + Seek>(file: &mut File) -> Result<Option<PartitionHeader>, BootgenLoadingError> {
     let mut buffer: [u8; 0x40] = [0; 0x40];
     file.read_exact(&mut buffer)?;
     let header = unsafe { core::mem::transmute::<_, PartitionHeader>(buffer) };
@@ -82,9 +78,7 @@ fn load_pl_header<File: Read + Seek>(
     }
 }
 
-fn load_ps_header<File: Read + Seek>(
-    file: &mut File,
-) -> Result<Option<PartitionHeader>, BootgenLoadingError> {
+fn load_ps_header<File: Read + Seek>(file: &mut File) -> Result<Option<PartitionHeader>, BootgenLoadingError> {
     let mut buffer: [u8; 0x40] = [0; 0x40];
     file.read_exact(&mut buffer)?;
     let header = unsafe { core::mem::transmute::<_, PartitionHeader>(buffer) };
@@ -97,10 +91,7 @@ fn load_ps_header<File: Read + Seek>(
 
 /// Locate the partition from the image, and return the size (in bytes) of the partition if successful.
 /// This function would seek the file to the location of the partition.
-fn locate<
-    File: Read + Seek,
-    F: Fn(&mut File) -> Result<Option<PartitionHeader>, BootgenLoadingError>,
->(
+fn locate<File: Read + Seek, F: Fn(&mut File) -> Result<Option<PartitionHeader>, BootgenLoadingError>>(
     file: &mut File,
     f: F,
 ) -> Result<usize, BootgenLoadingError> {

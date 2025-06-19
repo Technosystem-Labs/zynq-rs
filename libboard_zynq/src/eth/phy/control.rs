@@ -1,4 +1,5 @@
 use bit_field::BitField;
+
 use super::PhyRegister;
 
 #[derive(Clone, Copy, Debug)]
@@ -82,7 +83,7 @@ impl PhyRegister for Control {
     fn addr() -> u8 {
         0
     }
-    
+
     fn page() -> u8 {
         0
     }

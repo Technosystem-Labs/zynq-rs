@@ -1,6 +1,6 @@
-use libboard_zynq::{print, println};
 #[cfg(feature = "target_kasli_soc")]
 use libboard_zynq::error_led::ErrorLED;
+use libboard_zynq::{print, println};
 
 #[panic_handler]
 fn panic(info: &core::panic::PanicInfo) -> ! {
@@ -11,7 +11,7 @@ fn panic(info: &core::panic::PanicInfo) -> ! {
         print!("unknown location");
     }
     println!(": {}", info.message());
-    
+
     #[cfg(feature = "target_kasli_soc")]
     {
         let mut err_led = ErrorLED::error_led();

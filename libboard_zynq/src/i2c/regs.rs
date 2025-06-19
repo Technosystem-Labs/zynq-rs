@@ -1,7 +1,4 @@
-use libregister::{
-    register, register_at,
-    register_bit, register_bits
-};
+use libregister::{register, register_at, register_bit, register_bits};
 
 // With reference to:
 //
@@ -15,7 +12,7 @@ use libregister::{
 //        self._in = CSRStatus(l)
 //        self._out = CSRStorage(l, reset=reset_out)
 //        self._oe = CSRStorage(l, reset=reset_oe)
-// 
+//
 // Hence, using GPIOs as SCL and SDA GPIOs respectively.
 //
 // Current compatibility:
@@ -64,7 +61,6 @@ register_bits!(gpio_output_mask,
                /// Mask for keeping bits except SCL and SDA unchanged
                mask, u16, 16, 31);
 
-
 register!(gpio_output_mask_lower,
             /// MASK_DATA_1_LSW:
             /// Maskable output data for MIO[47:32]
@@ -76,8 +72,7 @@ register_bit!(gpio_output_mask_lower,
               /// Output for I2C_SW_RESET (MIO[33])
               i2cswr_o, 1);
 #[cfg(feature = "target_kasli_soc")]
-register_bits!(gpio_output_mask_lower,
-               mask, u16, 16, 31);
+register_bits!(gpio_output_mask_lower, mask, u16, 16, 31);
 
 register!(gpio_input,
           /// DATA_1_RO:
@@ -93,7 +88,6 @@ register_bit!(gpio_input,
 register_bit!(gpio_input,
               /// Input for SDA
               sda, 19);
-
 
 register!(gpio_direction,
           /// DIRM_1:
@@ -132,4 +126,3 @@ register_bit!(gpio_output_enable,
 register_bit!(gpio_output_enable,
               /// Output enable for I2C_SW_RESET
               i2cswr, 1);
-              

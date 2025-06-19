@@ -1,4 +1,5 @@
 use core::fmt;
+
 use libregister::{register, register_at, register_bit, register_bits, register_bits_typed};
 use volatile_register::{RO, RW};
 
@@ -453,11 +454,7 @@ register_bit!(interrupt_signal_en, transfer_complete_signal_en, 1);
 register_bit!(interrupt_signal_en, cmd_complete_signal_en, 0);
 
 register!(auto_cmd12_error_status, AutoCmd12ErrorStatus, RO, u32);
-register_bit!(
-    auto_cmd12_error_status,
-    cmd_not_issued_by_auto_cmd12_error,
-    7
-);
+register_bit!(auto_cmd12_error_status, cmd_not_issued_by_auto_cmd12_error, 7);
 register_bit!(auto_cmd12_error_status, index_error, 4);
 register_bit!(auto_cmd12_error_status, end_bit_error, 3);
 register_bit!(auto_cmd12_error_status, crc_error, 2);

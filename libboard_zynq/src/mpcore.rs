@@ -1,10 +1,6 @@
+use libregister::{RegisterRW, RegisterW, register, register_at, register_bit, register_bits};
 ///! Register definitions for Application Processing Unit (mpcore)
-
 use volatile_register::{RO, RW};
-use libregister::{
-    register, register_at, register_bit, register_bits,
-    RegisterW, RegisterRW,
-};
 
 #[repr(C)]
 pub struct RegisterBlock {
@@ -177,18 +173,17 @@ register_bits!(scu_invalidate, cpu3_ways, u8, 12, 15);
 
 impl ScuInvalidate {
     pub fn invalidate_all_cores(&mut self) {
-        self.write(ScuInvalidate::zeroed()
-            .cpu0_ways(0xf)
-            .cpu1_ways(0xf)
-            .cpu2_ways(0xf)
-            .cpu3_ways(0xf)
+        self.write(
+            ScuInvalidate::zeroed()
+                .cpu0_ways(0xf)
+                .cpu1_ways(0xf)
+                .cpu2_ways(0xf)
+                .cpu3_ways(0xf),
         );
     }
 
     pub fn invalidate_core1(&mut self) {
-        self.write(ScuInvalidate::zeroed()
-            .cpu1_ways(0xf)
-        );
+        self.write(ScuInvalidate::zeroed().cpu1_ways(0xf));
     }
 }
 
@@ -206,7 +201,12 @@ register_bit!(scu_access_control_sac, cp_u2, 2);
 register_bit!(scu_access_control_sac, cp_u1, 1);
 register_bit!(scu_access_control_sac, cp_u0, 0);
 
-register!(scu_non_secure_access_control, SCUNonSecureAccessControlRegister, RO, u32);
+register!(
+    scu_non_secure_access_control,
+    SCUNonSecureAccessControlRegister,
+    RO,
+    u32
+);
 register_bits!(scu_non_secure_access_control, sbz, u32, 12, 31);
 register_bit!(scu_non_secure_access_control, cpu3_global_timer, 11);
 register_bit!(scu_non_secure_access_control, cpu2_global_timer, 10);
@@ -265,7 +265,12 @@ register_bit!(global_timer_control, irq_enable, 2);
 register_bit!(global_timer_control, comp_enablea, 1);
 register_bit!(global_timer_control, timer_enable, 0);
 
-register!(global_timer_interrupt_status, GlobalTimerInterruptStatusRegister, RW, u32);
+register!(
+    global_timer_interrupt_status,
+    GlobalTimerInterruptStatusRegister,
+    RW,
+    u32
+);
 register_bit!(global_timer_interrupt_status, event_flag, 0);
 
 register!(private_timer_control, PrivateTimerControlRegister, RW, u32);
@@ -276,7 +281,12 @@ register_bit!(private_timer_control, irq_enable, 2);
 register_bit!(private_timer_control, auto_reload, 1);
 register_bit!(private_timer_control, timer_enable, 0);
 
-register!(private_timer_interrupt_status, PrivateTimerInterruptStatusRegister, RW, u32);
+register!(
+    private_timer_interrupt_status,
+    PrivateTimerInterruptStatusRegister,
+    RW,
+    u32
+);
 register_bits!(private_timer_interrupt_status, unk_sbzp, u32, 1, 31);
 
 register!(watchdog_control, WatchdogControlRegister, RW, u32);
@@ -318,4 +328,3 @@ register_bits!(icdsgir, cpu_target_list, u8, 16, 23);
 register_bit!(icdsgir, satt, 15);
 register_bits!(icdsgir, sbz, u32, 4, 14);
 register_bits!(icdsgir, sgiintid, u8, 0, 3);
-

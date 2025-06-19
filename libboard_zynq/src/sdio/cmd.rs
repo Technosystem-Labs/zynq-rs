@@ -121,9 +121,7 @@ pub fn set_cmd_reg(cmd: SdCmd, is_sd_card: bool, w: CmdReg) -> CmdReg {
         CMD10 | CMD11 | CMD12 => resp_r1(w),
         ACMD13 => resp_r1(w).data_present_select(true),
         CMD16 => resp_r1(w),
-        CMD17 | CMD18 | CMD19 | CMD21 | CMD23 | ACMD23 | CMD24 | CMD25 => {
-            resp_r1(w).data_present_select(true)
-        }
+        CMD17 | CMD18 | CMD19 | CMD21 | CMD23 | ACMD23 | CMD24 | CMD25 => resp_r1(w).data_present_select(true),
         ACMD41 => resp_r3(w),
         ACMD42 => resp_r1(w),
         ACMD51 => resp_r1(w).data_present_select(true),

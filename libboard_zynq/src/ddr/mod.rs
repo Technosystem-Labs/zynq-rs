@@ -1,10 +1,12 @@
-use libregister::{RegisterR, RegisterW, RegisterRW};
-use log::{debug, info, error};
-use crate::{print, println};
-use super::slcr;
+use libregister::{RegisterR, RegisterRW, RegisterW};
+use log::{debug, error, info};
+
 #[cfg(feature = "target_zc706")]
 use super::slcr::DdriobVrefSel;
-use super::clocks::{Clocks, source::{DdrPll, ClockSource}};
+use super::{clocks::{Clocks,
+                     source::{ClockSource, DdrPll}},
+            slcr};
+use crate::{print, println};
 
 mod regs;
 
@@ -53,7 +55,11 @@ impl DdrRam {
         let clocks = Clocks::get();
         let ddr3x_clk_divisor = 2;
         let ddr2x_clk_divisor = 3;
-        debug!("DDR 3x/2x clocks: {}/{}", clocks.ddr / u32::from(ddr3x_clk_divisor), clocks.ddr / u32::from(ddr2x_clk_divisor));
+        debug!(
+            "DDR 3x/2x clocks: {}/{}",
+            clocks.ddr / u32::from(ddr3x_clk_divisor),
+            clocks.ddr / u32::from(ddr2x_clk_divisor)
+        );
 
         slcr::RegisterBlock::unlocked(|slcr| {
             slcr.ddr_clk_ctrl.write(
@@ -61,7 +67,7 @@ impl DdrRam {
                     .ddr_2xclkact(true)
                     .ddr_3xclkact(true)
                     .ddr_2xclk_divisor(ddr2x_clk_divisor)
-                    .ddr_3xclk_divisor(ddr3x_clk_divisor)
+                    .ddr_3xclk_divisor(ddr3x_clk_divisor),
             );
         });
         clocks
@@ -93,9 +99,12 @@ impl DdrRam {
     /// 10.6.2 DDR IOB Impedance Calibration
     fn calibrate_iob_impedance(clocks: &Clocks) {
         let (divisor0, divisor1) = Self::calculate_dci_divisors(clocks);
-        debug!("DDR DCI clock: {} Hz (divisors={}*{})",
-               clocks.ddr / u32::from(divisor0) / u32::from(divisor1),
-               divisor0, divisor1);
+        debug!(
+            "DDR DCI clock: {} Hz (divisors={}*{})",
+            clocks.ddr / u32::from(divisor0) / u32::from(divisor1),
+            divisor0,
+            divisor1
+        );
 
         slcr::RegisterBlock::unlocked(|slcr| {
             // Step 1.
@@ -103,34 +112,21 @@ impl DdrRam {
                 slcr::DciClkCtrl::zeroed()
                     .clkact(true)
                     .divisor0(divisor0)
-                    .divisor1(divisor1)
+                    .divisor1(divisor1),
             );
 
             // Step 2.a.
-            slcr.ddriob_dci_ctrl.modify(|_, w|
-                w.reset(false)
-            );
-            slcr.ddriob_dci_ctrl.modify(|_, w|
-                w.reset(true)
-            );
+            slcr.ddriob_dci_ctrl.modify(|_, w| w.reset(false));
+            slcr.ddriob_dci_ctrl.modify(|_, w| w.reset(true));
             // Step 3.b. for DDR3/DDR3L
-            slcr.ddriob_dci_ctrl.modify(|_, w|
-                w.nref_opt1(0)
-                 .nref_opt2(0)
-                 .nref_opt4(1)
-                 .pref_opt1(0)
-                 .pref_opt2(0)
-            );
+            slcr.ddriob_dci_ctrl
+                .modify(|_, w| w.nref_opt1(0).nref_opt2(0).nref_opt4(1).pref_opt1(0).pref_opt2(0));
             // Step 2.c.
-            slcr.ddriob_dci_ctrl.modify(|_, w|
-                w.update_control(false)
-            );
+            slcr.ddriob_dci_ctrl.modify(|_, w| w.update_control(false));
             // Step 2.d.
-            slcr.ddriob_dci_ctrl.modify(|_, w|
-                w.enable(true)
-            );
+            slcr.ddriob_dci_ctrl.modify(|_, w| w.enable(true));
             // Step 2.e.
-            while ! slcr.ddriob_dci_status.read().done() {}
+            while !slcr.ddriob_dci_status.read().done() {}
         });
     }
 
@@ -138,8 +134,7 @@ impl DdrRam {
     /// 10.6.3 DDR IOB Configuration
     fn configure_iob() {
         slcr::RegisterBlock::unlocked(|slcr| {
-            let addr_config = slcr::DdriobConfig::zeroed()
-                .output_en(slcr::DdriobOutputEn::Obuf);
+            let addr_config = slcr::DdriobConfig::zeroed().output_en(slcr::DdriobOutputEn::Obuf);
             slcr.ddriob_addr0.write(addr_config.clone());
             slcr.ddriob_addr1.write(addr_config);
 
@@ -168,8 +163,7 @@ impl DdrRam {
                 feature = "target_redpitaya",
                 feature = "target_kasli_soc",
             ))]
-            let data1_config = slcr::DdriobConfig::zeroed()
-                .pullup_en(true);
+            let data1_config = slcr::DdriobConfig::zeroed().pullup_en(true);
             slcr.ddriob_data0.write(data0_config);
             slcr.ddriob_data1.write(data1_config);
 
@@ -198,15 +192,12 @@ impl DdrRam {
                 feature = "target_redpitaya",
                 feature = "target_kasli_soc",
             ))]
-            let diff1_config = slcr::DdriobConfig::zeroed()
-                .pullup_en(true);
+            let diff1_config = slcr::DdriobConfig::zeroed().pullup_en(true);
             slcr.ddriob_diff0.write(diff0_config);
             slcr.ddriob_diff1.write(diff1_config);
 
-            slcr.ddriob_clock.write(
-                slcr::DdriobConfig::zeroed()
-                    .output_en(slcr::DdriobOutputEn::Obuf)
-            );
+            slcr.ddriob_clock
+                .write(slcr::DdriobConfig::zeroed().output_en(slcr::DdriobOutputEn::Obuf));
 
             unsafe {
                 // Not documented in Technical Reference Manual
@@ -222,19 +213,19 @@ impl DdrRam {
                 feature = "target_redpitaya",
                 feature = "target_kasli_soc",
             ))]
-            slcr.ddriob_ddr_ctrl.modify(|_, w| w
-                    .vref_int_en(false)
+            slcr.ddriob_ddr_ctrl.modify(|_, w| {
+                w.vref_int_en(false)
                     .vref_ext_en_lower(true)
                     .vref_ext_en_upper(false)
                     .refio_en(true)
-            );
+            });
             #[cfg(feature = "target_zc706")]
-            slcr.ddriob_ddr_ctrl.modify(|_, w| w
-                    .vref_int_en(true)
+            slcr.ddriob_ddr_ctrl.modify(|_, w| {
+                w.vref_int_en(true)
                     .vref_sel(DdriobVrefSel::Vref0_75V)
                     .vref_ext_en_lower(false)
                     .vref_ext_en_upper(false)
-            );
+            });
         });
     }
 
@@ -244,45 +235,40 @@ impl DdrRam {
             regs::DramParam0::zeroed()
                 .t_rc(0x1a)
                 .t_rfc_min(0x9e)
-                .post_selfref_gap_x32(0x10)
+                .post_selfref_gap_x32(0x10),
         );
         #[cfg(feature = "target_ebaz4205")]
         self.regs.dram_param0.write(
             regs::DramParam0::zeroed()
                 .t_rc(0x1a)
                 .t_rfc_min(0x56)
-                .post_selfref_gap_x32(0x10)
+                .post_selfref_gap_x32(0x10),
         );
         #[cfg(feature = "target_redpitaya")]
         self.regs.dram_param0.write(
             regs::DramParam0::zeroed()
                 .t_rc(0x1b)
                 .t_rfc_min(0xa0)
-                .post_selfref_gap_x32(0x10)
+                .post_selfref_gap_x32(0x10),
         );
         #[cfg(feature = "target_zc706")]
         self.regs.dram_param0.write(
             regs::DramParam0::zeroed()
                 .t_rc(0x1b)
                 .t_rfc_min(0x56)
-                .post_selfref_gap_x32(0x10)
+                .post_selfref_gap_x32(0x10),
         );
         #[cfg(feature = "target_ebaz4205")]
-        self.regs.dram_param1.modify(
-            |_, w| w
-                .t_faw(0x16)
-                .t_ras_min(0x13)
-        );
+        self.regs.dram_param1.modify(|_, w| w.t_faw(0x16).t_ras_min(0x13));
         #[cfg(feature = "target_redpitaya")]
-        self.regs.dram_param1.modify(
-            |_, w| w
-                .wr2pre(0x12)
+        self.regs.dram_param1.modify(|_, w| {
+            w.wr2pre(0x12)
                 .powerdown_to_x32(6)
                 .t_faw(0x16)
                 .t_ras_max(0x24)
                 .t_ras_min(0x13)
                 .t_cke(4)
-        );
+        });
 
         self.regs.dram_param2.write(
             regs::DramParam2::zeroed()
@@ -292,17 +278,13 @@ impl DdrRam {
                 .t_xp(0x4)
                 .pad_pd(0x0)
                 .rd2pre(0x4)
-                .t_rcd(0x7)
+                .t_rcd(0x7),
         );
         #[cfg(feature = "target_ebaz4205")]
-        self.regs.dram_param3.modify(
-            |_, w| w
-                .t_rp(7)
-        );
+        self.regs.dram_param3.modify(|_, w| w.t_rp(7));
         #[cfg(feature = "target_redpitaya")]
-        self.regs.dram_param3.modify(
-            |_, w| w
-                .t_ccd(4)
+        self.regs.dram_param3.modify(|_, w| {
+            w.t_ccd(4)
                 .t_rrd(6)
                 .refresh_margin(2)
                 .t_rp(7)
@@ -312,13 +294,11 @@ impl DdrRam {
                 .read_latency(7)
                 .mode_ddr1_ddr2(true)
                 .dis_pad_pd(false)
-        );
+        });
 
-        self.regs.dram_emr_mr.write(
-            regs::DramEmrMr::zeroed()
-                .mr(0x930)
-                .emr(0x4)
-        );
+        self.regs
+            .dram_emr_mr
+            .write(regs::DramEmrMr::zeroed().mr(0x930).emr(0x4));
 
         #[cfg(any(
             feature = "target_coraz7",
@@ -326,22 +306,17 @@ impl DdrRam {
             feature = "target_redpitaya",
             feature = "target_kasli_soc",
         ))]
-        self.regs.phy_configs[2].modify(
-            |_, w| w.data_slice_in_use(false)
-        );
+        self.regs.phy_configs[2].modify(|_, w| w.data_slice_in_use(false));
         #[cfg(any(
             feature = "target_coraz7",
             feature = "target_ebaz4205",
             feature = "target_redpitaya",
             feature = "target_kasli_soc",
         ))]
-        self.regs.phy_configs[3].modify(
-            |_, w| w.data_slice_in_use(false)
-        );
+        self.regs.phy_configs[3].modify(|_, w| w.data_slice_in_use(false));
 
-        self.regs.phy_cmd_timeout_rddata_cpt.modify(
-            |_, w| w
-                .rd_cmd_to_data(0x0)
+        self.regs.phy_cmd_timeout_rddata_cpt.modify(|_, w| {
+            w.rd_cmd_to_data(0x0)
                 .wr_cmd_to_data(0x0)
                 .we_to_re_delay(0x8)
                 .rdc_fifo_rst_disable(false)
@@ -351,7 +326,7 @@ impl DdrRam {
                 .clk_stall_level(false)
                 .gatelvl_num_of_dq0(0x7)
                 .wrlvl_num_of_dq0(0x7)
-        );
+        });
 
         self.regs.reg_2c.write(
             regs::Reg2C::zeroed()
@@ -361,37 +336,30 @@ impl DdrRam {
                 .trdlvl_max_error(false)
                 .dfi_wr_level_en(true)
                 .dfi_rd_dqs_gate_level(true)
-                .dfi_rd_data_eye_train(true)
+                .dfi_rd_data_eye_train(true),
         );
 
         self.regs.dfi_timing.write(
             regs::DfiTiming::zeroed()
                 .rddata_en(0x6)
                 .ctrlup_min(0x3)
-                .ctrlup_max(0x40)
+                .ctrlup_max(0x40),
         );
 
         #[cfg(feature = "target_zc706")]
         self.regs.phy_init_ratios[3].write(
             regs::PhyInitRatio::zeroed()
                 .wrlvl_init_ratio(0x21)
-                .gatelvl_init_ratio(0xee)
+                .gatelvl_init_ratio(0xee),
         );
 
-        #[cfg(any(
-            feature = "target_coraz7",
-            feature = "target_ebaz4205",
-            feature = "target_kasli_soc"),
-        )]
-        self.regs.reg_64.modify(
-            |_, w| w
-                .phy_ctrl_slave_ratio(0x100)
-                .phy_invert_clkout(true)
-        );
+        #[cfg(any(feature = "target_coraz7", feature = "target_ebaz4205", feature = "target_kasli_soc"))]
+        self.regs
+            .reg_64
+            .modify(|_, w| w.phy_ctrl_slave_ratio(0x100).phy_invert_clkout(true));
         #[cfg(feature = "target_redpitaya")]
-        self.regs.reg_64.modify(
-            |_, w| w
-                .phy_bl2(false)
+        self.regs.reg_64.modify(|_, w| {
+            w.phy_bl2(false)
                 .phy_invert_clkout(true)
                 .phy_sel_logic(false)
                 .phy_ctrl_slave_ratio(0x100)
@@ -399,7 +367,7 @@ impl DdrRam {
                 .phy_ctrl_slave_delay(0)
                 .phy_lpddr(false)
                 .phy_cmd_latency(false)
-        );
+        });
 
         self.regs.reg_65.write(
             regs::Reg65::zeroed()
@@ -410,7 +378,7 @@ impl DdrRam {
                 .use_rd_dqs_gate_level(true)
                 .use_rd_data_eye_level(true)
                 .dis_calib_rst(false)
-                .ctrl_slave_delay(0x0)
+                .ctrl_slave_delay(0x0),
         );
     }
 
@@ -425,11 +393,9 @@ impl DdrRam {
             feature = "target_kasli_soc",
         ))]
         let width = regs::DataBusWidth::Width16bit;
-        self.regs.ddrc_ctrl.modify(|_, w| w
-            .soft_rstb(false)
-            .powerdown_en(false)
-            .data_bus_width(width)
-        );
+        self.regs
+            .ddrc_ctrl
+            .modify(|_, w| w.soft_rstb(false).powerdown_en(false).data_bus_width(width));
         f(self);
 
         #[cfg(feature = "target_zc706")]
@@ -452,11 +418,9 @@ impl DdrRam {
             self.regs.dram_addr_map_row.write(0x0F555555);
         }
 
-        self.regs.ddrc_ctrl.modify(|_, w| w
-            .soft_rstb(true)
-            .powerdown_en(false)
-            .data_bus_width(width)
-        );
+        self.regs
+            .ddrc_ctrl
+            .modify(|_, w| w.soft_rstb(true).powerdown_en(false).data_bus_width(width));
 
         while self.status() == regs::ControllerStatus::Init {}
     }
@@ -489,9 +453,7 @@ impl DdrRam {
     }
 
     pub fn memtest(&mut self) {
-        let slice = unsafe {
-            core::slice::from_raw_parts_mut(self.ptr(), self.size())
-        };
+        let slice = unsafe { core::slice::from_raw_parts_mut(self.ptr(), self.size()) };
         let patterns: &'static [u32] = &[0xffff_ffff, 0x5555_5555, 0xaaaa_aaaa, 0];
         let mut expected = None;
         for (i, pattern) in patterns.iter().enumerate() {
@@ -504,7 +466,10 @@ impl DdrRam {
                     expected.map(|expected| {
                         let read: u32 = *b;
                         if read != expected {
-                            error!("{:08X}: expected {:08X}, read {:08X}", b as *mut _ as usize, expected, read);
+                            error!(
+                                "{:08X}: expected {:08X}, read {:08X}",
+                                b as *mut _ as usize, expected, read
+                            );
                         }
                     });
                     *b = *pattern;

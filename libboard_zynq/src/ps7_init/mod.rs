@@ -1,19 +1,20 @@
 use crate::println;
 
-#[cfg(feature = "target_zc706")]
-mod zc706;
 #[cfg(not(feature = "target_zc706"))]
 mod none;
-
 #[cfg(feature = "target_zc706")]
-use zc706 as target;
+mod zc706;
+
 #[cfg(not(feature = "target_zc706"))]
 use none as target;
+#[cfg(feature = "target_zc706")]
+use zc706 as target;
 
 pub fn report_differences() {
     for (i, op) in target::INIT_DATA.iter().enumerate() {
         let address = op.address();
-        let overwritten_later = target::INIT_DATA[(i + 1)..].iter()
+        let overwritten_later = target::INIT_DATA[(i + 1)..]
+            .iter()
             .any(|later_op| later_op.address() == address);
 
         if !overwritten_later {
@@ -50,10 +51,8 @@ impl InitOp {
 
     fn difference(&self) -> Option<(usize, usize)> {
         let expected = match self {
-            InitOp::MaskWrite(_, mask, expected) =>
-                Some((*mask, *expected)),
-            InitOp::MaskPoll(_, mask) =>
-                Some((*mask, *mask)),
+            InitOp::MaskWrite(_, mask, expected) => Some((*mask, *expected)),
+            InitOp::MaskPoll(_, mask) => Some((*mask, *mask)),
             _ => None,
         };
         match expected {
@@ -65,8 +64,7 @@ impl InitOp {
                     Some((actual & mask, expected))
                 }
             }
-            None =>
-                None
+            None => None,
         }
     }
 
@@ -86,12 +84,10 @@ impl InitOp {
         let reg = self.address() as *mut usize;
         println!("apply {:?}", self);
         match self {
-            InitOp::MaskWrite(_, mask, val) =>
-                unsafe {
-                    *reg = (val & mask) | (*reg & !mask);
-                },
-            InitOp::MaskPoll(_, mask) =>
-                while unsafe { *reg } & mask == 0 {},
+            InitOp::MaskWrite(_, mask, val) => unsafe {
+                *reg = (val & mask) | (*reg & !mask);
+            },
+            InitOp::MaskPoll(_, mask) => while unsafe { *reg } & mask == 0 {},
             InitOp::MaskDelay(_, mask) => {
                 let delay = get_number_of_cycles_for_delay(*mask);
                 while unsafe { *reg } < delay {
@@ -104,5 +100,5 @@ impl InitOp {
 
 fn get_number_of_cycles_for_delay(delay: usize) -> usize {
     const APU_FREQ: usize = 666666687;
-    APU_FREQ * delay/ (2 * 1000)
+    APU_FREQ * delay / (2 * 1000)
 }

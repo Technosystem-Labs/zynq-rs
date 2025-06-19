@@ -1,7 +1,8 @@
-use super::{adma::Adma2DescTable, cmd, CardType, CmdTransferError, Sdio};
 use libcortex_a9::cache;
 use libregister::{RegisterR, RegisterRW, RegisterW};
-use log::{trace, debug};
+use log::{debug, trace};
+
+use super::{CardType, CmdTransferError, Sdio, adma::Adma2DescTable, cmd};
 
 #[derive(Debug)]
 pub enum CardInitializationError {
@@ -19,7 +20,7 @@ impl core::fmt::Display for CardInitializationError {
             AlreadyInitialized => write!(f, "Card already initialized."),
             NoCardInserted => write!(f, "No card inserted, check if the card is inserted properly."),
             InitializationFailedOther => write!(f, "Unknown error. Please check the debug messages."),
-            InitializationFailedCmd(x) => write!(f, "{}", x)
+            InitializationFailedCmd(x) => write!(f, "{}", x),
         }
     }
 }
@@ -52,14 +53,17 @@ const BLK_SIZE_MASK: u16 = 0x00000FFF;
 
 impl core::fmt::Display for SdCard {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        write!(f, "SdCard: \n  card version: {:?}\n  hcs: {}\n  card id: {:?}\n rel card addr: {}\n sector count: {}",
-            self.card_version, self.hcs, self.card_id, self.rel_card_addr, self.sector_cnt)
+        write!(
+            f,
+            "SdCard: \n  card version: {:?}\n  hcs: {}\n  card id: {:?}\n rel card addr: {}\n sector count: {}",
+            self.card_version, self.hcs, self.card_id, self.rel_card_addr, self.sector_cnt
+        )
     }
 }
 
 impl SdCard {
     fn sd_card_initialize(&mut self) -> Result<(), CardInitializationError> {
-        use cmd::{args::*, SdCmd::*};
+        use cmd::{SdCmd::*, args::*};
         if !self.sdio.is_card_inserted() {
             return Err(CardInitializationError::NoCardInserted);
         }
@@ -68,10 +72,7 @@ impl SdCard {
         match self.sdio.cmd_transfer(CMD8, CMD8_VOL_PATTERN, 0) {
             Err(CmdTransferError::CmdTimeout) => {
                 // reset
-                self.sdio
-                    .regs
-                    .clock_control
-                    .modify(|_, w| w.software_reset_cmd(true));
+                self.sdio.regs.clock_control.modify(|_, w| w.software_reset_cmd(true));
                 // wait until reset is completed
                 while self.sdio.regs.clock_control.read().software_reset_cmd() {}
             }
@@ -117,10 +118,7 @@ impl SdCard {
         }
 
         self.sdio.cmd_transfer(CMD9, self.rel_card_addr, 0)?;
-        self.sdio
-            .regs
-            .interrupt_status
-            .modify(|_, w| w.transfer_complete());
+        self.sdio.regs.interrupt_status.modify(|_, w| w.transfer_complete());
 
         let mut csd: [u32; 4] = [0, 0, 0, 0];
         for i in 0..=3 {
@@ -199,22 +197,10 @@ impl SdCard {
 
     /// read blocks starting from an address. Each block has length 512 byte.
     /// Note that the address is block address, i.e. 0 for 0~512, 1 for 512~1024, etc.
-    pub fn read_block(
-        &mut self,
-        address: u32,
-        block_cnt: u16,
-        buffer: &mut [u8],
-    ) -> Result<(), CmdTransferError> {
+    pub fn read_block(&mut self, address: u32, block_cnt: u16, buffer: &mut [u8]) -> Result<(), CmdTransferError> {
         assert!(buffer.len() >= (block_cnt as usize) * 512);
         // set block size if not set already
-        if self
-            .sdio
-            .regs
-            .block_size_block_count
-            .read()
-            .transfer_block_size()
-            != 512
-        {
+        if self.sdio.regs.block_size_block_count.read().transfer_block_size() != 512 {
             self.sdio.set_block_size(512)?;
         }
 
@@ -249,8 +235,7 @@ impl SdCard {
                 .dma_en(true)
         };
 
-        self.sdio
-            .cmd_transfer_with_mode(cmd, real_addr, block_cnt, mode)?;
+        self.sdio.cmd_transfer_with_mode(cmd, real_addr, block_cnt, mode)?;
 
         self.wait_transfer_complete()?;
         cache::dcci_slice(buffer);
@@ -259,22 +244,10 @@ impl SdCard {
 
     /// write blocks starting from an address. Each block has length 512 byte.
     /// Note that the address is block address, i.e. 0 for 0~512, 1 for 512~1024, etc.
-    pub fn write_block(
-        &mut self,
-        address: u32,
-        block_cnt: u16,
-        buffer: &[u8],
-    ) -> Result<(), CmdTransferError> {
+    pub fn write_block(&mut self, address: u32, block_cnt: u16, buffer: &[u8]) -> Result<(), CmdTransferError> {
         assert!(buffer.len() >= (block_cnt as usize) * 512);
         // set block size if not set already
-        if self
-            .sdio
-            .regs
-            .block_size_block_count
-            .read()
-            .transfer_block_size()
-            != 512
-        {
+        if self.sdio.regs.block_size_block_count.read().transfer_block_size() != 512 {
             self.sdio.set_block_size(512)?;
         }
 
@@ -307,8 +280,7 @@ impl SdCard {
                 .dma_en(true)
         };
 
-        self.sdio
-            .cmd_transfer_with_mode(cmd, real_addr, block_cnt, mode)?;
+        self.sdio.cmd_transfer_with_mode(cmd, real_addr, block_cnt, mode)?;
         // wait for transfer complete interrupt
         self.wait_transfer_complete()?;
 
@@ -355,10 +327,7 @@ impl SdCard {
         self.width_4_bit = true;
         self.sdio.cmd_transfer(ACMD6, 0x2, 0)?;
         self.sdio.delay(1);
-        self.sdio
-            .regs
-            .control
-            .modify(|_, w| w.data_width_select(true));
+        self.sdio.regs.control.modify(|_, w| w.data_width_select(true));
         Ok(())
     }
 
@@ -370,10 +339,7 @@ impl SdCard {
             status = self.sdio.regs.interrupt_status.read();
         }
         trace!("Clearing transfer complete");
-        self.sdio
-            .regs
-            .interrupt_status
-            .modify(|_, w| w.transfer_complete());
+        self.sdio.regs.interrupt_status.modify(|_, w| w.transfer_complete());
         Ok(())
     }
 }

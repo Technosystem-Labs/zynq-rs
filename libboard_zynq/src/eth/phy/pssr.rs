@@ -1,5 +1,6 @@
 use bit_field::BitField;
-use super::{PhyRegister, Link, LinkDuplex, LinkSpeed};
+
+use super::{Link, LinkDuplex, LinkSpeed, PhyRegister};
 
 #[derive(Clone, Copy, Debug)]
 /// PHY-Specific Status Register
@@ -43,7 +44,7 @@ impl PhyRegister for PSSR {
     fn addr() -> u8 {
         0x11
     }
-        
+
     fn page() -> u8 {
         0
     }

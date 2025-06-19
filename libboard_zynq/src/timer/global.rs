@@ -1,11 +1,11 @@
 use core::ops::Add;
-use void::Void;
+
 use libregister::{RegisterR, RegisterW};
-use crate::{
-    clocks::Clocks,
-    mpcore,
-    time::{Milliseconds, Microseconds, TimeSource},
-};
+use void::Void;
+
+use crate::{clocks::Clocks,
+            mpcore,
+            time::{Microseconds, Milliseconds, TimeSource}};
 
 /// "uptime"
 #[derive(Clone, Copy)]
@@ -29,17 +29,11 @@ impl GlobalTimer {
 
     fn reset(regs: &mut mpcore::RegisterBlock) {
         // Disable
-        regs.global_timer_control.write(
-            mpcore::GlobalTimerControl::zeroed()
-        );
+        regs.global_timer_control.write(mpcore::GlobalTimerControl::zeroed());
 
         // Reset counters
-        regs.global_timer_counter0.write(
-            mpcore::ValueRegister::zeroed()
-        );
-        regs.global_timer_counter1.write(
-            mpcore::ValueRegister::zeroed()
-        );
+        regs.global_timer_counter0.write(mpcore::ValueRegister::zeroed());
+        regs.global_timer_counter1.write(mpcore::ValueRegister::zeroed());
 
         // find a prescaler value that matches CPU speed / 2 to us
         let clocks = Clocks::get();
@@ -53,7 +47,7 @@ impl GlobalTimer {
             mpcore::GlobalTimerControl::zeroed()
                 .prescaler((prescaler - 1) as u8)
                 .auto_increment_mode(true)
-                .timer_enable(true)
+                .timer_enable(true),
         );
     }
 
@@ -90,9 +84,7 @@ impl GlobalTimer {
     /// return a handle that has implements
     /// `embedded_hal::timer::CountDown`
     pub fn countdown<U>(&self) -> CountDown<U>
-    where
-        Self: TimeSource<U>,
-    {
+    where Self: TimeSource<U> {
         CountDown {
             timer: self.clone(),
             timeout: self.now(),
@@ -119,9 +111,8 @@ pub struct CountDown<U> {
 }
 
 /// embedded-hal async API
-impl<U: Add<Output=U> + PartialOrd> embedded_hal::timer::CountDown for CountDown<U>
-where
-    GlobalTimer: TimeSource<U>,
+impl<U: Add<Output = U> + PartialOrd> embedded_hal::timer::CountDown for CountDown<U>
+where GlobalTimer: TimeSource<U>
 {
     type Time = U;
 
@@ -139,8 +130,7 @@ where
 }
 
 impl<U: PartialOrd> CountDown<U>
-where
-    GlobalTimer: TimeSource<U>,
+where GlobalTimer: TimeSource<U>
 {
     pub fn waiting(&self) -> bool {
         self.timer.now() <= self.timeout

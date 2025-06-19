@@ -1,16 +1,12 @@
-use volatile_register::{RO, WO, RW};
-
-use libregister::{
-    register, register_at,
-    register_bit, register_bits, register_bits_typed,
-};
+use libregister::{register, register_at, register_bit, register_bits, register_bits_typed};
+use volatile_register::{RO, RW, WO};
 
 #[allow(unused)]
 #[repr(u8)]
 pub enum ChannelMode {
-    Normal         = 0b00,
-    AutomaticEcho  = 0b01,
-    LocalLoopback  = 0b10,
+    Normal = 0b00,
+    AutomaticEcho = 0b01,
+    LocalLoopback = 0b10,
     RemoteLoopback = 0b11,
 }
 
@@ -18,18 +14,18 @@ pub enum ChannelMode {
 #[repr(u8)]
 pub enum ParityMode {
     EvenParity = 0b000,
-    OddParity  = 0b001,
-    ForceTo0   = 0b010,
-    ForceTo1   = 0b011,
-    None       = 0b100,
+    OddParity = 0b001,
+    ForceTo0 = 0b010,
+    ForceTo1 = 0b011,
+    None = 0b100,
 }
 
 #[allow(unused)]
 #[repr(u8)]
 pub enum StopBits {
-    One        = 0b00,
+    One = 0b00,
     OneAndHalf = 0b01,
-    Two        = 0b10,
+    Two = 0b10,
 }
 
 #[repr(C)]

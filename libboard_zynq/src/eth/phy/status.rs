@@ -1,5 +1,6 @@
 use bit_field::BitField;
-use super::{PhyRegister, Link, LinkDuplex, LinkSpeed};
+
+use super::{Link, LinkDuplex, LinkSpeed, PhyRegister};
 
 #[derive(Clone, Copy, Debug)]
 /// Basic Mode Status Register
@@ -53,7 +54,7 @@ impl Status {
     }
 
     pub fn get_link(&self) -> Option<Link> {
-        if ! self.link_status() {
+        if !self.link_status() {
             None
         } else if self.cap_100base_tx_full() {
             Some(Link {
@@ -100,7 +101,7 @@ impl PhyRegister for Status {
     fn addr() -> u8 {
         1
     }
-        
+
     fn page() -> u8 {
         0
     }

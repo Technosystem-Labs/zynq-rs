@@ -1,13 +1,12 @@
-use core::ops::{Deref, DerefMut};
-use core::sync::atomic::{AtomicU32, Ordering};
-use core::cell::UnsafeCell;
-use core::task::{Context, Poll};
-use core::pin::Pin;
-use core::future::Future;
-use super::{
-    spin_lock_yield, notify_spin_lock,
-    asm::{enter_critical, exit_critical}
-};
+use core::{cell::UnsafeCell,
+           future::Future,
+           ops::{Deref, DerefMut},
+           pin::Pin,
+           sync::atomic::{AtomicU32, Ordering},
+           task::{Context, Poll}};
+
+use super::{asm::{enter_critical, exit_critical},
+            notify_spin_lock, spin_lock_yield};
 
 const LOCKED: u32 = 1;
 const UNLOCKED: u32 = 0;
@@ -29,12 +28,16 @@ impl<'a, T> Future for Fut<'a, T> {
     type Output = MutexGuard<'a, T>;
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let irq = unsafe { enter_critical() };
-        if self.0.locked.compare_exchange_weak(UNLOCKED, LOCKED, Ordering::AcqRel, Ordering::Relaxed).is_err() {
+        if self
+            .0
+            .locked
+            .compare_exchange_weak(UNLOCKED, LOCKED, Ordering::AcqRel, Ordering::Relaxed)
+            .is_err()
+        {
             unsafe { exit_critical(irq) };
             cx.waker().wake_by_ref();
             Poll::Pending
-        }
-        else {
+        } else {
             Poll::Ready(MutexGuard { mutex: self.0, irq })
         }
     }
@@ -43,7 +46,7 @@ impl<'a, T> Future for Fut<'a, T> {
 impl<T> Mutex<T> {
     /// Constructor, const-fn
     pub const fn new(inner: T) -> Self {
-        Mutex{
+        Mutex {
             locked: AtomicU32::new(UNLOCKED),
             inner: UnsafeCell::new(inner),
         }
@@ -52,7 +55,11 @@ impl<T> Mutex<T> {
     /// Lock the Mutex, blocks when already locked
     pub fn lock(&self) -> MutexGuard<T> {
         let mut irq = unsafe { enter_critical() };
-        while self.locked.compare_exchange_weak(UNLOCKED, LOCKED, Ordering::AcqRel, Ordering::Relaxed).is_err() {
+        while self
+            .locked
+            .compare_exchange_weak(UNLOCKED, LOCKED, Ordering::AcqRel, Ordering::Relaxed)
+            .is_err()
+        {
             unsafe {
                 exit_critical(irq);
                 spin_lock_yield();
@@ -68,7 +75,11 @@ impl<T> Mutex<T> {
 
     pub fn try_lock(&self) -> Option<MutexGuard<T>> {
         let irq = unsafe { enter_critical() };
-        if self.locked.compare_exchange_weak(UNLOCKED, LOCKED, Ordering::AcqRel, Ordering::Relaxed).is_err() {
+        if self
+            .locked
+            .compare_exchange_weak(UNLOCKED, LOCKED, Ordering::AcqRel, Ordering::Relaxed)
+            .is_err()
+        {
             unsafe { exit_critical(irq) };
             None
         } else {

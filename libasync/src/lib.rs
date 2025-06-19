@@ -2,9 +2,9 @@
 
 extern crate alloc;
 
-pub mod task;
-pub mod executor;
 mod delay;
+pub mod executor;
+pub mod task;
 pub use delay::delay;
 
 pub mod smoltcp;
@@ -24,13 +24,12 @@ macro_rules! block_async {
                 match $e {
                     Err($crate::nb::Error::Other(e)) => {
                         #[allow(unreachable_code)]
-                        break Err(e)
-                    },
-                    Err($crate::nb::Error::WouldBlock) =>
-                        $crate::task::r#yield().await,
+                        break Err(e);
+                    }
+                    Err($crate::nb::Error::WouldBlock) => $crate::task::r#yield().await,
                     Ok(x) => break Ok(x),
                 }
             }
         }
-    }
+    };
 }

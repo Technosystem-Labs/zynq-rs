@@ -1,5 +1,6 @@
 use libregister::*;
-use super::regs::{RegisterBlock, BaudRateGen, BaudRateDiv};
+
+use super::regs::{BaudRateDiv, BaudRateGen, RegisterBlock};
 
 const BDIV_MIN: u32 = 4;
 const BDIV_MAX: u32 = 255;
@@ -28,9 +29,7 @@ pub fn configure(regs: &mut RegisterBlock, mut clk: u32, baud: u32) {
         } else {
             actual_baud - baud
         };
-        let better = best
-            .map(|(_cd, _bdiv, best_error)| error < best_error)
-            .unwrap_or(true);
+        let better = best.map(|(_cd, _bdiv, best_error)| error < best_error).unwrap_or(true);
         if better {
             best = Some((cd as u16, bdiv as u8, error));
         }
@@ -41,6 +40,6 @@ pub fn configure(regs: &mut RegisterBlock, mut clk: u32, baud: u32) {
             regs.baud_rate_gen.write(BaudRateGen::zeroed().cd(cd));
             regs.baud_rate_divider.write(BaudRateDiv::zeroed().bdiv(bdiv));
         }
-        None => panic!("Cannot configure baud rate")
+        None => panic!("Cannot configure baud rate"),
     }
 }

@@ -1,6 +1,7 @@
-use super::asm::{dmb, dsb};
-use super::l2c::*;
 use core::arch::asm;
+
+use super::{asm::{dmb, dsb},
+            l2c::*};
 
 /// Invalidate TLBs
 #[inline(always)]
@@ -117,7 +118,7 @@ pub fn dcciall_l1() {
 }
 
 #[inline(always)]
-pub  fn dcciall() {
+pub fn dcciall() {
     dmb();
     dcciall_l1();
     dsb();
@@ -139,14 +140,13 @@ fn cache_line_addrs(first_addr: usize, beyond_addr: usize) -> impl Iterator<Item
 
 fn object_cache_line_addrs<T>(object: *const T) -> impl Iterator<Item = usize> {
     let first_addr = object.addr();
-    let beyond_addr = object.addr() + core::mem::size_of::<T>(); 
+    let beyond_addr = object.addr() + core::mem::size_of::<T>();
     cache_line_addrs(first_addr, beyond_addr)
 }
 
 fn slice_cache_line_addrs<T>(slice: &[T]) -> impl Iterator<Item = usize> {
     let first_addr = (&raw const slice[0]).addr();
-    let beyond_addr = (&raw const slice[slice.len() - 1]).addr() +
-        core::mem::size_of_val(&slice[slice.len() - 1]);
+    let beyond_addr = (&raw const slice[slice.len() - 1]).addr() + core::mem::size_of_val(&slice[slice.len() - 1]);
     cache_line_addrs(first_addr, beyond_addr)
 }
 
@@ -247,7 +247,11 @@ pub unsafe fn dci<T>(object: &mut T) {
     let first_addr = object as *const _ as usize;
     let beyond_addr = (object as *const _ as usize) + core::mem::size_of_val(object);
     assert_eq!(first_addr & CACHE_LINE_MASK, 0, "dci object first_addr must be aligned");
-    assert_eq!(beyond_addr & CACHE_LINE_MASK, 0, "dci object beyond_addr must be aligned");
+    assert_eq!(
+        beyond_addr & CACHE_LINE_MASK,
+        0,
+        "dci object beyond_addr must be aligned"
+    );
 
     dmb();
     for addr in (first_addr..beyond_addr).step_by(CACHE_LINE) {
@@ -262,10 +266,13 @@ pub unsafe fn dci<T>(object: &mut T) {
 
 pub unsafe fn dci_slice<T>(slice: &mut [T]) {
     let first_addr = &slice[0] as *const _ as usize;
-    let beyond_addr = (&slice[slice.len() - 1] as *const _ as usize) +
-        core::mem::size_of_val(&slice[slice.len() - 1]);
+    let beyond_addr = (&slice[slice.len() - 1] as *const _ as usize) + core::mem::size_of_val(&slice[slice.len() - 1]);
     assert_eq!(first_addr & CACHE_LINE_MASK, 0, "dci slice first_addr must be aligned");
-    assert_eq!(beyond_addr & CACHE_LINE_MASK, 0, "dci slice beyond_addr must be aligned");
+    assert_eq!(
+        beyond_addr & CACHE_LINE_MASK,
+        0,
+        "dci slice beyond_addr must be aligned"
+    );
 
     dmb();
     for addr in (first_addr..beyond_addr).step_by(CACHE_LINE) {

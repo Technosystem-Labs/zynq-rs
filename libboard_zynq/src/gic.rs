@@ -1,7 +1,8 @@
 //! ARM Generic Interrupt Controller
 
 use bit_field::BitField;
-use libregister::{RegisterW, RegisterRW, RegisterR};
+use libregister::{RegisterR, RegisterRW, RegisterW};
+
 use super::mpcore;
 
 #[derive(Debug, Clone, Copy)]
@@ -11,7 +12,7 @@ pub struct InterruptId(pub u8);
 #[repr(u8)]
 pub enum CPUCore {
     Core0 = 0b01,
-    Core1 = 0b10
+    Core1 = 0b10,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -36,7 +37,7 @@ impl From<CPUCore> for TargetCPU {
 pub enum TargetList {
     CPUList(TargetCPU),
     Others,
-    This
+    This,
 }
 
 impl From<CPUCore> for TargetList {
@@ -67,8 +68,7 @@ impl InterruptController {
     }
 
     pub fn disable_interrupts(&mut self) {
-        self.mpcore.iccicr.modify(|_, w| w.enable_ns(false)
-                                          .enable_s(false));
+        self.mpcore.iccicr.modify(|_, w| w.enable_ns(false).enable_s(false));
         // FIXME: Should we disable the distributor globally when we disable interrupt (for a single
         // core)?
         // self.mpcore.icddcr.modify(|_, w| w.enable_secure(false)
@@ -77,8 +77,7 @@ impl InterruptController {
 
     /// enable interrupt signaling
     pub fn enable_interrupts(&mut self) {
-        self.mpcore.iccicr.modify(|_, w| w.enable_ns(true)
-                                          .enable_s(true));
+        self.mpcore.iccicr.modify(|_, w| w.enable_ns(true).enable_s(true));
         self.mpcore.icddcr.modify(|_, w| w.enable_secure(true));
 
         // Enable all interrupts except those of the lowest priority.
@@ -88,11 +87,15 @@ impl InterruptController {
     /// send software generated interrupt
     pub fn send_sgi(&mut self, id: InterruptId, targets: TargetList) {
         assert!(id.0 < 16);
-        self.mpcore.icdsgir.modify(|_, w| match targets {
-            TargetList::CPUList(list) => w.target_list_filter(0).cpu_target_list(list.0),
-            TargetList::Others => w.target_list_filter(0b01),
-            TargetList::This => w.target_list_filter(0b10)
-        }.sgiintid(id.0).satt(false));
+        self.mpcore.icdsgir.modify(|_, w| {
+            match targets {
+                TargetList::CPUList(list) => w.target_list_filter(0).cpu_target_list(list.0),
+                TargetList::Others => w.target_list_filter(0b01),
+                TargetList::This => w.target_list_filter(0b10),
+            }
+            .sgiintid(id.0)
+            .satt(false)
+        });
     }
 
     /// enable the interrupt *for this core*.
@@ -115,17 +118,22 @@ impl InterruptController {
         let m = (id.0 >> 2) as usize;
         let n = (8 * (id.0 & 3)) as usize;
         unsafe {
-            self.mpcore.icdiptr[m].modify(|mut icdiptr| *icdiptr.set_bits(n..=n+1, target_cpu as u32));
+            self.mpcore.icdiptr[m].modify(|mut icdiptr| *icdiptr.set_bits(n..=n + 1, target_cpu as u32));
         }
 
         // sensitivity
         let m = (id.0 >> 4) as usize;
         let n = (2 * (id.0 & 0xF)) as usize;
         unsafe {
-            self.mpcore.icdicfr[m].modify(|mut icdicfr| *icdicfr.set_bits(n..=n+1, match sensitivity {
-                InterruptSensitivity::Level => 0b00,
-                InterruptSensitivity::Edge  => 0b10,
-            }));
+            self.mpcore.icdicfr[m].modify(|mut icdicfr| {
+                *icdicfr.set_bits(
+                    n..=n + 1,
+                    match sensitivity {
+                        InterruptSensitivity::Level => 0b00,
+                        InterruptSensitivity::Edge => 0b10,
+                    },
+                )
+            });
         }
 
         // priority
@@ -146,5 +154,4 @@ impl InterruptController {
     pub fn get_interrupt_id(&self) -> InterruptId {
         InterruptId(self.mpcore.icciar.read().ackintid() as u8)
     }
-
 }

@@ -61,11 +61,7 @@ pub unsafe fn enter_critical() -> bool {
 #[inline]
 pub unsafe fn exit_critical(enable: bool) {
     // https://stackoverflow.com/questions/40019929/temporarily-disable-interrupts-on-arm
-    let mask: u32 = if enable {
-        1 << 7
-    } else {
-        0
-    };
+    let mask: u32 = if enable { 1 << 7 } else { 0 };
     asm!(
         "mrs r1, cpsr
          bic r1, r1, {}
