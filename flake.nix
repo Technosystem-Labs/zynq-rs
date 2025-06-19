@@ -131,9 +131,25 @@
         in
           commands + "ln -s ${szlResult}/szl.elf $out/szl-${target}.elf\n"
       ) "mkdir $out\n" targets);
+
+      fmt-check = pkgs.stdenvNoCC.mkDerivation {
+        name = "fmt-check";
+
+        src = ./.;
+
+        nativeBuildInputs = [ rust ];
+
+        phases = [ "unpackPhase" "buildPhase" ];
+
+        buildPhase =
+          ''
+          cargo fmt -- --check
+          touch $out
+          '';
+      };
     in rec {
       packages.x86_64-linux = { 
-        inherit szl mkbootimage;
+        inherit szl mkbootimage fmt-check;
         zc706-fsbl = fsbl { board = "zc706"; };
       } // allTargetCrates ;
 
