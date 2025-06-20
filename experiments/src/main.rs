@@ -22,7 +22,7 @@ use libboard_zynq::{self as zynq,
                               time::{Duration, Instant},
                               wire::{EthernetAddress, IpAddress, IpCidr}},
                     stdio,
-                    time::Milliseconds};
+                    timer::{self, Milliseconds, Timer}};
 use libcortex_a9::{asm, interrupt_handler,
                    l2c::enable_l2_cache,
                    mutex::Mutex,
@@ -126,7 +126,7 @@ pub fn main_core0() {
         clocks.cpu_1x()
     );
 
-    let timer = libboard_zynq::timer::GlobalTimer::start();
+    libboard_zynq::timer::start();
 
     let mut ddr = zynq::ddr::DdrRam::ddrram();
     #[cfg(not(feature = "target_zc706"))]
@@ -187,7 +187,7 @@ pub fn main_core0() {
 
     #[cfg(feature = "target_kasli_soc")]
     {
-        let mut err_cdwn = timer.countdown();
+        let mut err_cdwn = Timer::millis();
         let mut err_state = true;
         let mut led = zynq::error_led::ErrorLED::error_led();
         task::spawn(async move {
@@ -265,12 +265,12 @@ pub fn main_core0() {
         }
     });
 
-    let mut countdown = timer.countdown();
+    let mut countdown = Timer::millis();
     task::spawn(async move {
         loop {
             delay(&mut countdown, Milliseconds(1000)).await;
 
-            let timestamp = timer.get_us().0;
+            let timestamp = timer::get_us();
             let seconds = timestamp / 1_000_000;
             let micros = timestamp % 1_000_000;
             let (rx, tx) = {
@@ -294,7 +294,7 @@ pub fn main_core0() {
         const LINK_CHECK_INTERVAL: u64 = 500;
 
         loop {
-            let instant = Instant::from_millis(timer.get_time().0 as i64);
+            let instant = Instant::from_millis(timer::get_ms() as i64);
             Sockets::instance().poll(&mut iface, instant);
 
             let dev = iface.device_mut();

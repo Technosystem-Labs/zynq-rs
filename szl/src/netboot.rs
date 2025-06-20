@@ -8,7 +8,7 @@ use libboard_zynq::{devc,
                               iface::{EthernetInterfaceBuilder, NeighborCache},
                               time::Instant,
                               wire::IpCidr},
-                    timer::GlobalTimer};
+                    timer};
 use libconfig::{Config, bootgen, net_settings};
 
 enum NetConnState {
@@ -338,11 +338,10 @@ pub fn netboot<File: Read + Seek>(
     let mut net_conn = NetConn::new();
     let mut storage = Vec::new();
     let mut boot_flag = false;
-    let timer = unsafe { GlobalTimer::get() };
 
     log::info!("Waiting for connections...");
     loop {
-        let timestamp = Instant::from_millis(timer.get_time().0 as i64);
+        let timestamp = Instant::from_millis(timer::get_ms() as i64);
         {
             let socket = &mut *sockets.get::<smoltcp::socket::TcpSocket>(tcp_handle);
 

@@ -3,15 +3,14 @@ use libcortex_a9::cache;
 use libregister::*;
 use log::{debug, trace};
 
-use super::time::Milliseconds;
-use crate::slcr;
+use super::timer::{self, Milliseconds};
+use crate::{slcr, timer::Timer};
 
 mod regs;
 
 pub struct DevC {
     regs: &'static mut regs::RegisterBlock,
     enabled: bool,
-    count_down: super::timer::global::CountDown<Milliseconds>,
     timeout_ms: Milliseconds,
 }
 
@@ -73,7 +72,6 @@ impl DevC {
         DevC {
             regs: regs::RegisterBlock::devc(),
             enabled: false,
-            count_down: unsafe { super::timer::GlobalTimer::get() }.countdown(),
             timeout_ms,
         }
     }
@@ -111,8 +109,9 @@ impl DevC {
 
     /// Wait on a certain condition with hardcoded timeout.
     fn wait_condition<F: Fn(&mut Self) -> bool>(&mut self, fun: F, err: DevcError) -> Result<(), DevcError> {
-        self.count_down.start(self.timeout_ms);
-        while let Err(nb::Error::WouldBlock) = self.count_down.wait() {
+        let mut timeout = Timer::millis();
+        timeout.start(self.timeout_ms);
+        while let Err(nb::Error::WouldBlock) = timeout.wait() {
             if fun(self) {
                 return Ok(());
             } else if self.has_error() {

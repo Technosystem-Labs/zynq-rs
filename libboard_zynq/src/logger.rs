@@ -1,6 +1,6 @@
 //! A logger for the `log` crate
 
-use crate::{println, stdio, timer::GlobalTimer};
+use crate::{println, stdio, timer};
 
 pub static LOGGER: Logger = Logger;
 
@@ -17,7 +17,7 @@ impl log::Log for Logger {
 
     fn log(&self, record: &log::Record) {
         if self.enabled(record.metadata()) {
-            let timestamp = unsafe { GlobalTimer::get() }.get_us().0;
+            let timestamp = timer::get_us();
             let seconds = timestamp / 1_000_000;
             let micros = timestamp % 1_000_000;
 

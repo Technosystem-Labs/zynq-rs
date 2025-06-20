@@ -12,9 +12,7 @@ mod regs;
 pub mod rx;
 pub mod tx;
 
-use embedded_hal::timer::CountDown;
-
-use super::time::Milliseconds;
+use super::timer;
 
 /// Size of all the buffers
 pub const MTU: usize = 1536;
@@ -482,7 +480,6 @@ impl<'a, GEM: Gem> smoltcp::phy::Device<'a> for &mut Eth<GEM, rx::DescList, tx::
 
 pub struct PhyRst {
     regs: regs::GpioRegisterBlock,
-    count_down: super::timer::global::CountDown<Milliseconds>,
 }
 
 impl PhyRst {
@@ -500,15 +497,9 @@ impl PhyRst {
         Self::eth_reset_common(0xFFFF - 0x8000)
     }
 
-    fn delay_ms(&mut self, ms: u64) {
-        self.count_down.start(Milliseconds(ms));
-        nb::block!(self.count_down.wait()).unwrap();
-    }
-
     fn eth_reset_common(gpio_output_mask: u16) -> Self {
         let self_ = Self {
             regs: regs::GpioRegisterBlock::regs(),
-            count_down: unsafe { super::timer::GlobalTimer::get() }.countdown(),
         };
 
         // Setup GPIO output mask
@@ -530,7 +521,7 @@ impl PhyRst {
     pub fn reset(&mut self) {
         self.toggle(false); // drive phy_rst (active LOW) pin low
         self.oe(true); // enable pin's output
-        self.delay_ms(10);
+        timer::delay_ms(10);
         self.toggle(true);
     }
 }

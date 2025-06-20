@@ -1,7 +1,5 @@
-use embedded_hal::timer::CountDown;
-
 use super::{Error, I2c};
-use crate::time::Milliseconds;
+use crate::timer;
 
 pub struct EEPROM<'a> {
     i2c: &'a mut I2c,
@@ -9,7 +7,6 @@ pub struct EEPROM<'a> {
     port: u8,
     address: u8,
     page_size: u8,
-    count_down: crate::timer::global::CountDown<Milliseconds>,
 }
 
 impl<'a> EEPROM<'a> {
@@ -20,7 +17,6 @@ impl<'a> EEPROM<'a> {
             port: 2,
             address: 0b1010100,
             page_size: page_size,
-            count_down: unsafe { crate::timer::GlobalTimer::get() }.countdown(),
         }
     }
 
@@ -31,7 +27,6 @@ impl<'a> EEPROM<'a> {
             port: 3,
             address: 0x57,
             page_size: page_size,
-            count_down: unsafe { crate::timer::GlobalTimer::get() }.countdown(),
         }
     }
 
@@ -107,7 +102,7 @@ impl<'a> EEPROM<'a> {
     pub fn poll(&mut self, timeout_ms: u64) -> Result<(), Error> {
         self.select()?;
 
-        self.count_down.start(Milliseconds(timeout_ms));
+        let max_time = timer::get_ms() + timeout_ms;
         loop {
             self.i2c.start()?;
             let res = self.i2c.write(self.address << 1);
@@ -117,7 +112,7 @@ impl<'a> EEPROM<'a> {
                 Err(Error::Nack) => (),
                 Err(e) => return Err(e),
             }
-            if !self.count_down.waiting() {
+            if timer::get_ms() >= max_time {
                 return Err(Error::PollingTimeout);
             }
         }

@@ -3,16 +3,14 @@ pub mod sd_card;
 mod adma;
 mod cmd;
 mod regs;
-use embedded_hal::timer::CountDown;
 use libregister::{RegisterR, RegisterRW, RegisterW};
 use log::{debug, trace};
 
-use super::{clocks::Clocks, slcr, time::Milliseconds};
+use super::{clocks::Clocks, slcr, timer};
 
 /// Basic SDIO Struct with common low-level functions.
 pub struct Sdio {
     regs: &'static mut regs::RegisterBlock,
-    count_down: super::timer::global::CountDown<Milliseconds>,
     input_clk_hz: u32,
     card_type: CardType,
     card_detect: bool,
@@ -147,7 +145,6 @@ impl Sdio {
         let clocks = Clocks::get();
         let mut self_ = Sdio {
             regs: regs::RegisterBlock::sdio0(),
-            count_down: unsafe { super::timer::GlobalTimer::get() }.countdown(),
             input_clk_hz: clocks.sdio_ref_clk(),
             card_type: CardType::CardNone,
             card_detect,
@@ -204,7 +201,7 @@ impl Sdio {
             panic!("The code written is for V1 and V2");
         }
         // delay to poweroff card
-        self.delay(1);
+        timer::delay_ms(1);
 
         // reset all
         debug!("Reset SDIO!");
@@ -244,12 +241,6 @@ impl Sdio {
         self.regs
             .block_size_block_count
             .modify(|_, w| w.transfer_block_size(512));
-    }
-
-    /// Delay for SDIO operations, simple wrapper for nb.
-    pub fn delay(&mut self, ms: u64) {
-        self.count_down.start(Milliseconds(ms));
-        nb::block!(self.count_down.wait()).unwrap();
     }
 
     /// Send SD command. Basically `cmd_transfer_with_mode` with mode
@@ -346,7 +337,7 @@ impl Sdio {
         self.regs.control.modify(|_, w| w.bus_voltage(regs::BusVoltage::V18));
 
         // wait minimum 5ms
-        self.delay(5);
+        timer::delay_ms(5);
 
         if self.regs.control.read().bus_voltage() != regs::BusVoltage::V18 {
             // I should not wrap the error of this function into another type later.
@@ -362,7 +353,7 @@ impl Sdio {
         self.regs.clock_control.modify(|_, w| w.sd_clk_en(true));
 
         // wait for 1ms
-        self.delay(1);
+        timer::delay_ms(1);
 
         // wait for CMD and DATA line to go high
         state = self.regs.present_state.read();
@@ -383,7 +374,7 @@ impl Sdio {
     pub fn identify_card(&mut self) -> Result<CardType, CmdTransferError> {
         use cmd::{SdCmd::*, args::*};
         // actually the delay for this one is unclear in the xilinx code.
-        self.delay(10);
+        timer::delay_ms(10);
         self.cmd_transfer(CMD0, 0, 0)?;
 
         self.card_type = match self.cmd_transfer(CMD1, ACMD41_HCS | CMD1_HIGH_VOL, 0) {

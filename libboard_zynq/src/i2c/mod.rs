@@ -2,7 +2,6 @@
 
 pub mod eeprom;
 mod regs;
-use embedded_hal::timer::CountDown;
 #[cfg(not(feature = "target_ebaz4205"))]
 use libregister::RegisterW;
 use libregister::{RegisterR, RegisterRW};
@@ -12,7 +11,7 @@ use log::info;
 
 #[cfg(not(feature = "target_ebaz4205"))]
 use super::slcr;
-use super::time::Microseconds;
+use super::timer;
 
 pub enum I2cMultiplexer {
     PCA9548 = 0,
@@ -47,7 +46,6 @@ impl From<Error> for &str {
 
 pub struct I2c {
     regs: regs::RegisterBlock,
-    count_down: super::timer::global::CountDown<Microseconds>,
     pca_type: I2cMultiplexer,
 }
 
@@ -93,7 +91,6 @@ impl I2c {
         // Setup register block
         let self_ = Self {
             regs: regs::RegisterBlock::i2c(),
-            count_down: unsafe { super::timer::GlobalTimer::get() }.countdown(),
             pca_type: I2cMultiplexer::PCA9548, //default for zc706
         };
 
@@ -115,14 +112,8 @@ impl I2c {
         self_
     }
 
-    /// Delay for I2C operations, simple wrapper for nb.
-    fn delay_us(&mut self, us: u64) {
-        self.count_down.start(Microseconds(us));
-        nb::block!(self.count_down.wait()).unwrap();
-    }
-
-    fn unit_delay(&mut self) {
-        self.delay_us(100)
+    fn unit_delay(&self) {
+        timer::delay_us(100)
     }
 
     fn sda_i(&mut self) -> bool {

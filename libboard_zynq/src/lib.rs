@@ -22,6 +22,5 @@ pub mod ps7_init;
 pub mod sdio;
 pub mod slcr;
 pub mod stdio;
-pub mod time;
 pub mod timer;
 pub mod uart;

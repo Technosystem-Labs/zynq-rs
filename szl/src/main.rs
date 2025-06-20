@@ -13,8 +13,7 @@ use core_io::{Read, Seek};
 use libboard_zynq::{self as zynq,
                     clocks::{Clocks,
                              source::{ArmPll, ClockSource, IoPll}},
-                    logger, println, sdio, slcr,
-                    timer::GlobalTimer};
+                    logger, println, sdio, slcr, timer};
 use libconfig::{Config, bootgen, sd_reader};
 use libcortex_a9::{asm::{dsb, isb},
                    cache::{bpiall, dcciall, iciallu}};
@@ -55,7 +54,7 @@ fn boot_sd<File: Read + Seek>(file: &mut Option<File>, runtime_start: *mut u8, r
 
 #[no_mangle]
 pub fn main_core0() {
-    GlobalTimer::start();
+    timer::start();
     logger::init().unwrap();
     log::set_max_level(log::LevelFilter::Debug);
     println!(

@@ -2,7 +2,7 @@ use libcortex_a9::cache;
 use libregister::{RegisterR, RegisterRW, RegisterW};
 use log::{debug, trace};
 
-use super::{CardType, CmdTransferError, Sdio, adma::Adma2DescTable, cmd};
+use super::{CardType, CmdTransferError, Sdio, adma::Adma2DescTable, cmd, timer};
 
 #[derive(Debug)]
 pub enum CardInitializationError {
@@ -326,7 +326,7 @@ impl SdCard {
         self.sdio.cmd_transfer(CMD55, self.rel_card_addr, 0)?;
         self.width_4_bit = true;
         self.sdio.cmd_transfer(ACMD6, 0x2, 0)?;
-        self.sdio.delay(1);
+        timer::delay_ms(1);
         self.sdio.regs.control.modify(|_, w| w.data_width_select(true));
         Ok(())
     }
