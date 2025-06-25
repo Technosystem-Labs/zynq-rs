@@ -2,10 +2,8 @@
 
 extern crate alloc;
 
-mod delay;
 pub mod executor;
 pub mod task;
-pub use delay::delay;
 
 pub mod smoltcp;
 
