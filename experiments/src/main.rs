@@ -9,8 +9,7 @@ use alloc::collections::BTreeMap;
 use core::{arch::naked_asm,
            sync::atomic::{AtomicBool, Ordering}};
 
-use libasync::{delay,
-               smoltcp::{Sockets, TcpStream},
+use libasync::{smoltcp::{Sockets, TcpStream},
                task};
 #[cfg(feature = "target_zc706")]
 use libboard_zynq::print;
@@ -21,8 +20,7 @@ use libboard_zynq::{self as zynq,
                     smoltcp::{iface::{EthernetInterfaceBuilder, NeighborCache, Routes},
                               time::{Duration, Instant},
                               wire::{EthernetAddress, IpAddress, IpCidr}},
-                    stdio,
-                    timer::{self, Milliseconds, Timer}};
+                    stdio, timer};
 use libcortex_a9::{asm, interrupt_handler,
                    l2c::enable_l2_cache,
                    mutex::Mutex,
@@ -187,14 +185,13 @@ pub fn main_core0() {
 
     #[cfg(feature = "target_kasli_soc")]
     {
-        let mut err_cdwn = Timer::millis();
         let mut err_state = true;
         let mut led = zynq::error_led::ErrorLED::error_led();
         task::spawn(async move {
             loop {
                 led.toggle(err_state);
                 err_state = !err_state;
-                delay(&mut err_cdwn, Milliseconds(1000)).await;
+                timer::async_delay_ms(1000).await;
             }
         });
     }
@@ -265,10 +262,9 @@ pub fn main_core0() {
         }
     });
 
-    let mut countdown = Timer::millis();
     task::spawn(async move {
         loop {
-            delay(&mut countdown, Milliseconds(1000)).await;
+            timer::async_delay_ms(1000).await;
 
             let timestamp = timer::get_us();
             let seconds = timestamp / 1_000_000;

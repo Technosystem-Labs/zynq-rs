@@ -1,17 +1,16 @@
-use embedded_hal::timer::CountDown;
 use libcortex_a9::cache;
 use libregister::*;
 use log::{debug, trace};
 
-use super::timer::{self, Milliseconds};
-use crate::{slcr, timer::Timer};
+use super::timer;
+use crate::slcr;
 
 mod regs;
 
 pub struct DevC {
     regs: &'static mut regs::RegisterBlock,
     enabled: bool,
-    timeout_ms: Milliseconds,
+    timeout_ms: u64,
 }
 
 /// DMA transfer type for PCAP
@@ -63,12 +62,12 @@ impl core::fmt::Display for DevcError {
 impl DevC {
     /// Create a new DevC peripheral handle with default timeout = 500ms.
     pub fn new() -> Self {
-        Self::new_timeout(Milliseconds(500))
+        Self::new_timeout(500)
     }
 
     /// Create a new DevC peripheral handle.
     /// `timeout_ms`: timeout for operations like initialize and DMA transfer.
-    pub fn new_timeout(timeout_ms: Milliseconds) -> Self {
+    pub fn new_timeout(timeout_ms: u64) -> Self {
         DevC {
             regs: regs::RegisterBlock::devc(),
             enabled: false,
@@ -109,9 +108,8 @@ impl DevC {
 
     /// Wait on a certain condition with hardcoded timeout.
     fn wait_condition<F: Fn(&mut Self) -> bool>(&mut self, fun: F, err: DevcError) -> Result<(), DevcError> {
-        let mut timeout = Timer::millis();
-        timeout.start(self.timeout_ms);
-        while let Err(nb::Error::WouldBlock) = timeout.wait() {
+        let max_time = timer::get_ms() + self.timeout_ms;
+        while timer::get_ms() < max_time {
             if fun(self) {
                 return Ok(());
             } else if self.has_error() {

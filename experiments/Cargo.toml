@@ -18,6 +18,6 @@ log = "0.4"
 embedded-hal = "0.2"
 libregister = { path = "../libregister" }
 libcortex_a9 = { path = "../libcortex_a9" }
-libboard_zynq = { path = "../libboard_zynq" }
+libboard_zynq = { path = "../libboard_zynq", features = ["async"] }
 libsupport_zynq = { path = "../libsupport_zynq", default-features = false, features = ["panic_handler", "dummy_fiq_handler"]}
 libasync = { path = "../libasync" }

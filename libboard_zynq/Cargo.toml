@@ -12,6 +12,7 @@ target_ebaz4205 = []
 target_redpitaya = []
 target_kasli_soc = []
 ipv6 = [ "smoltcp/proto-ipv6" ]
+async = [ "dep:libasync" ]
 
 [dependencies]
 volatile-register = "0.2"
@@ -22,6 +23,7 @@ void = { version = "1", default-features = false }
 log = "0.4"
 libregister = { path = "../libregister" }
 libcortex_a9 = { path = "../libcortex_a9" }
+libasync = { path = "../libasync", optional = true }
 
 [dependencies.smoltcp]
 version = "0.7"
