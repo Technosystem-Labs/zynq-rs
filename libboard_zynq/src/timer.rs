@@ -62,18 +62,18 @@ pub fn get_us() -> u64 {
 
 pub fn delay_ms(ms: u64) {
     let max_time = get_ms() + ms;
-    while get_ms() < max_time {}
+    while get_ms() <= max_time {}
 }
 
 pub fn delay_us(us: u64) {
     let max_time = get_us() + us;
-    while get_us() < max_time {}
+    while get_us() <= max_time {}
 }
 
 #[cfg(feature = "async")]
 pub async fn async_delay_ms(ms: u64) {
     let max_time = get_ms() + ms;
-    while get_ms() < max_time {
+    while get_ms() <= max_time {
         libasync::task::r#yield().await;
     }
 }
@@ -81,7 +81,7 @@ pub async fn async_delay_ms(ms: u64) {
 #[cfg(feature = "async")]
 pub async fn async_delay_us(us: u64) {
     let max_time = get_us() + us;
-    while get_us() < max_time {
+    while get_us() <= max_time {
         libasync::task::r#yield().await;
     }
 }
