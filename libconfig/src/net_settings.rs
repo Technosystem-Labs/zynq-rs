@@ -2,8 +2,6 @@ use core::fmt;
 
 use libboard_zynq::smoltcp::wire::{EthernetAddress, IpAddress};
 
-use super::Config;
-
 pub struct NetAddresses {
     pub hardware_addr: EthernetAddress,
     pub ipv4_addr: IpAddress,
@@ -41,7 +39,7 @@ fn get_address_from_eeprom() -> EthernetAddress {
     EthernetAddress(address)
 }
 
-pub fn get_addresses(cfg: &Config) -> NetAddresses {
+pub fn get_addresses() -> NetAddresses {
     #[cfg(feature = "target_zc706")]
     let mut hardware_addr = EthernetAddress([0x02, 0x00, 0x00, 0x00, 0x00, 0x52]);
     #[cfg(feature = "target_zc706")]
@@ -63,14 +61,14 @@ pub fn get_addresses(cfg: &Config) -> NetAddresses {
     #[cfg(feature = "target_ebaz4205")]
     let mut ipv4_addr = IpAddress::v4(192, 168, 1, 57);
 
-    if let Ok(Ok(addr)) = cfg.read_str("mac").map(|s| s.parse()) {
+    if let Ok(Ok(addr)) = crate::read_str("mac").map(|s| s.parse()) {
         hardware_addr = addr;
     }
-    if let Ok(Ok(addr)) = cfg.read_str("ip").map(|s| s.parse()) {
+    if let Ok(Ok(addr)) = crate::read_str("ip").map(|s| s.parse()) {
         ipv4_addr = addr;
     }
     #[cfg(feature = "ipv6")]
-    let ipv6_addr = cfg.read_str("ip6").ok().and_then(|s| s.parse().ok());
+    let ipv6_addr = crate::read_str("ip6").ok().and_then(|s| s.parse().ok());
 
     #[cfg(feature = "ipv6")]
     let ipv6_ll_addr = IpAddress::v6(

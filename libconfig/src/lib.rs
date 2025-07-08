@@ -1,8 +1,7 @@
 #![no_std]
 extern crate alloc;
 
-use alloc::{rc::Rc,
-            string::{FromUtf8Error, String},
+use alloc::{string::{FromUtf8Error, String},
             vec::Vec};
 use core::fmt;
 
@@ -66,108 +65,110 @@ fn parse_config(key: &str, buffer: &mut Vec<u8>, file: fatfs::File<sd_reader::Sd
     Err(Error::KeyNotFoundError(key.into()))
 }
 
-pub struct Config {
-    fs: Option<Rc<fatfs::FileSystem<sd_reader::SdReader>>>,
+type FileSystem = fatfs::FileSystem<sd_reader::SdReader>;
+static mut FS: Option<FileSystem> = None;
+
+#[allow(static_mut_refs)]
+pub fn get_filesystem() -> &'static Option<FileSystem> {
+    unsafe { &FS }
 }
 
 const NEWLINE: &[u8] = b"\n";
 
-impl Config {
-    pub fn new() -> Result<Self> {
-        let sdio = sdio::Sdio::sdio0(true);
-        if !sdio.is_card_inserted() {
-            Err(sdio::sd_card::CardInitializationError::NoCardInserted)?;
-        }
-        let sd = sdio::sd_card::SdCard::from_sdio(sdio)?;
-        let reader = sd_reader::SdReader::new(sd);
-
-        let fs = reader.mount_fatfs(sd_reader::PartitionEntry::Entry1)?;
-        Ok(Config { fs: Some(Rc::new(fs)) })
+pub fn init() -> Result<()> {
+    let sdio = sdio::Sdio::sdio0(true);
+    if !sdio.is_card_inserted() {
+        Err(sdio::sd_card::CardInitializationError::NoCardInserted)?;
     }
+    let sd = sdio::sd_card::SdCard::from_sdio(sdio)?;
+    let reader = sd_reader::SdReader::new(sd);
 
-    pub fn from_fs(fs: Option<Rc<fatfs::FileSystem<sd_reader::SdReader>>>) -> Self {
-        Config { fs }
+    let fs = reader.mount_fatfs(sd_reader::PartitionEntry::Entry1)?;
+
+    unsafe {
+        FS = Some(fs);
     }
+    Ok(())
+}
 
-    pub fn new_dummy() -> Self {
-        Config { fs: None }
+pub fn from_fs(fs: Option<FileSystem>) {
+    unsafe { FS = fs }
+}
+
+pub fn read(key: &str) -> Result<Vec<u8>> {
+    if let Some(fs) = get_filesystem() {
+        let root_dir = fs.root_dir();
+        let mut buffer: Vec<u8> = Vec::new();
+        match root_dir.open_file(&["/CONFIG/", key, ".BIN"].concat()) {
+            Ok(mut f) => f.read_to_end(&mut buffer).map(|_| ())?,
+            Err(_) => match root_dir.open_file("/CONFIG.TXT") {
+                Ok(f) => parse_config(key, &mut buffer, f)?,
+                Err(_) => return Err(Error::KeyNotFoundError(key.into())),
+            },
+        };
+        Ok(buffer)
+    } else {
+        Err(Error::NoConfig)
     }
+}
 
-    pub fn read(&self, key: &str) -> Result<Vec<u8>> {
-        if let Some(fs) = &self.fs {
-            let root_dir = fs.root_dir();
-            let mut buffer: Vec<u8> = Vec::new();
-            match root_dir.open_file(&["/CONFIG/", key, ".BIN"].concat()) {
-                Ok(mut f) => f.read_to_end(&mut buffer).map(|_| ())?,
-                Err(_) => match root_dir.open_file("/CONFIG.TXT") {
-                    Ok(f) => parse_config(key, &mut buffer, f)?,
-                    Err(_) => return Err(Error::KeyNotFoundError(key.into())),
-                },
-            };
-            Ok(buffer)
-        } else {
-            Err(Error::NoConfig)
-        }
-    }
+pub fn read_str(key: &str) -> Result<String> {
+    Ok(String::from_utf8(read(key)?)?)
+}
 
-    pub fn read_str(&self, key: &str) -> Result<String> {
-        Ok(String::from_utf8(self.read(key)?)?)
-    }
-
-    pub fn remove(&self, key: &str) -> Result<()> {
-        if let Some(fs) = &self.fs {
-            let root_dir = fs.root_dir();
-            match root_dir.remove(&["/CONFIG/", key, ".BIN"].concat()) {
-                Ok(()) => Ok(()),
-                Err(_) => {
-                    let prefix = [key, "="].concat().to_ascii_lowercase();
-                    match root_dir.create_file("/CONFIG.TXT") {
-                        Ok(mut f) => {
-                            let mut buffer = String::new();
-                            f.read_to_string(&mut buffer)?;
-                            f.seek(SeekFrom::Start(0))?;
-                            f.truncate()?;
-                            for line in buffer.lines() {
-                                if line.len() > 0 && !line.to_ascii_lowercase().starts_with(&prefix) {
-                                    f.write(line.as_bytes())?;
-                                    f.write(NEWLINE)?;
-                                }
+pub fn remove(key: &str) -> Result<()> {
+    if let Some(fs) = get_filesystem() {
+        let root_dir = fs.root_dir();
+        match root_dir.remove(&["/CONFIG/", key, ".BIN"].concat()) {
+            Ok(()) => Ok(()),
+            Err(_) => {
+                let prefix = [key, "="].concat().to_ascii_lowercase();
+                match root_dir.create_file("/CONFIG.TXT") {
+                    Ok(mut f) => {
+                        let mut buffer = String::new();
+                        f.read_to_string(&mut buffer)?;
+                        f.seek(SeekFrom::Start(0))?;
+                        f.truncate()?;
+                        for line in buffer.lines() {
+                            if line.len() > 0 && !line.to_ascii_lowercase().starts_with(&prefix) {
+                                f.write(line.as_bytes())?;
+                                f.write(NEWLINE)?;
                             }
-                            Ok(())
                         }
-                        Err(_) => Err(Error::KeyNotFoundError(key.into())),
+                        Ok(())
                     }
+                    Err(_) => Err(Error::KeyNotFoundError(key.into())),
                 }
             }
-        } else {
-            Err(Error::NoConfig)
         }
+    } else {
+        Err(Error::NoConfig)
     }
+}
 
-    pub fn write(&self, key: &str, value: Vec<u8>) -> Result<()> {
-        if self.fs.is_none() {
-            return Err(Error::NoConfig);
-        }
-        let fs = self.fs.as_ref().unwrap();
-        let root_dir = fs.root_dir();
-        let is_str = value.len() <= 100 && value.is_ascii() && !value.contains(&b'\n');
-        if key == "boot" {
-            let mut f = root_dir.create_file("/BOOT.BIN")?;
-            f.truncate()?;
-            f.write_all(&value)?;
-            drop(f);
-        } else {
-            let _ = self.remove(key);
-            if is_str {
-                let mut f = root_dir.create_file("/CONFIG.TXT")?;
-                f.seek(SeekFrom::End(0))?;
-                write!(f, "{}={}\n", key, String::from_utf8(value).unwrap())?;
-            } else {
-                let dir = root_dir.create_dir("/CONFIG")?;
-                let mut f = dir.create_file(&[key, ".BIN"].concat())?;
-                f.write_all(&value)?;
-            }
-        }
-        Ok(())
+pub fn write(key: &str, value: Vec<u8>) -> Result<()> {
+    if get_filesystem().is_none() {
+        return Err(Error::NoConfig);
     }
+    let fs = get_filesystem().as_ref().unwrap();
+    let root_dir = fs.root_dir();
+    let is_str = value.len() <= 100 && value.is_ascii() && !value.contains(&b'\n');
+    if key == "boot" {
+        let mut f = root_dir.create_file("/BOOT.BIN")?;
+        f.truncate()?;
+        f.write_all(&value)?;
+        drop(f);
+    } else {
+        let _ = remove(key);
+        if is_str {
+            let mut f = root_dir.create_file("/CONFIG.TXT")?;
+            f.seek(SeekFrom::End(0))?;
+            write!(f, "{}={}\n", key, String::from_utf8(value).unwrap())?;
+        } else {
+            let dir = root_dir.create_dir("/CONFIG")?;
+            let mut f = dir.create_file(&[key, ".BIN"].concat())?;
+            f.write_all(&value)?;
+        }
+    }
+    Ok(())
 }

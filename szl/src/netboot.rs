@@ -9,7 +9,7 @@ use libboard_zynq::{devc,
                               time::Instant,
                               wire::IpCidr},
                     timer};
-use libconfig::{Config, bootgen, net_settings};
+use libconfig::{bootgen, net_settings};
 
 enum NetConnState {
     WaitCommand,
@@ -302,14 +302,9 @@ impl NetConn {
     }
 }
 
-pub fn netboot<File: Read + Seek>(
-    bootgen_file: &mut Option<File>,
-    cfg: Config,
-    runtime_start: *mut u8,
-    runtime_max_len: usize,
-) {
+pub fn netboot<File: Read + Seek>(bootgen_file: &mut Option<File>, runtime_start: *mut u8, runtime_max_len: usize) {
     log::info!("Preparing network for netboot");
-    let net_addresses = net_settings::get_addresses(&cfg);
+    let net_addresses = net_settings::get_addresses();
     log::info!("Network addresses: {}", net_addresses);
     let eth = Eth::eth0(net_addresses.hardware_addr.0.clone());
     let eth = eth.start_rx(8);

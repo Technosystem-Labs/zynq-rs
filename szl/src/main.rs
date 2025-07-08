@@ -6,7 +6,6 @@ extern crate log;
 
 mod netboot;
 
-use alloc::rc::Rc;
 use core::mem;
 
 use core_io::{Read, Seek};
@@ -14,7 +13,7 @@ use libboard_zynq::{self as zynq,
                     clocks::{Clocks,
                              source::{ArmPll, ClockSource, IoPll}},
                     logger, println, sdio, slcr, timer};
-use libconfig::{Config, bootgen, sd_reader};
+use libconfig::{self, bootgen, sd_reader};
 use libcortex_a9::{asm::{dsb, isb},
                    cache::{bpiall, dcciall, iciallu}};
 use libregister::RegisterR;
@@ -92,35 +91,31 @@ pub fn main_core0() {
         info!("Card inserted. Mounting file system.");
         let sd = sdio::sd_card::SdCard::from_sdio(sdio0).unwrap();
         let reader = sd_reader::SdReader::new(sd);
-        reader
-            .mount_fatfs(sd_reader::PartitionEntry::Entry1)
-            .map(|v| Rc::new(v))
-            .ok()
+        reader.mount_fatfs(sd_reader::PartitionEntry::Entry1).ok()
     } else {
         info!("No SD card inserted.");
         None
     };
-    let fs_ref = fs.as_ref();
+
+    libconfig::from_fs(fs);
+    let fs_ref = libconfig::get_filesystem().as_ref();
     let root_dir = fs_ref.map(|fs| fs.root_dir());
     let mut bootgen_file = root_dir.and_then(|root_dir| root_dir.open_file("/BOOT.BIN").ok());
-    let config = Config::from_fs(fs.clone());
 
     let max_len = (&raw const __runtime_end).addr() - (&raw const __runtime_start).addr();
     match slcr::RegisterBlock::unlocked(|slcr| slcr.boot_mode.read().boot_mode_pins()) {
-        slcr::BootModePins::Jtag => {
-            netboot::netboot(&mut bootgen_file, config, (&raw mut __runtime_start).cast(), max_len)
-        }
+        slcr::BootModePins::Jtag => netboot::netboot(&mut bootgen_file, (&raw mut __runtime_start).cast(), max_len),
         slcr::BootModePins::SdCard => {
             if boot_sd(&mut bootgen_file, (&raw mut __runtime_start).cast(), max_len).is_err() {
                 log::error!("Error booting from SD card");
                 log::info!("Fall back on netboot");
-                netboot::netboot(&mut bootgen_file, config, (&raw mut __runtime_start).cast(), max_len)
+                netboot::netboot(&mut bootgen_file, (&raw mut __runtime_start).cast(), max_len)
             }
         }
         v => {
             log::error!("Boot mode {:?} not supported", v);
             log::info!("Fall back on netboot");
-            netboot::netboot(&mut bootgen_file, config, (&raw mut __runtime_start).cast(), max_len)
+            netboot::netboot(&mut bootgen_file, (&raw mut __runtime_start).cast(), max_len)
         }
     };
 
