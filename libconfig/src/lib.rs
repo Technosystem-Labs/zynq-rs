@@ -14,17 +14,17 @@ pub mod net_settings;
 pub mod sd_reader;
 
 #[derive(Debug)]
-pub enum Error<'a> {
+pub enum Error {
     SdError(sdio::sd_card::CardInitializationError),
     IoError(io::Error),
     Utf8Error(FromUtf8Error),
-    KeyNotFoundError(&'a str),
+    KeyNotFoundError(String),
     NoConfig,
 }
 
-pub type Result<'a, T> = core::result::Result<T, Error<'a>>;
+pub type Result<T> = core::result::Result<T, Error>;
 
-impl<'a> fmt::Display for Error<'a> {
+impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::SdError(error) => write!(f, "SD error: {}", error),
@@ -36,25 +36,25 @@ impl<'a> fmt::Display for Error<'a> {
     }
 }
 
-impl<'a> From<sdio::sd_card::CardInitializationError> for Error<'a> {
+impl From<sdio::sd_card::CardInitializationError> for Error {
     fn from(error: sdio::sd_card::CardInitializationError) -> Self {
         Error::SdError(error)
     }
 }
 
-impl<'a> From<io::Error> for Error<'a> {
+impl From<io::Error> for Error {
     fn from(error: io::Error) -> Self {
         Error::IoError(error)
     }
 }
 
-impl<'a> From<FromUtf8Error> for Error<'a> {
+impl From<FromUtf8Error> for Error {
     fn from(error: FromUtf8Error) -> Self {
         Error::Utf8Error(error)
     }
 }
 
-fn parse_config<'a>(key: &'a str, buffer: &mut Vec<u8>, file: fatfs::File<sd_reader::SdReader>) -> Result<'a, ()> {
+fn parse_config(key: &str, buffer: &mut Vec<u8>, file: fatfs::File<sd_reader::SdReader>) -> Result<()> {
     let prefix = [key, "="].concat().to_ascii_lowercase();
     for line in BufReader::new(file).lines() {
         let line = line?.to_ascii_lowercase();
@@ -63,7 +63,7 @@ fn parse_config<'a>(key: &'a str, buffer: &mut Vec<u8>, file: fatfs::File<sd_rea
             return Ok(());
         }
     }
-    Err(Error::KeyNotFoundError(key))
+    Err(Error::KeyNotFoundError(key.into()))
 }
 
 pub struct Config {
@@ -73,7 +73,7 @@ pub struct Config {
 const NEWLINE: &[u8] = b"\n";
 
 impl Config {
-    pub fn new() -> Result<'static, Self> {
+    pub fn new() -> Result<Self> {
         let sdio = sdio::Sdio::sdio0(true);
         if !sdio.is_card_inserted() {
             Err(sdio::sd_card::CardInitializationError::NoCardInserted)?;
@@ -93,7 +93,7 @@ impl Config {
         Config { fs: None }
     }
 
-    pub fn read<'b>(&self, key: &'b str) -> Result<'b, Vec<u8>> {
+    pub fn read(&self, key: &str) -> Result<Vec<u8>> {
         if let Some(fs) = &self.fs {
             let root_dir = fs.root_dir();
             let mut buffer: Vec<u8> = Vec::new();
@@ -101,7 +101,7 @@ impl Config {
                 Ok(mut f) => f.read_to_end(&mut buffer).map(|_| ())?,
                 Err(_) => match root_dir.open_file("/CONFIG.TXT") {
                     Ok(f) => parse_config(key, &mut buffer, f)?,
-                    Err(_) => return Err(Error::KeyNotFoundError(key)),
+                    Err(_) => return Err(Error::KeyNotFoundError(key.into())),
                 },
             };
             Ok(buffer)
@@ -110,11 +110,11 @@ impl Config {
         }
     }
 
-    pub fn read_str<'b>(&self, key: &'b str) -> Result<'b, String> {
+    pub fn read_str(&self, key: &str) -> Result<String> {
         Ok(String::from_utf8(self.read(key)?)?)
     }
 
-    pub fn remove<'b>(&self, key: &'b str) -> Result<'b, ()> {
+    pub fn remove(&self, key: &str) -> Result<()> {
         if let Some(fs) = &self.fs {
             let root_dir = fs.root_dir();
             match root_dir.remove(&["/CONFIG/", key, ".BIN"].concat()) {
@@ -135,7 +135,7 @@ impl Config {
                             }
                             Ok(())
                         }
-                        Err(_) => Err(Error::KeyNotFoundError(key)),
+                        Err(_) => Err(Error::KeyNotFoundError(key.into())),
                     }
                 }
             }
@@ -144,7 +144,7 @@ impl Config {
         }
     }
 
-    pub fn write<'b>(&self, key: &'b str, value: Vec<u8>) -> Result<'b, ()> {
+    pub fn write(&self, key: &str, value: Vec<u8>) -> Result<()> {
         if self.fs.is_none() {
             return Err(Error::NoConfig);
         }
