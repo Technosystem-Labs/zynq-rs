@@ -65,5 +65,5 @@ openocd -f zc706.cfg -c "pld load 0 blinker_migen.bit; exit"
 
 ## License
 
-Copyright (C) 2019-2022 M-Labs Limited.
+Copyright (C) 2019-2025 M-Labs Limited.
 Released under the GNU LGPL v3. See the LICENSE file for details.
