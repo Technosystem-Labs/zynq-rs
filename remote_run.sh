@@ -13,7 +13,7 @@ while getopts "h:" opt; do
     esac
 done
 
-target_folder=/tmp/zynq-\$USER
+target_folder="/tmp/zynq-$USER"
 
 ssh $target_host "mkdir -p $target_folder"
 rsync openocd/* $target_host:$target_folder
