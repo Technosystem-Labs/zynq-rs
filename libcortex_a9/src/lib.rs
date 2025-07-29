@@ -9,6 +9,7 @@ mod fpu;
 pub mod l2c;
 pub mod mmu;
 pub mod mutex;
+pub mod once_lock;
 pub mod regs;
 pub mod semaphore;
 pub mod sync_channel;
