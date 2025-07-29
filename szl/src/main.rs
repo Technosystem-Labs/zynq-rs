@@ -87,20 +87,23 @@ pub fn main_core0() {
     ram::init_alloc_core0();
 
     let sdio0 = sdio::Sdio::sdio0(true);
-    let fs = if sdio0.is_card_inserted() {
+    let mut bootgen_file = if sdio0.is_card_inserted() {
         info!("Card inserted. Mounting file system.");
         let sd = sdio::sd_card::SdCard::from_sdio(sdio0).unwrap();
         let reader = sd_reader::SdReader::new(sd);
-        reader.mount_fatfs(sd_reader::PartitionEntry::Entry1).ok()
+        reader
+            .mount_fatfs(sd_reader::PartitionEntry::Entry1)
+            .and_then(|fs| {
+                libconfig::from_fs(fs);
+                let fs_ref = libconfig::FS.get().unwrap();
+                let root_dir = fs_ref.root_dir();
+                root_dir.open_file("/BOOT.BIN")
+            })
+            .ok()
     } else {
         info!("No SD card inserted.");
         None
     };
-
-    libconfig::from_fs(fs);
-    let fs_ref = libconfig::get_filesystem().as_ref();
-    let root_dir = fs_ref.map(|fs| fs.root_dir());
-    let mut bootgen_file = root_dir.and_then(|root_dir| root_dir.open_file("/BOOT.BIN").ok());
 
     let max_len = (&raw const __runtime_end).addr() - (&raw const __runtime_start).addr();
     match slcr::RegisterBlock::unlocked(|slcr| slcr.boot_mode.read().boot_mode_pins()) {

@@ -7,6 +7,7 @@ edition = "2018"
 [dependencies]
 libboard_zynq = { path = "../libboard_zynq" }
 log = "0.4"
+libcortex_a9 = { path = "../libcortex_a9" }
 
 [dependencies.core_io]
 git = "https://git.m-labs.hk/M-Labs/rs-core_io.git"

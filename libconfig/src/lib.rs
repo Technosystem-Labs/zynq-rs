@@ -7,6 +7,7 @@ use core::fmt;
 
 use core_io::{self as io, BufRead, BufReader, Read, Seek, SeekFrom, Write};
 use libboard_zynq::sdio;
+use libcortex_a9::once_lock::OnceLock;
 
 pub mod bootgen;
 pub mod net_settings;
@@ -66,12 +67,7 @@ fn parse_config(key: &str, buffer: &mut Vec<u8>, file: fatfs::File<sd_reader::Sd
 }
 
 type FileSystem = fatfs::FileSystem<sd_reader::SdReader>;
-static mut FS: Option<FileSystem> = None;
-
-#[allow(static_mut_refs)]
-pub fn get_filesystem() -> &'static Option<FileSystem> {
-    unsafe { &FS }
-}
+pub static FS: OnceLock<FileSystem> = OnceLock::new();
 
 const NEWLINE: &[u8] = b"\n";
 
@@ -85,18 +81,16 @@ pub fn init() -> Result<()> {
 
     let fs = reader.mount_fatfs(sd_reader::PartitionEntry::Entry1)?;
 
-    unsafe {
-        FS = Some(fs);
-    }
+    from_fs(fs);
     Ok(())
 }
 
-pub fn from_fs(fs: Option<FileSystem>) {
-    unsafe { FS = fs }
+pub fn from_fs(fs: FileSystem) {
+    FS.set(fs).expect("filesystem can only be initialized once");
 }
 
 pub fn read(key: &str) -> Result<Vec<u8>> {
-    if let Some(fs) = get_filesystem() {
+    if let Some(fs) = FS.get() {
         let root_dir = fs.root_dir();
         let mut buffer: Vec<u8> = Vec::new();
         match root_dir.open_file(&["/CONFIG/", key, ".BIN"].concat()) {
@@ -117,7 +111,7 @@ pub fn read_str(key: &str) -> Result<String> {
 }
 
 pub fn remove(key: &str) -> Result<()> {
-    if let Some(fs) = get_filesystem() {
+    if let Some(fs) = FS.get() {
         let root_dir = fs.root_dir();
         match root_dir.remove(&["/CONFIG/", key, ".BIN"].concat()) {
             Ok(()) => Ok(()),
@@ -147,10 +141,10 @@ pub fn remove(key: &str) -> Result<()> {
 }
 
 pub fn write(key: &str, value: Vec<u8>) -> Result<()> {
-    if get_filesystem().is_none() {
+    if FS.get().is_none() {
         return Err(Error::NoConfig);
     }
-    let fs = get_filesystem().as_ref().unwrap();
+    let fs = FS.get().unwrap();
     let root_dir = fs.root_dir();
     let is_str = value.len() <= 100 && value.is_ascii() && !value.contains(&b'\n');
     if key == "boot" {
