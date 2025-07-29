@@ -76,6 +76,7 @@ name = "libasync"
 version = "0.0.0"
 dependencies = [
  "embedded-hal",
+ "libcortex_a9",
  "nb 1.0.0",
  "smoltcp",
 ]

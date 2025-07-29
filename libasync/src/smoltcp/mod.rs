@@ -1,12 +1,13 @@
 use alloc::vec::Vec;
 use core::{cell::RefCell, task::Waker};
 
+use libcortex_a9::once_lock::OnceLock;
 use smoltcp::{iface::EthernetInterface, phy::Device, socket::SocketSet, time::Instant};
 
 mod tcp_stream;
 pub use tcp_stream::TcpStream;
 
-static mut SOCKETS: Option<Sockets> = None;
+static SOCKETS: OnceLock<Sockets> = OnceLock::new();
 
 pub struct Sockets {
     sockets: RefCell<SocketSet<'static>>,
@@ -24,14 +25,11 @@ impl Sockets {
         let wakers = RefCell::new(Vec::new());
 
         let instance = Sockets { sockets, wakers };
-        unsafe {
-            SOCKETS = Some(instance);
-        }
+        SOCKETS.set(instance).expect("SOCKETS can only be initialized once");
     }
 
-    #[allow(static_mut_refs)]
     pub fn instance() -> &'static Self {
-        unsafe { SOCKETS.as_ref().expect("Sockets") }
+        SOCKETS.get().expect("cannot get instance before it is initialized")
     }
 
     pub fn poll<'b, D: for<'d> Device<'d>>(&self, iface: &mut EthernetInterface<'b, D>, instant: Instant) {

@@ -8,6 +8,7 @@ edition = "2018"
 [dependencies]
 embedded-hal = "0.2"
 nb = "1.0"
+libcortex_a9 = { path = "../libcortex_a9" }
 
 [dependencies.smoltcp]
 version = "0.7"
