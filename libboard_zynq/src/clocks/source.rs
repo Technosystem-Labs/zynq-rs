@@ -73,6 +73,7 @@ pub trait ClockSource {
             .clone();
 
         debug!("Set {} to {} Hz", Self::name(), target_freq);
+        log::logger().flush();
         slcr::RegisterBlock::unlocked(|slcr| {
             let (pll_ctrl, pll_cfg, pll_status) = Self::pll_regs(slcr);
 
