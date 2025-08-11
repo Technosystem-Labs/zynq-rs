@@ -77,7 +77,5 @@ macro_rules! println {
         let mut uart = $crate::stdio::get_uart();
         let _ = write!(uart, $($arg)*);
         let _ = write!(uart, "\n");
-        // flush after the newline
-        while !uart.tx_idle() {}
     })
 }
