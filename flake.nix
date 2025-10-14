@@ -74,6 +74,10 @@
           pkgs.pkgsCross.zynq-baremetal.buildPackages.binutils
           pkgs.pkgsCross.zynq-baremetal.buildPackages.gcc
         ];
+
+        NIX_CFLAGS_COMPILE = "-DFSBL_DEBUG_INFO -g -no-pie";
+        NIX_LDFLAGS = "-no-pie";
+        
         patchPhase = ''
           patchShebangs lib/sw_apps/zynq_fsbl/misc/copy_bsp.sh
 
@@ -84,7 +88,7 @@
         '';
         buildPhase = ''
           cd lib/sw_apps/zynq_fsbl/src
-          make BOARD=${board} "CFLAGS=-DFSBL_DEBUG_INFO -g"
+          make BOARD=${board}
         '';
         installPhase = ''
           mkdir $out
