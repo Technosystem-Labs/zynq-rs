@@ -67,8 +67,8 @@
         src = pkgs.fetchFromGitHub {
           owner = "Xilinx";
           repo = "embeddedsw";
-          rev = "xilinx_v2022.2";
-          sha256 = "sha256-UDz9KK/Hw3qM1BAeKif30rE8Bi6C2uvuZlvyvtJCMfw=";
+          rev = "xilinx_v2025.1_update1";
+          sha256 = "sha256-XAwhkox1PDyo/UmxP9kjgKsjuoeWgIVhg8X1qFk+Pdo=";
         };
         nativeBuildInputs = [
           pkgs.pkgsCross.zynq-baremetal.buildPackages.binutils
