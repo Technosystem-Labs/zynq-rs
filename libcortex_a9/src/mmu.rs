@@ -401,6 +401,18 @@ impl L1Table {
         self.table[index] = L1Entry::from_section(base, section);
     }
 
+    pub fn remap_section(&mut self, virtual_addr: u32, new_physical_base: u32) {
+        assert!(virtual_addr & 0x000f_ffff == 0);
+
+        let index = (virtual_addr >> 20) as usize;
+
+        let entry = &mut self.table[index];
+        let section = entry.get_section();
+        *entry = L1Entry::from_section(new_physical_base, section);
+
+        self.flush_mmu_and_caches();
+    }
+
     pub fn update<T, F, R>(&mut self, ptr: *const T, f: F) -> R
     where F: FnOnce(&'_ mut L1Section) -> R {
         let index = (ptr as usize) >> 20;
@@ -409,10 +421,19 @@ impl L1Table {
         let result = f(&mut section);
         entry.set_section(section);
 
+        self.flush_mmu_and_caches();
+
+        result
+    }
+
+    #[inline(always)]
+    fn flush_mmu_and_caches(&self) {
         // Flush L1Dcache
         dcciall();
         // // TODO: L2?
 
+        // Invalidate I-Cache
+        iciallu();
         // Invalidate TLB
         tlbiall();
         // Invalidate all branch predictors
@@ -422,8 +443,6 @@ impl L1Table {
         dsb();
         // synchronize context on this processor
         isb();
-
-        result
     }
 }
 
@@ -453,4 +472,8 @@ pub fn with_mmu<F: FnMut() -> !>(l1table: &L1Table, mut f: F) -> ! {
     isb();
 
     f();
+}
+
+pub fn remap_section(virtual_addr: u32, new_physical_base: u32) {
+    L1Table::get().remap_section(virtual_addr, new_physical_base);
 }
