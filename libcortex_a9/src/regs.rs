@@ -107,8 +107,14 @@ register_bit!(mpidr,
 pub struct DFAR;
 def_reg_r!(DFAR, u32, "mrc p15, 0, {}, c6, c0, 0");
 
+pub struct IFAR;
+def_reg_r!(IFAR, u32, "mrc p15, 0, {}, c6, c0, 2");
+
 pub struct DFSR;
 def_reg_r!(DFSR, u32, "mrc p15, 0, {}, c5, c0, 0");
+
+pub struct IFSR;
+def_reg_r!(IFSR, u32, "mrc p15, 0, {}, c5, c0, 1");
 
 pub struct SCTLR;
 wrap_reg!(sctlr);

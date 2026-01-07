@@ -2,7 +2,7 @@ use core::arch::naked_asm;
 
 use libboard_zynq::{println, stdio};
 use libcortex_a9::{interrupt_handler,
-                   regs::{DFSR, MPIDR, VBAR}};
+                   regs::{DFAR, DFSR, IFAR, IFSR, MPIDR, VBAR}};
 use libregister::{RegisterR, RegisterW};
 
 pub fn set_vector_table(base_addr: u32) {
@@ -35,7 +35,9 @@ interrupt_handler!(
 
 interrupt_handler!(PrefetchAbort, prefetch_abort, __irq_stack0_start, __irq_stack1_start, {
     stdio::drop_uart();
-    println!("PrefetchAbort");
+    println!("PrefetchAbort on core {}", MPIDR.read().cpu_id());
+    println!("IFSR: {:03X}", IFSR.read());
+    println!("IFAR: {:08X}", IFAR.read());
     loop {}
 });
 
@@ -44,6 +46,7 @@ interrupt_handler!(DataAbort, data_abort, __irq_stack0_start, __irq_stack1_start
 
     println!("DataAbort on core {}", MPIDR.read().cpu_id());
     println!("DFSR: {:03X}", DFSR.read());
+    println!("DFAR: {:08X}", DFAR.read());
 
     loop {}
 });
