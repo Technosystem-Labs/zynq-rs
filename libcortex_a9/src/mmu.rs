@@ -407,6 +407,10 @@ impl L1Table {
         let index = (virtual_addr >> 20) as usize;
 
         let entry = &mut self.table[index];
+        if entry.0 & 0x000f_ffff == new_physical_base {
+            // don't waste time with flushing caches if there's no change
+            return;
+        }
         let section = entry.get_section();
         *entry = L1Entry::from_section(new_physical_base, section);
 
