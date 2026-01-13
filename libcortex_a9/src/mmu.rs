@@ -407,14 +407,20 @@ impl L1Table {
         let index = (virtual_addr >> 20) as usize;
 
         let entry = &mut self.table[index];
-        if entry.0 & 0x000f_ffff == new_physical_base {
-            // don't waste time with flushing caches if there's no change
+        if entry.0 & !0x000f_ffff == new_physical_base {
             return;
         }
         let section = entry.get_section();
         *entry = L1Entry::from_section(new_physical_base, section);
 
-        self.flush_mmu_and_caches();
+        // L1 I-cache cache is VIPT and 1MB page sizes guarantee different tags
+        // L1 D-cache and L2 cache is PIPT, unaffected by virtual memory changes
+        // thus flushing caches are unnecessary, we just
+        // invalidate the updated TLB entry and the branch predictor
+        tlbimva(virtual_addr);
+        bpiall();
+        dsb();
+        isb();
     }
 
     pub fn update<T, F, R>(&mut self, ptr: *const T, f: F) -> R
@@ -425,13 +431,6 @@ impl L1Table {
         let result = f(&mut section);
         entry.set_section(section);
 
-        self.flush_mmu_and_caches();
-
-        result
-    }
-
-    #[inline(always)]
-    fn flush_mmu_and_caches(&self) {
         // Flush L1Dcache
         dcciall();
         // // TODO: L2?
@@ -447,6 +446,8 @@ impl L1Table {
         dsb();
         // synchronize context on this processor
         isb();
+
+        result
     }
 }
 

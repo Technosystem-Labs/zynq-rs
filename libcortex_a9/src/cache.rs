@@ -11,6 +11,14 @@ pub fn tlbiall() {
     }
 }
 
+/// Invalidate TLB for given MVA
+#[inline(always)]
+pub fn tlbimva(mva: u32) {
+    unsafe {
+        asm!("mcr p15, 0, {}, c8, c7, 1", in(reg) mva);
+    }
+}
+
 /// Invalidate I-Cache
 #[inline(always)]
 pub fn iciallu() {
