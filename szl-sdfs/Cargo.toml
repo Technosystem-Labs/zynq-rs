@@ -1,0 +1,35 @@
+[package]
+name = "szl-sdfs"
+description = "Simple Zynq Loader SD File Service"
+version = "0.1.0"
+authors = ["M-Labs", "TechnoSystem"]
+edition = "2018"
+
+[features]
+target_zc706 = ["libboard_zynq/target_zc706", "libsupport_zynq/target_zc706", "libconfig/target_zc706"]
+target_coraz7 = ["libboard_zynq/target_coraz7", "libsupport_zynq/target_coraz7", "libconfig/target_coraz7"]
+target_ebaz4205 = ["libboard_zynq/target_ebaz4205", "libsupport_zynq/target_ebaz4205", "libconfig/target_ebaz4205"]
+target_redpitaya = ["libboard_zynq/target_redpitaya", "libsupport_zynq/target_redpitaya", "libconfig/target_redpitaya"]
+target_kasli_soc = ["libboard_zynq/target_kasli_soc", "libsupport_zynq/target_kasli_soc", "libconfig/target_kasli_soc"]
+default = ["target_zc706"]
+
+[dependencies]
+log = "0.4"
+byteorder = { version = "1.3", default-features = false }
+libboard_zynq = { path = "../libboard_zynq" }
+libsupport_zynq = { path = "../libsupport_zynq" }
+libcortex_a9 = { path = "../libcortex_a9" }
+libregister = { path = "../libregister" }
+libconfig = { path = "../libconfig" }
+
+[dependencies.fatfs]
+git = "https://git.m-labs.hk/M-Labs/rust-fatfs.git"
+rev = "4b5e420084"
+default-features = false
+features = ["core_io"]
+
+[dependencies.core_io]
+git = "https://git.m-labs.hk/M-Labs/rs-core_io.git"
+rev = "e9d3edf027"
+features = ["collections"]
+

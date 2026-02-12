@@ -8,6 +8,7 @@ members = [
   "libconfig",
   "experiments",
   "szl",
+  "szl-sdfs",
 ]
 
 [profile.release]

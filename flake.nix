@@ -134,6 +134,7 @@
     targetCrates = target: {
       "${target}-experiments" = build-crate "${target}-experiments" "experiments" "target_${target}";
       "${target}-szl" = build-crate "${target}-szl" "szl" "target_${target}";
+      "${target}-szl-sdfs" = build-crate "${target}-szl-sdfs" "szl-sdfs" "target_${target}";
     };
     targets = ["zc706" "coraz7" "redpitaya" "kasli_soc" "ebaz4205"];
     allTargetCrates =
@@ -151,6 +152,14 @@
       ) "mkdir $out\n"
       targets);
 
+    szl-sdfs = pkgs.runCommand "szl-sdfs" {} (builtins.foldl' (
+        commands: target: let
+          szlSdfsResult = builtins.getAttr "${target}-szl-sdfs" allTargetCrates;
+        in
+          commands + "ln -s ${szlSdfsResult}/szl-sdfs.elf $out/szl-sdfs-${target}.elf\n"
+      ) "mkdir $out\n"
+      targets);
+
     fmt-check = pkgs.stdenvNoCC.mkDerivation {
       name = "fmt-check";
 
@@ -165,6 +174,20 @@
         touch $out
       '';
     };
+
+    szl-sdfs-cli = target: pkgs.writeShellApplication {
+      name = "szl-sdfs-${target}-cli";
+      runtimeInputs = [
+        (pkgs.python3.withPackages (ps: [ps.pyserial]))
+        pkgs.openocd
+      ];
+      text = ''
+        export SZL_SDFS_DEFAULT_ELF="${szl-sdfs}/szl-sdfs-${target}.elf"
+        export SZL_SDFS_OPENOCD_SEARCH_PATH="${./openocd}"
+        exec python ${./szl-sdfs/szl_sdfs_cli.py} "$@"
+      '';
+    };
+
   in rec {
     packages.x86_64-linux =
       {
@@ -178,6 +201,17 @@
     inherit rust naerskLib;
 
     formatter.x86_64-linux = pkgs.alejandra;
+
+    apps.x86_64-linux = 
+    builtins.foldl' (
+      results: target:
+        results // {
+          "${target}-szl-sdfs-cli" = {
+            type = "app";
+            program = "${szl-sdfs-cli target}/bin/szl-sdfs-${target}-cli";
+          };
+        }
+    ) {} targets;
 
     devShell.x86_64-linux = pkgs.mkShell {
       name = "zynq-rs-dev-shell";

@@ -5,7 +5,7 @@ use libcortex_a9::{asm,
 
 use crate::uart::Uart;
 
-const UART_RATE: u32 = 115_200;
+const UART_RATE: u32 = 1_500_000;
 static mut UART: Mutex<LazyUart> = Mutex::new(LazyUart::Uninitialized);
 
 #[doc(hidden)]

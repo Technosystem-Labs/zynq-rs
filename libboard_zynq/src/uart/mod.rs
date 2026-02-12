@@ -195,9 +195,21 @@ impl Uart {
         self.regs.channel_sts.read().txfull()
     }
 
+    pub fn rx_fifo_empty(&self) -> bool {
+        self.regs.channel_sts.read().rxempty()
+    }
+
     pub fn tx_idle(&self) -> bool {
         let status = self.regs.channel_sts.read();
         status.txempty() && !status.tactive()
+    }
+
+    pub fn read_byte(&mut self) -> nb::Result<u8, Void> {
+        if self.rx_fifo_empty() {
+            Err(nb::Error::WouldBlock)
+        } else {
+            Ok(self.regs.tx_rx_fifo.read().data() as u8)
+        }
     }
 }
 
@@ -234,3 +246,11 @@ impl embedded_hal::serial::Write<u8> for Uart {
 
 /// embedded_hal sync API
 impl embedded_hal::blocking::serial::write::Default<u8> for Uart {}
+
+impl embedded_hal::serial::Read<u8> for Uart {
+    type Error = Void;
+
+    fn read(&mut self) -> nb::Result<u8, Void> {
+        self.read_byte()
+    }
+}
