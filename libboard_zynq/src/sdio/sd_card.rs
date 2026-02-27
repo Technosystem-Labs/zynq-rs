@@ -195,6 +195,11 @@ impl SdCard {
         self.sdio
     }
 
+    /// Return the number of 512-byte sectors on the card.
+    pub fn sector_count(&self) -> u32 {
+        self.sector_cnt
+    }
+
     /// read blocks starting from an address. Each block has length 512 byte.
     /// Note that the address is block address, i.e. 0 for 0~512, 1 for 512~1024, etc.
     pub fn read_block(&mut self, address: u32, block_cnt: u16, buffer: &mut [u8]) -> Result<(), CmdTransferError> {

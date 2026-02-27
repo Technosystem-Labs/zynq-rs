@@ -9,7 +9,7 @@ Supported features:
 * SD card
 * PL programming and startup
 * Pure Rust SZL first-stage bootloader with SD boot
-* SZL UART SD file service (list/upload/download/delete/reboot)
+* SZL UART SD file service with subdirectory support (list/upload/download/delete/mkdir/rmdir/reboot/format)
 * Control of second CPU core and message passing, with async-await support
 
 
@@ -66,34 +66,50 @@ openocd -f zc706.cfg -c "pld load 0 blinker_migen.bit; exit"
 
 ## SZL SD File Service
 
-`szl` currently boots into an SD-backed file service over UART.  
+`szl-sdfs` boots into an SD-backed file service over UART.
 After boot, it prints `SZL-SD READY v1; switching to binary protocol` and accepts framed binary commands.
 
 You can run the client directly from the flake with:
 
 ```shell
-# load ELF image into target
-nix run github:Technosystem-Labs/zynq-rs#szl-sdfs-cli -- load
+# load ELF image into target via JTAG
+nix run .#kasli_soc-szl-sdfs-cli -- load
 
-# list files on SD root directory
-nix run github:Technosystem-Labs/zynq-rs#szl-sdfs-cli -- list
+# list files and directories in SD root
+nix run .#kasli_soc-szl-sdfs-cli -- list
 
-# upload local file to SD root (8.3 filename)
-nix run github:Technosystem-Labs/zynq-rs#szl-sdfs-cli -- upload BOOT.BIN BOOT.BIN
+# list contents of a subdirectory
+nix run .#kasli_soc-szl-sdfs-cli -- list ARTIQ
+
+# upload local file (supports subdirectory paths)
+nix run .#kasli_soc-szl-sdfs-cli -- upload BOOT.BIN BOOT.BIN
+nix run .#kasli_soc-szl-sdfs-cli -- upload local.bin ARTIQ/CONFIG.BIN
 
 # download remote file to local path
-nix run github:Technosystem-Labs/zynq-rs#szl-sdfs-cli -- download BOOT.BIN BOOT.BIN
+nix run .#kasli_soc-szl-sdfs-cli -- download BOOT.BIN BOOT.BIN
+nix run .#kasli_soc-szl-sdfs-cli -- download ARTIQ/CONFIG.BIN config.bin
 
-# delete file from SD
-nix run github:Technosystem-Labs/zynq-rs#szl-sdfs-cli -- delete BOOT.BIN
+# delete a file
+nix run .#kasli_soc-szl-sdfs-cli -- delete BOOT.BIN
+
+# create a directory (creates intermediate directories as needed)
+nix run .#kasli_soc-szl-sdfs-cli -- mkdir ARTIQ/CONFIG
+
+# remove an empty directory
+nix run .#kasli_soc-szl-sdfs-cli -- rmdir ARTIQ/CONFIG
 
 # reboot target
-nix run github:Technosystem-Labs/zynq-rs#szl-sdfs-cli -- reboot
+nix run .#kasli_soc-szl-sdfs-cli -- reboot
+
+# format the SD card (writes new MBR + FAT32 partition, erases all data)
+nix run .#kasli_soc-szl-sdfs-cli -- format --yes
 ```
 
 Notes:
 * UART baud rate for this service is fixed at `1500000`.
-* File operations are limited to the FAT root directory with 8.3-style names.
+* All filenames use 8.3 format (base 1–8 chars, extension 0–3 chars; allowed chars: `A-Z`, `0-9`, `_`, `-`); lowercase is accepted and converted to uppercase automatically.
+* Paths use `/` as separator; leading/trailing slashes are not allowed.
+* `format` rewrites the MBR and creates a fresh FAT32 partition starting at LBA 1. All existing data is lost.
 * If you get a `error: access to absolute path` error, try with `--impure` or upgrade your Nix (see [PR #12045](https://github.com/NixOS/nix/pull/12045))
 * When ARTIQ-Zynq is already present on the target SD card, the `load` command (OpenOCD JTAG load + resume) often works only if run shortly after power cycling the device.
   Workaround: power cycle the board, then run `load` shortly after the power is restored.

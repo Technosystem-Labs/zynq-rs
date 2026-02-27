@@ -22,6 +22,9 @@ const CMD_UPLOAD_END: u8 = 0x04;
 const CMD_DOWNLOAD: u8 = 0x05;
 const CMD_DELETE: u8 = 0x06;
 const CMD_REBOOT: u8 = 0x07;
+const CMD_MKDIR: u8 = 0x08;
+const CMD_RMDIR: u8 = 0x09;
+const CMD_FORMAT: u8 = 0x0A;
 
 const STATUS_OK: u8 = 0x00;
 const STATUS_BAD_FRAME: u8 = 0x01;
@@ -64,22 +67,19 @@ struct Service {
     upload: Option<UploadSession>,
 }
 
-pub fn run() -> ! {
-    println!("SZL SD Service starting...");
-    println!("UART ready: 1500000");
-
-    let mut service = loop {
+fn mount_loop() -> Service {
+    loop {
         println!("Checking SD card...");
         match mount_fs() {
             Ok(fs) => {
                 println!("SD mounted successfully");
-                println!("Mode: root-only FAT32 file service (8.3 names)");
-                println!("Commands: list/upload/download/delete/reboot");
+                println!("Mode: FAT32 file service (subdirectory support)");
+                println!("Commands: list/upload/download/delete/mkdir/rmdir/reboot/format");
                 println!("{}", READY_SENTINEL);
                 for _ in 0..20_000_000 {
                     asm::nop();
                 }
-                break Service {
+                return Service {
                     fs,
                     next_upload_id: 1,
                     upload: None,
@@ -90,12 +90,25 @@ pub fn run() -> ! {
                 wait_ms(1000);
             }
         }
-    };
+    }
+}
+
+pub fn run() -> ! {
+    println!("SZL SD Service starting...");
+    println!("UART ready: 1500000");
+
+    let mut service = mount_loop();
 
     log::set_max_level(log::LevelFilter::Off);
 
     loop {
         match read_request() {
+            Ok(req) if req.cmd == CMD_FORMAT => {
+                let _ = send_response(CMD_FORMAT, req.seq, STATUS_OK, &[]);
+                drop(service);
+                do_format();
+                service = mount_loop();
+            }
             Ok(req) => service.handle_request(req),
             Err(()) => {
                 let _ = send_response(0, 0, STATUS_BAD_FRAME, &[]);
@@ -108,13 +121,15 @@ impl Service {
     fn handle_request(&mut self, req: Request) {
         match req.cmd {
             CMD_IDENTIFY => self.cmd_identify(req.seq),
-            CMD_LIST => self.cmd_list(req.seq),
+            CMD_LIST => self.cmd_list(req.seq, &req.payload),
             CMD_UPLOAD_BEGIN => self.cmd_upload_begin(req.seq, &req.payload),
             CMD_UPLOAD_CHUNK => self.cmd_upload_chunk(req.seq, &req.payload),
             CMD_UPLOAD_END => self.cmd_upload_end(req.seq, &req.payload),
             CMD_DOWNLOAD => self.cmd_download(req.seq, &req.payload),
             CMD_DELETE => self.cmd_delete(req.seq, &req.payload),
             CMD_REBOOT => self.cmd_reboot(req.seq),
+            CMD_MKDIR => self.cmd_mkdir(req.seq, &req.payload),
+            CMD_RMDIR => self.cmd_rmdir(req.seq, &req.payload),
             _ => {
                 let _ = send_response(req.cmd, req.seq, STATUS_BAD_CMD, &[]);
             }
@@ -125,14 +140,31 @@ impl Service {
         let _ = send_response(CMD_IDENTIFY, seq, STATUS_OK, FW_ID);
     }
 
-    fn cmd_list(&mut self, seq: u16) {
-        let root = self.fs.root_dir();
-        let mut payload = Vec::new();
-        payload.extend_from_slice(&0u16.to_le_bytes());
+    fn cmd_list(&mut self, seq: u16, payload: &[u8]) {
+        let dir = if payload.is_empty() || payload[0] == 0 {
+            self.fs.root_dir()
+        } else {
+            let (path, _) = match parse_path(payload) {
+                Ok(v) => v,
+                Err(status) => {
+                    let _ = send_response(CMD_LIST, seq, status, &[]);
+                    return;
+                }
+            };
+            match self.fs.root_dir().open_dir(path.as_str()) {
+                Ok(d) => d,
+                Err(_) => {
+                    let _ = send_response(CMD_LIST, seq, STATUS_NOT_FOUND, &[]);
+                    return;
+                }
+            }
+        };
+
+        let mut out = Vec::new();
+        out.extend_from_slice(&0u16.to_le_bytes());
 
         let mut count: u16 = 0;
-        let entries = root.iter();
-        for entry in entries {
+        for entry in dir.iter() {
             let entry = match entry {
                 Ok(e) => e,
                 Err(_) => {
@@ -140,35 +172,45 @@ impl Service {
                     return;
                 }
             };
-            if !entry.is_file() {
+
+            let is_file = entry.is_file();
+            let is_dir = entry.is_dir();
+            if !is_file && !is_dir {
                 continue;
             }
+
             let name_bytes = entry.short_file_name_as_bytes();
+            if is_dir && (name_bytes == b"." || name_bytes == b"..") {
+                continue;
+            }
             if name_bytes.len() > u8::MAX as usize {
                 continue;
             }
 
-            let need = 1 + name_bytes.len() + 4;
-            if payload.len() + need > MAX_FRAME_PAYLOAD {
+            let type_byte: u8 = if is_dir { 0x01 } else { 0x00 };
+            let size: u32 = if is_file { entry.len() as u32 } else { 0 };
+            let need = 2 + name_bytes.len() + 4;
+            if out.len() + need > MAX_FRAME_PAYLOAD {
                 let _ = send_response(CMD_LIST, seq, STATUS_NO_SPACE, &[]);
                 return;
             }
 
-            payload.push(name_bytes.len() as u8);
-            payload.extend_from_slice(name_bytes);
-            payload.extend_from_slice(&(entry.len() as u32).to_le_bytes());
+            out.push(type_byte);
+            out.push(name_bytes.len() as u8);
+            out.extend_from_slice(name_bytes);
+            out.extend_from_slice(&size.to_le_bytes());
             count = count.saturating_add(1);
         }
 
-        payload[0..2].copy_from_slice(&count.to_le_bytes());
-        let _ = send_response(CMD_LIST, seq, STATUS_OK, &payload);
+        out[0..2].copy_from_slice(&count.to_le_bytes());
+        let _ = send_response(CMD_LIST, seq, STATUS_OK, &out);
     }
 
     fn cmd_upload_begin(&mut self, seq: u16, payload: &[u8]) {
         // Replace any stale/incomplete session so host can recover by issuing
         // a fresh UPLOAD_BEGIN without requiring reboot.
         self.upload = None;
-        let (name, mut pos) = match parse_name(payload) {
+        let (name, mut pos) = match parse_path(payload) {
             Ok(v) => v,
             Err(status) => {
                 let _ = send_response(CMD_UPLOAD_BEGIN, seq, status, &[]);
@@ -257,7 +299,8 @@ impl Service {
                 return;
             }
         };
-        if file.seek(SeekFrom::Start(offset as u64)).is_err() || file.write_all(chunk).is_err() || file.flush().is_err() {
+        if file.seek(SeekFrom::Start(offset as u64)).is_err() || file.write_all(chunk).is_err() || file.flush().is_err()
+        {
             let _ = send_response(CMD_UPLOAD_CHUNK, seq, STATUS_IO_ERROR, &[]);
             return;
         }
@@ -305,7 +348,7 @@ impl Service {
     }
 
     fn cmd_download(&mut self, seq: u16, payload: &[u8]) {
-        let (name, pos) = match parse_name(payload) {
+        let (name, pos) = match parse_path(payload) {
             Ok(v) => v,
             Err(status) => {
                 let _ = send_response(CMD_DOWNLOAD, seq, status, &[]);
@@ -363,7 +406,7 @@ impl Service {
     }
 
     fn cmd_delete(&mut self, seq: u16, payload: &[u8]) {
-        let (name, pos) = match parse_name(payload) {
+        let (name, pos) = match parse_path(payload) {
             Ok(v) => v,
             Err(status) => {
                 let _ = send_response(CMD_DELETE, seq, status, &[]);
@@ -394,18 +437,71 @@ impl Service {
             asm::nop();
         }
     }
+
+    fn cmd_mkdir(&mut self, seq: u16, payload: &[u8]) {
+        let (path, pos) = match parse_path(payload) {
+            Ok(v) => v,
+            Err(status) => {
+                let _ = send_response(CMD_MKDIR, seq, status, &[]);
+                return;
+            }
+        };
+        if pos != payload.len() {
+            let _ = send_response(CMD_MKDIR, seq, STATUS_BAD_FRAME, &[]);
+            return;
+        }
+
+        // Create each path component in order so intermediate directories exist.
+        let root = self.fs.root_dir();
+        let mut current_path = String::new();
+        for component in path.split('/') {
+            if !current_path.is_empty() {
+                current_path.push('/');
+            }
+            current_path.push_str(component);
+            if root.create_dir(current_path.as_str()).is_err() {
+                let _ = send_response(CMD_MKDIR, seq, STATUS_IO_ERROR, &[]);
+                return;
+            }
+        }
+        let _ = send_response(CMD_MKDIR, seq, STATUS_OK, &[]);
+    }
+
+    fn cmd_rmdir(&mut self, seq: u16, payload: &[u8]) {
+        let (path, pos) = match parse_path(payload) {
+            Ok(v) => v,
+            Err(status) => {
+                let _ = send_response(CMD_RMDIR, seq, status, &[]);
+                return;
+            }
+        };
+        if pos != payload.len() {
+            let _ = send_response(CMD_RMDIR, seq, STATUS_BAD_FRAME, &[]);
+            return;
+        }
+
+        let root = self.fs.root_dir();
+        match root.remove(path.as_str()) {
+            Ok(_) => {
+                let _ = send_response(CMD_RMDIR, seq, STATUS_OK, &[]);
+            }
+            Err(_) => {
+                let _ = send_response(CMD_RMDIR, seq, STATUS_IO_ERROR, &[]);
+            }
+        }
+    }
 }
 
-fn parse_name(payload: &[u8]) -> Result<(String, usize), u8> {
+fn parse_path(payload: &[u8]) -> Result<(String, usize), u8> {
     if payload.is_empty() {
         return Err(STATUS_BAD_FRAME);
     }
-    let name_len = payload[0] as usize;
-    if name_len == 0 || payload.len() < 1 + name_len {
+    let path_len = payload[0] as usize;
+    if path_len == 0 || payload.len() < 1 + path_len {
         return Err(STATUS_BAD_FRAME);
     }
 
-    let raw = &payload[1..1 + name_len];
+    let raw = &payload[1..1 + path_len];
     let mut up = String::new();
     for &b in raw {
         if b.is_ascii_lowercase() {
@@ -415,11 +511,18 @@ fn parse_name(payload: &[u8]) -> Result<(String, usize), u8> {
         }
     }
 
-    if !is_valid_83(&up) {
+    if !is_valid_path(&up) {
         return Err(STATUS_INVALID_NAME);
     }
 
-    Ok((up, 1 + name_len))
+    Ok((up, 1 + path_len))
+}
+
+fn is_valid_path(path: &str) -> bool {
+    if path.is_empty() || path.starts_with('/') || path.ends_with('/') || path.contains("//") {
+        return false;
+    }
+    path.split('/').all(is_valid_83)
 }
 
 fn is_valid_83(name: &str) -> bool {
@@ -461,6 +564,33 @@ fn is_valid_83(name: &str) -> bool {
 
 fn is_allowed_83_char(b: u8) -> bool {
     b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_' || b == b'-'
+}
+
+fn do_format() {
+    let sdio0 = sdio::Sdio::sdio0(true);
+    let mut sd = sdio::sd_card::SdCard::from_sdio(sdio0).expect("SD init failed during format");
+    let total_sectors = sd.sector_count();
+
+    // Write a minimal MBR with one FAT32 LBA partition starting at LBA 1.
+    let mut mbr = [0u8; 512];
+    mbr[446] = 0x80; // bootable
+    mbr[450] = 0x0C; // FAT32 LBA partition type
+    mbr[454..458].copy_from_slice(&1u32.to_le_bytes()); // LBA start
+    mbr[458..462].copy_from_slice(&(total_sectors - 1).to_le_bytes()); // LBA size
+    mbr[510] = 0x55;
+    mbr[511] = 0xAA;
+    sd.write_block(0, 1, &mbr).expect("MBR write failed");
+
+    // Position an SdReader at the partition start (byte 512 = block 1) and format.
+    let mut reader = sd_reader::SdReader::new(sd);
+    reader.set_base_offset(512).expect("seek to partition failed");
+    fatfs::format_volume(
+        reader,
+        fatfs::FormatVolumeOptions::new()
+            .fat_type(fatfs::FatType::Fat32)
+            .total_sectors(total_sectors - 1),
+    )
+    .expect("format_volume failed");
 }
 
 fn mount_fs() -> Result<FileSystem, &'static str> {

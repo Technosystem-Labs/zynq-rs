@@ -20,6 +20,9 @@ CMD_UPLOAD_END = 0x04
 CMD_DOWNLOAD = 0x05
 CMD_DELETE = 0x06
 CMD_REBOOT = 0x07
+CMD_MKDIR = 0x08
+CMD_RMDIR = 0x09
+CMD_FORMAT = 0x0A
 
 FLAG_MORE = 0x01
 READY_SENTINEL = b"SZL-SD READY v1; switching to binary protocol"
@@ -116,31 +119,53 @@ def ensure_firmware(ser, seq: int) -> bytes:
     return identify_fw(ser, seq)
 
 
-def validate_remote_name(name: str):
-    if len(name) == 0 or len(name) > 12:
-        raise ValueError("Remote name must be 1..12 chars (8.3)")
-    if "/" in name or "\\" in name or ":" in name or ".." in name or " " in name:
-        raise ValueError("Remote name must not contain path separators, spaces, or ..")
-    up = name.upper()
-    parts = up.split(".")
+def _validate_83_component(component: str):
+    """Validate a single 8.3 name component (already uppercased)."""
+    if len(component) == 0 or len(component) > 12:
+        raise ValueError(f"Name component {component!r} must be 1..12 chars")
+    if " " in component or "\\" in component or ":" in component or ".." in component:
+        raise ValueError(f"Name component {component!r} contains invalid characters")
+    parts = component.split(".")
     if len(parts) > 2:
-        raise ValueError("Remote name must be 8.3")
+        raise ValueError(f"Name component {component!r} must be 8.3")
     base = parts[0]
     ext = parts[1] if len(parts) == 2 else ""
     if len(base) == 0 or len(base) > 8:
-        raise ValueError("Remote base name must be 1..8")
+        raise ValueError(f"Base name {base!r} must be 1..8 chars")
     if ext and len(ext) > 3:
-        raise ValueError("Remote extension must be 1..3")
+        raise ValueError(f"Extension {ext!r} must be 1..3 chars")
     allowed = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-")
     if not set(base).issubset(allowed):
-        raise ValueError("Remote base contains invalid characters")
+        raise ValueError(f"Base {base!r} contains invalid characters")
     if ext and not set(ext).issubset(allowed):
-        raise ValueError("Remote extension contains invalid characters")
+        raise ValueError(f"Extension {ext!r} contains invalid characters")
+
+
+def validate_path(path: str) -> str:
+    """Validate a remote path (one or more 8.3 components separated by '/').
+
+    Returns the uppercased path.
+    """
+    if not path:
+        raise ValueError("Remote path must not be empty")
+    up = path.upper()
+    if up.startswith("/") or up.endswith("/") or "//" in up:
+        raise ValueError("Remote path must not have leading/trailing/double slashes")
+    if len(up) > 255:
+        raise ValueError("Remote path too long (max 255 bytes)")
+    for component in up.split("/"):
+        _validate_83_component(component)
     return up
 
 
-def cmd_list(ser, seq):
-    write_frame(ser, CMD_LIST, seq, b"")
+def cmd_list(ser, seq, path=""):
+    if path:
+        remote = validate_path(path)
+        encoded = remote.encode("ascii")
+        payload = bytes([len(encoded)]) + encoded
+    else:
+        payload = b""
+    write_frame(ser, CMD_LIST, seq, payload)
     rcmd, rseq, status, payload = read_frame(ser)
     if rcmd != CMD_LIST or rseq != seq:
         raise ProtoError("Mismatched response")
@@ -151,23 +176,27 @@ def cmd_list(ser, seq):
     off = 2
     entries = []
     for _ in range(count):
-        if off + 1 > len(payload):
+        if off + 2 > len(payload):
             raise ProtoError("LIST malformed")
-        nlen = payload[off]
-        off += 1
+        type_byte = payload[off]
+        nlen = payload[off + 1]
+        off += 2
         if off + nlen + 4 > len(payload):
             raise ProtoError("LIST malformed")
-        name = payload[off:off+nlen].decode("ascii", errors="replace")
+        name = payload[off:off + nlen].decode("ascii", errors="replace")
         off += nlen
         size, = struct.unpack_from("<I", payload, off)
         off += 4
-        entries.append((name, size))
-    for name, size in entries:
-        print(f"{name}\t{size}")
+        entries.append((type_byte, name, size))
+    for type_byte, name, size in entries:
+        if type_byte == 0x01:
+            print(f"{name}/")
+        else:
+            print(f"{name}\t{size}")
 
 
 def cmd_upload(ser, seq, local_path, remote_name):
-    remote = validate_remote_name(remote_name)
+    remote = validate_path(remote_name)
     with open(local_path, "rb") as f:
         data = f.read()
     total_size = len(data)
@@ -232,7 +261,7 @@ def cmd_upload(ser, seq, local_path, remote_name):
 
 
 def cmd_download(ser, seq, remote_name, local_path):
-    remote = validate_remote_name(remote_name)
+    remote = validate_path(remote_name)
     payload = bytes([len(remote)]) + remote.encode("ascii")
     write_frame(ser, CMD_DOWNLOAD, seq, payload)
 
@@ -276,7 +305,7 @@ def cmd_download(ser, seq, remote_name, local_path):
 
 
 def cmd_delete(ser, seq, remote_name):
-    remote = validate_remote_name(remote_name)
+    remote = validate_path(remote_name)
     payload = bytes([len(remote)]) + remote.encode("ascii")
     write_frame(ser, CMD_DELETE, seq, payload)
     rcmd, rseq, status, _ = read_frame(ser)
@@ -293,6 +322,44 @@ def cmd_reboot(ser, seq):
         raise ProtoError("Mismatched REBOOT response")
     expect_status_ok(rcmd, status)
     print("Reboot command acknowledged")
+
+
+def cmd_mkdir(ser, seq, path):
+    remote = validate_path(path)
+    encoded = remote.encode("ascii")
+    payload = bytes([len(encoded)]) + encoded
+    write_frame(ser, CMD_MKDIR, seq, payload)
+    rcmd, rseq, status, _ = read_frame(ser)
+    if (rcmd, rseq) != (CMD_MKDIR, seq):
+        raise ProtoError("Mismatched MKDIR response")
+    expect_status_ok(rcmd, status)
+    print(f"Created directory {remote}")
+
+
+def cmd_rmdir(ser, seq, path):
+    remote = validate_path(path)
+    encoded = remote.encode("ascii")
+    payload = bytes([len(encoded)]) + encoded
+    write_frame(ser, CMD_RMDIR, seq, payload)
+    rcmd, rseq, status, _ = read_frame(ser)
+    if (rcmd, rseq) != (CMD_RMDIR, seq):
+        raise ProtoError("Mismatched RMDIR response")
+    expect_status_ok(rcmd, status)
+    print(f"Removed directory {remote}")
+
+
+def cmd_format(ser, seq, yes: bool):
+    if not yes:
+        answer = input("This will ERASE the entire SD card. Type 'yes' to confirm: ")
+        if answer.strip().lower() != "yes":
+            print("Aborted.")
+            return
+    write_frame(ser, CMD_FORMAT, seq, b"")
+    rcmd, rseq, status, _ = read_frame(ser)
+    if (rcmd, rseq) != (CMD_FORMAT, seq):
+        raise ProtoError("Mismatched FORMAT response")
+    expect_status_ok(rcmd, status)
+    print("Format complete. SD card remounting...")
 
 
 def cmd_load(args):
@@ -335,7 +402,9 @@ def main():
 
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("identify")
-    sub.add_parser("list")
+
+    ls = sub.add_parser("list")
+    ls.add_argument("path", nargs="?", default="", help="Remote directory path to list (default: root)")
 
     up = sub.add_parser("upload")
     up.add_argument("local")
@@ -349,6 +418,15 @@ def main():
     rm.add_argument("remote")
 
     sub.add_parser("reboot")
+
+    mk = sub.add_parser("mkdir")
+    mk.add_argument("path")
+
+    rd = sub.add_parser("rmdir")
+    rd.add_argument("path")
+
+    fmt = sub.add_parser("format")
+    fmt.add_argument("--yes", "-y", action="store_true", help="Skip confirmation prompt")
 
     ld = sub.add_parser("load")
     ld.add_argument("--target", default="kasli_soc", help="Target board")
@@ -373,7 +451,7 @@ def main():
         if args.cmd == "identify":
             print(ident.decode("ascii", errors="replace"))
         elif args.cmd == "list":
-            cmd_list(ser, seq)
+            cmd_list(ser, seq, args.path)
         elif args.cmd == "upload":
             cmd_upload(ser, seq, args.local, args.remote)
         elif args.cmd == "download":
@@ -382,6 +460,12 @@ def main():
             cmd_delete(ser, seq, args.remote)
         elif args.cmd == "reboot":
             cmd_reboot(ser, seq)
+        elif args.cmd == "mkdir":
+            cmd_mkdir(ser, seq, args.path)
+        elif args.cmd == "rmdir":
+            cmd_rmdir(ser, seq, args.path)
+        elif args.cmd == "format":
+            cmd_format(ser, seq, args.yes)
         else:
             raise ValueError("Unknown command")
 

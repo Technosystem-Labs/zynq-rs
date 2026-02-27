@@ -137,7 +137,7 @@ impl SdReader {
     }
 
     /// Set the base offset of the SD card, to transform from physical address to logical address.
-    fn set_base_offset(&mut self, offset: u32) -> IoResult<u64> {
+    pub fn set_base_offset(&mut self, offset: u32) -> IoResult<u64> {
         self.offset = offset;
         self.seek(SeekFrom::Start(0))
     }
